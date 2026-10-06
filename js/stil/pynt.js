@@ -11,6 +11,7 @@ import { FIGUR } from './palett.js';
 import { poly, fasett, kasse, hus, iso, skygge, lys, mork, stein } from './lavpoly.js';
 import { settLag } from './neon.js';
 import { spillerfarge } from './spillerfarge.js';
+import { PYNT_O, LIV_O } from './oppfinnelser.js';
 
 // ---------------------------------------------------------------------------
 // Små hjelpere
@@ -814,6 +815,10 @@ export const LIV = {
     }
   },
 };
+
+// Skolen og oppfinnelsene ligger i egen fil.
+Object.assign(PYNT, PYNT_O);
+Object.assign(LIV, LIV_O);
 
 /** Tegner hele bygget: det som står stille og det som beveger seg (t = 0 gir et stillbilde). */
 export function tegnBygg(ctx, S, id, tilf, t = 0.6, fest = Infinity) {

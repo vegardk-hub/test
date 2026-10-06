@@ -488,7 +488,7 @@ function verktoy(ctx, type, h) {
  * Et lite menneske med føttene i (x, y) og høyde h.
  * o: { farge (skjorta), nr (hår), t (sekunder), gaar (0–1), arbeid (0–1), type (verktøy), mot (−1 venstre / 1 høyre), vink }
  */
-export function tegnMenneske(ctx, x, y, h, { farge = '#3a74d8', nr = 0, t = 0, gaar = 0, arbeid = 0, type = null, mot = 1, vink = 0 } = {}) {
+export function tegnMenneske(ctx, x, y, h, { farge = '#3a74d8', nr = 0, t = 0, gaar = 0, arbeid = 0, type = null, mot = 1, vink = 0, briller = false } = {}) {
   ctx.save();
   ctx.translate(x, y);
   ctx.fillStyle = 'rgba(20, 25, 15, 0.25)';
@@ -519,6 +519,12 @@ export function tegnMenneske(ctx, x, y, h, { farge = '#3a74d8', nr = 0, t = 0, g
   ctx.beginPath(); ctx.arc(0, -h * 0.87, h * 0.135, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
   ctx.fillStyle = '#2b2a2e';
   ctx.beginPath(); ctx.arc(h * 0.06, -h * 0.84, h * 0.018, 0, Math.PI * 2); ctx.fill();
+  if (briller) {
+    ctx.strokeStyle = '#2b2a2e';
+    ctx.lineWidth = Math.max(0.6, h * 0.014);
+    ctx.beginPath(); ctx.arc(h * 0.065, -h * 0.84, h * 0.04, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(h * 0.025, -h * 0.845); ctx.lineTo(-h * 0.09, -h * 0.86); ctx.stroke();
+  }
   // Fremre arm med verktøyet; når den arbeider, svinger den
   const fisker = arbeid && type === 'fisk';
   const sving = fisker ? -0.6 + Math.sin(t * 1.5) * 0.08

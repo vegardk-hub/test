@@ -313,6 +313,30 @@ for (const tak of [2, 3, 4, 5, 10]) {
   sjekk(sp.stat.hjulpet === ubrukt + 5, 'oppdrag fra i går gjøres ferdig om morgenen');
 }
 
+// Skolen: Theo finner på noe nytt hver sjette dag
+{
+  const sp = R.nyttSpill({ navn: 'Elev' }, 23);
+  const ve = R.lagVerden(sp);
+  sp.avdekket.fill(1);
+  sp.mynter = 5000;
+  const ledig = () => [...sp.avdekket.keys()].find((x) => R.kanPlassere(sp, ve, x));
+  sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'drage')[0].type === 'laast', 'oppfinnelser kan ikke kjøpes før Theo har funnet dem på');
+  sjekk(R.dagerTilIde(sp) === null, 'ingen ideer uten skole');
+  sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'skole')[0].type === 'bygget' && sp.mynter === 4500, 'skolen koster 500');
+  sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'skole')[0].type === 'laast', 'bare én skole per øy');
+  let ider = [];
+  for (let d = 0; d < 6; d++) { const h = R.nyDag(sp, ve)[0]; if (h.ide) ider.push([sp.dag, h.ide.id]); }
+  sjekk(ider.length === 1 && sp.ideDag === sp.dag, `første idé etter seks dager (${JSON.stringify(ider)})`);
+  const id = ider[0][1];
+  sjekk(R.kjopOgPlasser(sp, ve, ledig(), id)[0].type === 'bygget', 'oppfinnelsen kan kjøpes når den er funnet på');
+  for (let d = 0; d < 6 * 20; d++) R.nyDag(sp, ve);
+  sjekk(sp.oppfinnelser.length === 12 && new Set(sp.oppfinnelser).size === 12 && R.dagerTilIde(sp) === null, 'alle tolv blir funnet på, én gang hver');
+  const pr = (await import('../js/data/ting.js')).OPPFINNELSER.map((o) => o.pris);
+  sjekk(Math.min(...pr) === 20 && Math.max(...pr) === 200, 'prisene går fra 20 til 200');
+  const lagret = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
+  sjekk(lagret.oppfinnelser.length === 12, 'oppfinnelsene huskes ved lagring');
+}
+
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));
 sjekk(bareGange.art === 'gange' && [bareGange.a, bareGange.b].every((x) => x <= 2 || x === 10), 'bare ganging når bare ganging er valgt');
 

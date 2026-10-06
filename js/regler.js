@@ -8,7 +8,7 @@
 import { genererVerden } from './kartgen.js';
 import { T } from './data/terreng.js';
 import {
-  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, HJELPER, HJELPERE,
+  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, HJELPER, HJELPERE, SKOLE, OPPFINNELSER,
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
 import { medStandard } from './matte.js';
@@ -106,6 +106,9 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     takfarge: null,           // fargen på taket og flaggene (null = standard rød)
     hjelpere: [],             // hjelperne som har kommet (én per fem bygg, høyst fem)
     oppdrag: [],              // dagens oppdrag for hjelperne: { h, i, type } som ikke er gjort ennå
+    oppfinnelser: [],         // det Theo på skolen har funnet på (kan kjøpes i butikken)
+    skoleTeller: 0,           // dager med skole siden forrige idé
+    ideDag: null,             // dagen Theo sist fikk en idé (lyspæra vises den dagen)
     oyNr: 1,                  // øya man er på (1, 2, 3 …)
     oyFra: null,              // øya man fant denne fra (havna der man seilte ut)
     oyer: [],                 // de andre øyene man har vært på (pakket som data)
@@ -357,6 +360,29 @@ export function havnVed(spill) {
 export const havnApen = (spill) => ulikeBygg(spill) >= HAVN.krav;
 export const kanKjopeHavn = (spill) => havnApen(spill) && havnVed(spill) < 0;
 
+/** Ruta der skolen står på denne øya (eller −1). */
+export function skoleVed(spill) {
+  for (const [i, id] of spill.bygg) if (id === SKOLE.id) return i;
+  return -1;
+}
+
+/** Dager til Theo får en ny idé (null hvis det ikke står en skole her, eller han har funnet på alt). */
+export function dagerTilIde(spill) {
+  if (skoleVed(spill) < 0 || spill.oppfinnelser.length >= OPPFINNELSER.length) return null;
+  return SKOLE.hverDag - spill.skoleTeller;
+}
+
+/** Theo finner på noe nytt: en tilfeldig (seedet) oppfinnelse han ikke har funnet på før. */
+function nyIde(spill) {
+  const igjen = OPPFINNELSER.filter((o) => !spill.oppfinnelser.includes(o.id));
+  if (!igjen.length) return null;
+  const r = lagTilfeldig(blandSeed(spill.seed, 'ide', spill.oppfinnelser.length));
+  const o = igjen[Math.floor(r.tall() * igjen.length)];
+  spill.oppfinnelser.push(o.id);
+  spill.ideDag = spill.dag;
+  return o;
+}
+
 /** Det som skal tegnes på en byggerute (havna får en båt ved brygga når den er bygget). */
 export function pyntVed(spill, i) {
   const id = spill.bygg.get(i);
@@ -367,6 +393,8 @@ export function kjopOgPlasser(spill, verden, i, id) {
   const b = BYGG_ETTER_ID[id];
   if (!b || id === BAAT.id) return [];
   if (id === HAVN.id && !kanKjopeHavn(spill)) return [{ type: 'laast' }];
+  if (id === SKOLE.id && skoleVed(spill) >= 0) return [{ type: 'laast' }];
+  if (OPPFINNELSER.some((o) => o.id === id) && !spill.oppfinnelser.includes(id)) return [{ type: 'laast' }];
   if (spill.mynter < b.pris) return [{ type: 'forLiteMynter', mangler: b.pris - spill.mynter }];
   if (!kanPlassere(spill, verden, i, id)) return [{ type: 'ikkeHer' }];
   spill.mynter -= b.pris;
@@ -599,7 +627,13 @@ export function nyDag(spill, verden) {
   // Det hjelperne ikke rakk i går, gjøres ferdig før de får nye oppdrag.
   for (const o of [...spill.oppdrag]) hjelperFerdig(spill, verden, o.h);
   const oppdrag = planleggOppdrag(spill, verden);
-  return [{ type: 'nyDag', dag: spill.dag, vokst, kryss, oppdrag }];
+  // Theo på skolen får en ny idé hver sjette dag (bare på øya der skolen står).
+  let ide = null;
+  if (skoleVed(spill) >= 0 && spill.oppfinnelser.length < OPPFINNELSER.length) {
+    spill.skoleTeller++;
+    if (spill.skoleTeller >= SKOLE.hverDag) { spill.skoleTeller = 0; ide = nyIde(spill); }
+  }
+  return [{ type: 'nyDag', dag: spill.dag, vokst, kryss, oppdrag, ide }];
 }
 
 /** Et stjerneskudd fanget om natta. */
@@ -660,6 +694,9 @@ export function fraData(d) {
     baat: d.baat || (d.oyer ?? []).length > 0,
     kister: new Set(d.kister ?? []),
     hjelpere: d.hjelpere ?? [],
+    oppfinnelser: d.oppfinnelser ?? [],
+    skoleTeller: d.skoleTeller ?? 0,
+    ideDag: d.ideDag ?? null,
     oppdrag: d.oppdrag ?? [],
     kryss: new Map(d.kryss ?? []),
     gravd: new Set(d.gravd ?? []),

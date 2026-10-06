@@ -14,7 +14,7 @@ import { tegnMenneske, tegnFigur } from './figurer.js';
 import { tegnTomtKort } from './stil/ruter.js';
 import { PYNT, LIV, tegnBygg, ivrig } from './stil/pynt.js';
 import { poly, fasett } from './stil/lavpoly.js';
-import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER } from './data/ting.js';
+import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER } from './data/ting.js';
 import { settNeon, neonPaa, neonKontekst, glod } from './stil/neon.js';
 import { visVersjon } from './versjon.js';
 import { TAKFARGER, STANDARD_TAKFARGE, spillerfarge, settSpillerfarge } from './stil/spillerfarge.js';
@@ -34,6 +34,7 @@ const t = {
   naer: null, natt: null, plasser: null, skitten: true, solVis: 0,
   vist: {},           // det forrådet viser (tingene teller først når de har fløyet ned)
   tur: null,          // hjelpernes tur ut og hjem om morgenen
+  gutt: null,         // Theo fra skolen, som går rundt og finner på ting
   velkomst: null,     // en ny hjelper som kommer ut og vinker
   forrigeStykke: '',
 };
@@ -179,6 +180,7 @@ function trykkPaa(kx, ky) {
   const i = y * B + x;
   const s = t.spill, v = t.verden;
   if (t.plasser) { plasserHer(i); return; }
+  if (t.gutt && Math.hypot(kx - t.gutt.x, ky - (t.gutt.y - HJELPER_H * 0.5)) < RUTE * 0.3) { snakkMedGutt(); return; }
   if (!s.avdekket[i]) {
     behandle(R.borst(s, v, i), i);
     return;
@@ -792,15 +794,38 @@ function tegnButikk() {
     $('butikk-selg').querySelectorAll('[data-selg]').forEach((b) => { b.onclick = () => selgVare([b.dataset.selg], b); });
     $('selg-skatter')?.addEventListener('click', (e) => selgVare(SKATTER.filter((v) => s.forrad[v] > 0), e.currentTarget));
   } else {
-    $('butikk-kjop').innerHTML = BYGG.map((b) => {
-      const kan = s.mynter >= b.pris;
-      const mangler = b.pris - s.mynter;
-      return `<button class="byggkort${kan ? '' : ' dyr'}" data-bygg="${b.id}">
-        <img src="${byggBilde(b.id)}" alt=""><span class="bn">${esc(b.navn)}</span>
-        <span class="bp">${b.pris} 🪙</span>${!kan && !liten() ? `<span class="bm">mangler ${mangler}</span>` : ''}</button>`;
-    }).join('') + havnKort();
+    $('butikk-kjop').innerHTML = BYGG.map(kortFor).join('') + havnKort() + skoleKort() + oppfinnelseKort();
     $('butikk-kjop').querySelectorAll('[data-bygg]').forEach((b) => { b.onclick = () => velgBygg(b.dataset.bygg); });
   }
+}
+
+/** Et vanlig kort i butikken: bilde, navn, pris og hvor mye man mangler. */
+function kortFor(b) {
+  const s = t.spill;
+  const kan = s.mynter >= b.pris;
+  return `<button class="byggkort${kan ? '' : ' dyr'}" data-bygg="${b.id}">
+    <img src="${byggBilde(b.id)}" alt=""><span class="bn">${esc(b.navn)}</span>
+    <span class="bp">${b.pris} 🪙</span>${!kan && !liten() ? `<span class="bm">mangler ${b.pris - s.mynter}</span>` : ''}</button>`;
+}
+
+/** Skolen: et spesielt bygg, ett per øy. */
+function skoleKort() {
+  const s = t.spill, staar = R.skoleVed(s) >= 0;
+  return `<button class="byggkort skole${staar ? ' laast' : s.mynter < SKOLE.pris ? ' dyr' : ''}" data-bygg="${SKOLE.id}">
+    <img src="${byggBilde(SKOLE.id)}" alt=""><span class="bn">🏫 ${esc(SKOLE.navn)}</span>
+    <span class="bp">${SKOLE.pris} 🪙</span><span class="bl">${staar ? (liten() ? '✔️' : '✔️ Står på øya') : (liten() ? '💡' : `${OPPFINNER.navn} finner på nye ting`)}</span></button>`;
+}
+
+/** Det Theo har funnet på, og et spørsmålstegn for neste idé. */
+function oppfinnelseKort() {
+  const s = t.spill;
+  const funnet = OPPFINNELSER.filter((o) => s.oppfinnelser.includes(o.id));
+  const dager = R.dagerTilIde(s);
+  if (!funnet.length && dager === null) return '';
+  return `<div class="butikk-overskrift">💡 ${liten() ? '' : `${OPPFINNER.navn}s oppfinnelser (${funnet.length} av ${OPPFINNELSER.length})`}</div>`
+    + funnet.map(kortFor).join('')
+    + (dager !== null ? `<div class="byggkort hemmelig"><span class="sporsmal">💡❓</span>
+      <span class="bl">${liten() ? '' : `Ny idé om ${dager} ${dager === 1 ? 'dag' : 'dager'}`}</span></div>` : '');
 }
 
 /** Havna nederst i butikken: låst til alle de 20 ulike byggene står på øya. */
@@ -862,6 +887,12 @@ function velgBygg(id) {
     }
     return;
   }
+  if (id === SKOLE.id && R.skoleVed(t.spill) >= 0) {
+    rist($('butikk'));
+    L.tomt();
+    if (!liten()) melding(`Det står allerede en skole på øya. ${OPPFINNER.navn} går rundt der og tenker.`, { ikon: '🏫' });
+    return;
+  }
   if (t.spill.mynter < b.pris) {
     rist($('butikk'));
     L.tomt();
@@ -894,6 +925,10 @@ function plasserHer(i) {
     }, 2200);
   }
   if (id === HAVN.id) setTimeout(() => melding(liten() ? '⛵❓' : 'Trykk på havna for å bygge en seilbåt.', { ikon: '⛵' }), 2200);
+  if (id === SKOLE.id) {
+    setTimeout(() => melding(liten() ? '🏫🤓💡'
+      : `Ut av skolen kommer ${OPPFINNER.navn}, en smart gutt. Hver ${SKOLE.hverDag}. dag får han en idé til noe du kan kjøpe!`, { ikon: liten() ? '' : '🤓💡' }), 2300);
+  }
   const nyeHjelpere = h.filter((e) => e.type === 'nyHjelper');
   if (nyeHjelpere.length) setTimeout(() => velkommenHjelper(nyeHjelpere), 2400);
   trekkVist('mynter', BYGG_ETTER_ID[id].pris);
@@ -1234,6 +1269,14 @@ function godMorgen() {
     // Det hjelperne ikke rakk i går, ble gjort ferdig i natt: forrådet vises som det er.
     t.vist = { ...t.spill.forrad, mynter: t.spill.mynter };
     tegnForrad();
+    let vent = h.kryss.length ? 4200 : 2600;
+    if (h.ide) {
+      const ide = h.ide;
+      setTimeout(() => {
+        L.fanfare(2);
+        melding(liten() ? '💡🎉' : `💡 ${OPPFINNER.navn} har fått en idé: ${ide.tekst}! Se etter «${ide.navn}» i butikken.`, { ikon: liten() ? '' : '🤓' });
+      }, vent + (h.oppdrag.length ? 2600 : 0));
+    }
     if (h.oppdrag.length) {
       setTimeout(startTur, 1300);
       const navn = h.oppdrag.map((o) => t.spill.hjelpere[o.h].navn);
@@ -1502,12 +1545,98 @@ function tegnHjelpere(ctx, ms) {
       });
     }
   }
+  const g = oppdaterGutt(ms);
+  if (g) {
+    const ide = t.spill.ideDag === t.spill.dag;
+    const hopp = Math.max(0, 1 - (ms - g.hopp) / 600) * Math.abs(Math.sin((ms - g.hopp) / 90)) * RUTE * 0.06
+      + (ide && !g.gaar ? Math.abs(Math.sin(tsek * 4)) * RUTE * 0.025 : 0);
+    tegn.push({ x: g.x, y: g.y - hopp, alfa: Math.min(1, (ms - g.inn) / 500), ide,
+      o: { farge: OPPFINNER.farge, nr: 2, t: tsek, gaar: g.gaar, mot: g.mot, briller: true, vink: ide && !g.gaar ? 1 : 0 } });
+  }
   tegn.sort((a, b) => a.y - b.y);
   for (const d of tegn) {
     ctx.globalAlpha = d.alfa;
     tegnMenneske(ctx, d.x, d.y, HJELPER_H, d.o);
+    if (d.ide) tegnLyspaere(ctx, d.x, d.y - HJELPER_H * 1.3, tsek);
   }
   ctx.globalAlpha = 1;
+}
+
+/** Theo går rundt i nærheten av skolen, stopper og tenker, og går videre. */
+function oppdaterGutt(ms) {
+  const s = t.spill, v = t.verden, skole = R.skoleVed(s);
+  if (skole < 0) { t.gutt = null; return null; }
+  const [sx, sy] = midtAv(skole);
+  let g = t.gutt;
+  if (!g || g.skole !== skole) {
+    const dorPos = [sx - RUTE * 0.14, sy + RUTE * 0.3];
+    g = t.gutt = { skole, x: dorPos[0], y: dorPos[1], fra: dorPos, til: dorPos, t0: ms, varighet: 0, pause: 900, mot: 1, gaar: 0, inn: ms, hopp: -9999 };
+  }
+  if (ms - g.t0 >= g.varighet + g.pause) {
+    const B = v.bredde, kx = skole % B, ky = Math.floor(skole / B);
+    const mulige = [];
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const x = kx + dx, y = ky + dy;
+        if (x < 0 || y < 0 || x >= B || y >= v.hoyde) continue;
+        const i = y * B + x;
+        if (s.avdekket[i] && R.TERRENGNAVN[v.terreng[i]] !== 'vann') mulige.push(i);
+      }
+    }
+    const i = mulige[Math.floor(Math.random() * mulige.length)] ?? skole;
+    const [mx, my] = midtAv(i);
+    const til = [mx + (Math.random() - 0.5) * RUTE * 0.5, my + RUTE * (0.1 + Math.random() * 0.25)];
+    g.fra = [g.x, g.y];
+    g.til = til;
+    g.t0 = ms;
+    g.varighet = 500 + (Math.hypot(til[0] - g.x, til[1] - g.y) / RUTE) * 1600;
+    g.pause = 1500 + Math.random() * 3500;
+    g.mot = til[0] >= g.x ? 1 : -1;
+  }
+  const u = Math.min(1, (ms - g.t0) / (g.varighet || 1));
+  const e = myk(u);
+  g.x = g.fra[0] + (g.til[0] - g.fra[0]) * e;
+  g.y = g.fra[1] + (g.til[1] - g.fra[1]) * e;
+  g.gaar = u < 1 ? 1 : 0;
+  return g;
+}
+
+/** Lyspæra over hodet: Theo har fått en idé. */
+function tegnLyspaere(ctx, x, y, tsek) {
+  const r = RUTE * 0.075 * (1 + Math.sin(tsek * 5) * 0.08);
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3.2);
+  g.addColorStop(0, 'rgba(255, 240, 140, 0.75)');
+  g.addColorStop(1, 'rgba(255, 240, 140, 0)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(x, y, r * 3.2, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#ffd23f';
+  ctx.lineWidth = RUTE * 0.012;
+  ctx.lineCap = 'round';
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2 + tsek * 0.8;
+    ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r * 1.5, y + Math.sin(a) * r * 1.5); ctx.lineTo(x + Math.cos(a) * r * 2.2, y + Math.sin(a) * r * 2.2); ctx.stroke();
+  }
+  ctx.fillStyle = '#fff3a0';
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#9aa1ae';
+  ctx.fillRect(x - r * 0.45, y + r * 0.8, r * 0.9, r * 0.55);
+  ctx.strokeStyle = '#e0a020';
+  ctx.lineWidth = RUTE * 0.008;
+  ctx.beginPath(); ctx.moveTo(x - r * 0.35, y + r * 0.2); ctx.lineTo(x - r * 0.15, y - r * 0.2); ctx.lineTo(x, y + r * 0.1); ctx.lineTo(x + r * 0.15, y - r * 0.2); ctx.lineTo(x + r * 0.35, y + r * 0.2); ctx.stroke();
+}
+
+/** Trykk på Theo: han forteller hva han tenker på. */
+function snakkMedGutt() {
+  const s = t.spill, g = t.gutt;
+  g.hopp = naa();
+  L.INSTRUMENT.xylofon(783.99);
+  const dager = R.dagerTilIde(s);
+  const siste = OPPFINNELSER.find((o) => o.id === s.oppfinnelser.at(-1));
+  if (liten()) { melding(s.ideDag === s.dag ? '💡🎉' : '🤓🤔💡'); return; }
+  const tekst = s.ideDag === s.dag && siste ? `«Jeg har funnet på ${siste.tekst}! Se i butikken.»`
+    : dager === null ? '«Jeg har funnet på alt jeg kan. Nå leser jeg bøker!»'
+    : `«Hmm … jeg tenker på noe nytt. Om ${dager} ${dager === 1 ? 'dag' : 'dager'} har jeg en idé!»`;
+  melding(`${OPPFINNER.navn}: ${tekst}`, { ikon: '🤓' });
 }
 
 /** En eller flere nye hjelpere har kommet: de kommer ut av leiren og vinker. */

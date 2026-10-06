@@ -32,6 +32,15 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - Hver hjelper samler **én ting per dag**. Det de ikke rakk, gjøres ferdig før neste morgen, og turen starter på nytt hvis man åpner spillet midt i den.
   Det er reglene (`planleggOppdrag`, `hjelperFerdig`) som bestemmer, og skjermen viser bare turen.
 
+## Skolen og Theos oppfinnelser (2026-10-06)
+- **Skole** (500 mynter, én per øy) i butikken. Ut kommer **Theo**, en smart gutt med briller som går rundt i nærheten av skolen.
+- **Hver sjette dag** (med skole på øya) får Theo en **lyspære over hodet**, og en ny oppfinnelse dukker opp i butikken under «💡 Theos oppfinnelser».
+  Et «💡❓»-kort viser hvor mange dager det er til neste idé. Trykker man på Theo, sier han hva han tenker på.
+- **12 oppfinnelser** (`OPPFINNELSER` i `ting.js`, tegnet i `js/stil/oppfinnelser.js`, alle animert):
+  drage (20), boblemaskin (25), trampoline (35, salto når man trykker), godterimaskin (45), iskiosk (60), sjokoladefontene (75), hoppeslott (90),
+  vannsklie (110), karusell (130), regnbuemaskin (150), danserobot (175) og flygende tallerken som henter en ku (200).
+  Rekkefølgen er tilfeldig, og hver oppfinnelse kommer bare én gang.
+
 ## Foreldrekontroll (menyen → 🔒 For foreldre, eller «🔒 For foreldre» på startsiden)
 - **Foreldrekode:** første gang løser man et voksent gangestykke og lager en firesifret kode (skrives to ganger). Etter det kreves koden.
   «Glemt koden?» gir et vanskeligere stykke (for eksempel 39 × 6), og så kan man lage en ny kode. Koden gjelder for hele enheten (`oya-foreldrekode`).

@@ -100,7 +100,31 @@ export const BYGG = [
 export const HAVN = { id: 'havn', navn: 'Havn', pris: 150, krav: BYGG.length };
 export const BAAT = { id: 'havnbaat', navn: 'Havn med seilbåt', pris: 250 };
 
-export const BYGG_ETTER_ID = Object.fromEntries([...BYGG, HAVN, BAAT].map((b) => [b.id, b]));
+/**
+ * Skolen: et spesielt bygg (én per øy). Ut av skolen kommer Theo, en smart gutt som går
+ * rundt på øya. Hver sjette dag får han en lyspære over hodet og finner på noe nytt,
+ * som dukker opp i butikken.
+ */
+export const SKOLE = { id: 'skole', navn: 'Skole', pris: 500, hverDag: 6 };
+export const OPPFINNER = { navn: 'Theo', farge: '#ffd23f' };
+
+/** Theos oppfinnelser. Prisen følger hvor avansert tingen er. */
+export const OPPFINNELSER = [
+  { id: 'drage',            navn: 'Drage',              pris: 20,  tekst: 'en drage som flyr høyt over øya' },
+  { id: 'boblemaskin',      navn: 'Boblemaskin',        pris: 25,  tekst: 'en maskin som blåser såpebobler' },
+  { id: 'trampoline',       navn: 'Trampoline',         pris: 35,  tekst: 'en trampoline man kan hoppe salto på' },
+  { id: 'godterimaskin',    navn: 'Godterimaskin',      pris: 45,  tekst: 'en maskin full av godterikuler' },
+  { id: 'iskiosk',          navn: 'Iskiosk',            pris: 60,  tekst: 'en iskiosk med en kjempeis på taket' },
+  { id: 'sjokoladefontene', navn: 'Sjokoladefontene',   pris: 75,  tekst: 'en fontene med rennende sjokolade' },
+  { id: 'hoppeslott',       navn: 'Hoppeslott',         pris: 90,  tekst: 'et oppblåsbart hoppeslott' },
+  { id: 'vannsklie',        navn: 'Vannsklie',          pris: 110, tekst: 'en svingete vannsklie med basseng' },
+  { id: 'karusell',         navn: 'Karusell',           pris: 130, tekst: 'en karusell med fargerike hester' },
+  { id: 'regnbuemaskin',    navn: 'Regnbuemaskin',      pris: 150, tekst: 'en maskin som skyter ut regnbuer' },
+  { id: 'danserobot',       navn: 'Danserobot',         pris: 175, tekst: 'en robot som danser disko' },
+  { id: 'ufo',              navn: 'Flygende tallerken', pris: 200, tekst: 'en flygende tallerken som henter en ku' },
+];
+
+export const BYGG_ETTER_ID = Object.fromEntries([...BYGG, HAVN, BAAT, SKOLE, ...OPPFINNELSER].map((b) => [b.id, b]));
 
 /** Stilen på øy nummer 1, 2, 3 … (den siste brukes videre). */
 export const OY_STIL = ['vanlig', 'neon'];

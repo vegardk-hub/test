@@ -323,3 +323,10 @@ body.neon .spillerrad button { color: #ff8fa8; }
 }
 .takfarger button.valgt { border-color: #fff; box-shadow: 0 0 0 3px var(--gullkant), inset 0 -5px 0 rgba(0, 0, 0, 0.18); transform: scale(1.12); }
 body.liten #takfarge-tekst { font-size: 26px; }
+
+/* ---------- Skolen og oppfinnelsene ---------- */
+.butikk-overskrift { grid-column: 1 / -1; font-weight: 800; font-size: 18px; margin: 10px 0 0; }
+.byggkort.skole { border-color: #9a3a2c; background: #fff1ec; }
+.byggkort.hemmelig { justify-content: center; border: 2px dashed var(--kant); background: transparent; min-height: 150px; }
+.byggkort.hemmelig .sporsmal { font-size: 42px; }
+body.neon .byggkort.skole { background: #3a0f1c; border-color: #ff5c8a; }

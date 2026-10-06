@@ -36,7 +36,7 @@
   <div id="galleri" class="galleri"></div>
   <script type="module">
     // Alle byggene, levende: den faste delen tegnes én gang, det som beveger seg hele tiden.
-    import { BYGG, HAVN, BAAT } from './js/data/ting.js';
+    import { BYGG, HAVN, BAAT, SKOLE, OPPFINNELSER } from './js/data/ting.js';
     import { PYNT, LIV } from './js/stil/pynt.js';
     import { tegnTomtKort } from './js/stil/ruter.js';
     import { lagTilfeldig } from './js/rng.js';
@@ -50,7 +50,7 @@
     document.getElementById('bytt').href = neon ? '?' : '?neon';
     document.getElementById('bytt').textContent = neon ? 'Vis vanlig' : 'Vis neon';
     const S = 180, dpr = devicePixelRatio || 1;
-    const kort = [...BYGG, HAVN, BAAT].map((b, k) => {
+    const kort = [...BYGG, HAVN, BAAT, SKOLE, ...OPPFINNELSER].map((b, k) => {
       const fast = document.createElement('canvas');
       fast.width = fast.height = S * dpr;
       const fctx = neonKontekst(fast.getContext('2d'));

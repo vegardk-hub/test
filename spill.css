@@ -302,7 +302,7 @@ body.neon .versjon, body.neon dialog.kort::after { color: #b9a6d6; }
 #port .tastatur { justify-content: center; }
 #port-melding { margin: 4px 0; }
 .matte-svar.kode { letter-spacing: 6px; min-width: 5.5em; }
-button.lenke { background: none; border: none; min-height: 0; padding: 0; font-size: 14px; color: var(--dempet); text-decoration: underline; }
+.foreldre-knapp { background: #1f2735; color: var(--krem); border-color: #3a4558; font-size: 16px; margin-top: -4px; }
 .spillerliste { display: grid; gap: 8px; margin: 8px 0 4px; }
 .spillerrad { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 6px 10px; }
 .spillerrad .ava { font-size: 32px; }

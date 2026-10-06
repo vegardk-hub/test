@@ -98,7 +98,8 @@ body.liten .vare.null { letter-spacing: 0; padding-right: 9px; }
 /* ---------- Natta ---------- */
 .natt { position: fixed; inset: 0; z-index: 30; }
 .natt canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
-.natt-tekst { position: absolute; top: max(24px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center; font-size: 30px; pointer-events: none; }
+.natt-tekst { position: absolute; top: max(24px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center; font-size: 30px; pointer-events: none; padding: 0 16px; }
+.natt-tekst small { font-size: 0.6em; opacity: 0.8; }
 #morgen { position: absolute; bottom: max(28px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); }
 
 /* ---------- Sangboka ---------- */

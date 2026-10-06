@@ -413,6 +413,49 @@ function figurKiste(ctx, S, r, k, p, ferdigT, t) {
   }
 }
 
+// --- Skattekryss (her ligger det en kiste begravet) ---------------------------
+/**
+ * Et rødt kryss malt på bakken som pulserer og glitrer. Når man graver, vokser
+ * hullet og jordhaugen ved siden av. igjen = gravetrykk som gjenstår, rist = 0–1 like etter et trykk.
+ */
+export function tegnKryss(ctx, S, t, igjen, maks = 4, rist = 0) {
+  const x = S * 0.5 + Math.sin(t * 60) * rist * S * 0.02, y = S * 0.56;
+  const gravd = (maks - igjen) / maks;
+  if (gravd > 0) {
+    // Jordhaug til høyre og hullet i midten
+    const hr = S * (0.06 + 0.1 * gravd);
+    poly(ctx, klump(lagTilfeldig(7), x + S * 0.24, y + S * 0.08, hr, hr * 0.55, 7, 0.2), '#8a5a3a');
+    poly(ctx, klump(lagTilfeldig(8), x + S * 0.22, y + S * 0.05, hr * 0.7, hr * 0.38, 6, 0.2), '#a8744a');
+    ctx.fillStyle = '#5b3a24';
+    ctx.beginPath(); ctx.ellipse(x, y, S * (0.1 + 0.12 * gravd), S * (0.04 + 0.05 * gravd), 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#2e1d12';
+    ctx.beginPath(); ctx.ellipse(x, y + S * 0.01, S * (0.07 + 0.09 * gravd), S * (0.025 + 0.035 * gravd), 0, 0, Math.PI * 2); ctx.fill();
+  }
+  // Krysset (litt mindre for hvert trykk, som om det graves bort)
+  const puls = 1 + 0.07 * Math.sin(t * 4) + rist * 0.15;
+  const r = S * 0.22 * puls * (1 - gravd * 0.35);
+  ctx.lineCap = 'round';
+  for (const [farge, b] of [['rgba(60, 10, 10, 0.55)', 0.11], ['#e0393e', 0.075], ['#ff7a6b', 0.025]]) {
+    ctx.strokeStyle = farge;
+    ctx.lineWidth = S * b * (1 - gravd * 0.3);
+    ctx.beginPath();
+    ctx.moveTo(x - r, y - r * 0.6); ctx.lineTo(x + r, y + r * 0.6);
+    ctx.moveTo(x + r, y - r * 0.6); ctx.lineTo(x - r, y + r * 0.6);
+    ctx.stroke();
+  }
+  // Glitter som viser at her er det noe
+  for (let k = 0; k < 3; k++) {
+    const u = (t * 0.7 + k / 3) % 1;
+    const a = Math.sin(Math.PI * u);
+    const gx = x + Math.cos(k * 2.1 + 0.5) * S * 0.25, gy = y - S * 0.12 + Math.sin(k * 2.1 + 0.5) * S * 0.12;
+    const g = S * 0.035 * a;
+    ctx.globalAlpha = a;
+    poly(ctx, [[gx, gy - g], [gx + g * 0.25, gy - g * 0.25], [gx + g, gy], [gx + g * 0.25, gy + g * 0.25], [gx, gy + g],
+      [gx - g * 0.25, gy + g * 0.25], [gx - g, gy], [gx - g * 0.25, gy - g * 0.25]], '#fff4c2');
+  }
+  ctx.globalAlpha = 1;
+}
+
 // --- Hjort (pynt på brettet, ikke noe man samler) -----------------------------
 /** Hjorten løfter hodet, ser seg rundt og beiter; halen vipper. */
 export function tegnHjort(ctx, S, t, seed = 0) {

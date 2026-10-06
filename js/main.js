@@ -14,7 +14,7 @@ import { tegnFigur } from './figurer.js';
 import { tegnTomtKort } from './stil/ruter.js';
 import { PYNT, LIV, tegnBygg, ivrig } from './stil/pynt.js';
 import { poly, fasett } from './stil/lavpoly.js';
-import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT } from './data/ting.js';
+import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER } from './data/ting.js';
 import { settNeon, neonPaa, neonKontekst, glod } from './stil/neon.js';
 import { ikon } from './ikoner.js';
 import { sprut, flytendeTekst, tegnEffekter, harEffekter } from './effekter.js';
@@ -173,6 +173,7 @@ function trykkPaa(kx, ky) {
     behandle(R.borst(s, v, i), i);
     return;
   }
+  if (s.kryss.has(i)) { behandleGrav(R.grav(s, v, i), i); return; }
   if (i === v.startIndeks) { aapneButikk(); return; }
   if (s.bygg.has(i)) { aapneNaer(i, { pynt: R.pyntVed(s, i) }); return; }
   if (R.tingVed(s, v, i)) { aapneNaer(i); return; }
@@ -200,6 +201,33 @@ function behandle(hendelser, i) {
         L.vend();
         if (h.ting) setTimeout(() => sprut(kx, ky, { farger: ['#ffd23f', '#ffe58a', '#fff4c2'], antall: 16 }), 300);
       }
+    } else if (h.type === 'tomSol') {
+      startNatt();
+    } else if (h.type === 'kveld') {
+      setTimeout(startNatt, 900);
+    }
+  }
+  oppdaterHud();
+  lagreSnart();
+  t.skitten = true;
+}
+
+/** Graving på et skattekryss: fire trykk (1, 2, 3, 4), så spretter kista fram. */
+const GRAVETONER = [261.63, 329.63, 392.0, 523.25];
+function behandleGrav(hendelser, i) {
+  const [kx, ky] = midtAv(i);
+  for (const h of hendelser) {
+    if (h.type === 'grav' || h.type === 'kisteFunnet') {
+      L.INSTRUMENT.hogg(GRAVETONER[h.tall - 1]);
+      sprut(kx, ky, { farger: ['#7a5236', '#a0703f', '#5b3a24'], antall: 14, fart: 1.5 });
+      if (innst().visTall) flytendeTekst(kx, ky - 10, String(h.tall), { farge: '#ffe58a', varighet: 900 });
+      siTall(h.tall);
+      t.borstAnim.set(i, naa());
+    }
+    if (h.type === 'kisteFunnet') {
+      t.byggAnim.set(i, naa());
+      setTimeout(() => { L.fanfare(1); sprut(kx, ky - 20, { farger: ['#ffd23f', '#ffe58a', '#fff4c2'], antall: 26, fart: 1.5 }); }, 150);
+      melding(liten() ? '🎁✨' : 'Du fant en skattekiste! Trykk på den og løs stykket.', { ikon: liten() ? '' : '🎁' });
     } else if (h.type === 'tomSol') {
       startNatt();
     } else if (h.type === 'kveld') {
@@ -1014,12 +1042,22 @@ function startNatt() {
   t.natt = { t0: naa() / 1000, skudd: [], gnister: [], neste: naa() / 1000 + 0.8, slutt: null,
     stjerner: Array.from({ length: 80 }, () => ({ x: Math.random(), y: Math.random() * 0.85, r: 0.6 + Math.random() * 1.4, fase: Math.random() * 6 })) };
   L.solnedgang();
-  $('natt').querySelector('.natt-tekst').textContent = liten() ? '🌙 ✨' : `🌙 Fang stjerneskudd! ✨ = ${VARER.stov.pris} 🪙`;
+  t.natt.full = t.spill.nattFangst >= MAKS_STJERNER;
+  oppdaterNattTekst();
   $('natt').hidden = false;
   oppdaterHud();
   lagreSnart();
   clearTimeout(t.nattTid);
   t.nattTid = setTimeout(godMorgen, 30000);
+}
+
+/** Teksten øverst om natta: hvor mange stjerneskudd man har fanget (høyst MAKS_STJERNER). */
+function oppdaterNattTekst() {
+  const n = t.spill.nattFangst, full = n >= MAKS_STJERNER;
+  $('natt').querySelector('.natt-tekst').innerHTML = liten()
+    ? `🌙 ${n ? '✨'.repeat(n) : '✨'}${full ? ' 😴' : ''}`
+    : full ? `✨ ${n} av ${MAKS_STJERNER}! Nå har du fanget alt stjernestøvet i natt. God natt!`
+      : `🌙 Fang stjerneskudd! ✨ ${n} av ${MAKS_STJERNER} <small>(${VARER.stov.pris} 🪙 hver)</small>`;
 }
 
 function godMorgen() {
@@ -1035,7 +1073,12 @@ function godMorgen() {
     oppdaterHud();
     lagreSnart();
     t.skitten = true;
-    melding(h.vokst.length ? `Dag ${h.dag}! Det har vokst fram ${h.vokst.length} nye ting.` : `Dag ${h.dag}!`, { ikon: '☀️' });
+    if (h.kryss.length) {
+      melding(liten() ? '✖️'.repeat(h.kryss.length) + ' 🎁'
+        : `Dag ${h.dag}! I natt har det dukket opp ${h.kryss.length} skattekryss på øya. Trykk på dem for å grave fram kister!`, { ikon: liten() ? '' : '✖️🎁' });
+    } else {
+      melding(h.vokst.length ? `Dag ${h.dag}! Det har vokst fram ${h.vokst.length} nye ting.` : `Dag ${h.dag}!`, { ikon: '☀️' });
+    }
   }, 1100);
 }
 
@@ -1065,7 +1108,7 @@ function tegnNatt(tsek) {
     ctx.fillStyle = '#fff6d8';
     ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2); ctx.fill();
   }
-  if (!n.slutt && tsek > n.neste) {
+  if (!n.slutt && !n.full && tsek > n.neste) {
     n.neste = tsek + 0.7 + Math.random() * 0.8;
     const fraVenstre = Math.random() < 0.5;
     n.skudd.push({ t0: tsek, x0: fraVenstre ? Math.random() * W * 0.4 : W * (0.6 + Math.random() * 0.4), y0: Math.random() * H * 0.4,
@@ -1110,14 +1153,24 @@ function fangStjerne(e) {
   const x = e.clientX - r.left, y = e.clientY - r.top;
   const s = n.skudd.find((q) => Math.hypot(q.x - x, q.y - y) < 55);
   if (!s) return;
+  const h = R.fangStjerne(t.spill);
+  if (h[0].type !== 'stjerne') return;
   s.tatt = true;
   L.stjerne();
   for (let i = 0; i < 14; i++) {
     const v = Math.random() * Math.PI * 2;
     n.gnister.push({ t0: naa() / 1000, x: s.x, y: s.y, vx: Math.cos(v) * 130, vy: Math.sin(v) * 130 });
   }
-  R.fangStjerne(t.spill);
   flyTil({ stov: 1 }, { x: e.clientX, y: e.clientY });
+  oppdaterNattTekst();
+  if (h.some((q) => q.type === 'fullNatt')) {
+    // Natta er full: ingen flere stjerneskudd, og snart blir det morgen.
+    n.full = true;
+    n.skudd = [];
+    setTimeout(() => L.fanfare(2), 400);
+    clearTimeout(t.nattTid);
+    t.nattTid = setTimeout(godMorgen, 4000);
+  }
   lagreSnart();
 }
 

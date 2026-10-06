@@ -8,7 +8,7 @@
 import { genererVerden } from './kartgen.js';
 import { T } from './data/terreng.js';
 import {
-  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL,
+  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, KRYSS, GRAV_TRYKK, MAKS_STJERNER,
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
 import { medStandard } from './matte.js';
@@ -104,6 +104,9 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     oyer: [],                 // øyene man har seilt fra
     baat: false,              // er seilbåten bygget ved havna?
     kister: new Set(),        // ruter der det har dukket opp en kiste da tåka ble børstet bort
+    kryss: new Map(),         // skattekryss: rute → gravetrykk som gjenstår
+    gravd: new Set(),         // ruter med en kiste man har gravd fram (blir tomme igjen når den er åpnet)
+    nattFangst: 0,            // stjerneskudd fanget i natt
     kisteTeller: 0,           // avdekkede ruter siden forrige kiste
     nesteKiste: FORSTE_KISTE,
     forrad: tomtForrad(),
@@ -135,7 +138,7 @@ function avdekkStart(spill) {
 /** Hvilken type ting som kan vokse på ruta, eller null. Bestemt av seeden. */
 export function grunnTing(spill, verden, i) {
   if (i === verden.startIndeks) return null;
-  if (spill.kister.has(i)) return 'kiste';
+  if (spill.kister.has(i) || spill.gravd.has(i)) return 'kiste';
   const o = verden.overlegg.get(i);
   if (o?.type === 'skatt') return 'kiste';
   if (o?.type === 'malm') return 'jern';
@@ -190,6 +193,7 @@ function fullfor(spill, i, ting, s) {
   s.gang = (s.gang ?? 0) + 1;
   delete s.igjen;
   s.borteTil = ting.type === 'kiste' ? -1 : spill.dag + GJENVEKST;
+  spill.gravd.delete(i);   // en framgravd kiste etterlater en vanlig, tom rute
   const sang = TING[ting.type].sang;
   const for_ = spill.sanger[sang] ?? 0;
   spill.sanger[sang] = Math.max(for_, ting.str + 1);
@@ -321,6 +325,7 @@ export function kanPlassere(spill, verden, i, id = null) {
   const terr = TERRENGNAVN[verden.terreng[i]];
   if (terr === 'vann' || verden.overlegg.get(i)?.type === 'landsby') return false;
   if (id === HAVN.id && !vedSjoen(verden, i)) return false;
+  if (spill.kryss.has(i)) return false;
   return !tingVed(spill, verden, i);
 }
 
@@ -363,6 +368,51 @@ export function kjopOgPlasser(spill, verden, i, id) {
   return [{ type: 'bygget', i, id }];
 }
 
+// ---------------------------------------------------------------------------
+// Skattekryss: nye kister man graver fram
+// ---------------------------------------------------------------------------
+/** Kan det komme et skattekryss her? Avdekket, tom landrute uten noe som kan vokse. */
+function kryssplass(spill, verden, i) {
+  if (!spill.avdekket[i] || i === verden.startIndeks || spill.bygg.has(i) || spill.kryss.has(i)) return false;
+  if (TERRENGNAVN[verden.terreng[i]] === 'vann' || verden.overlegg.has(i)) return false;
+  return grunnTing(spill, verden, i) === null;
+}
+
+/** Legger ut nye skattekryss (seedet etter dagen). Gir rutene. */
+export function leggKryss(spill, verden, antall = KRYSS.perGang) {
+  const r = lagTilfeldig(blandSeed(spill.seed, 'kryss', spill.dag));
+  const ledige = [...spill.avdekket.keys()].filter((i) => kryssplass(spill, verden, i));
+  const ut = [];
+  while (ut.length < antall && ledige.length) {
+    const i = ledige.splice(Math.floor(r.tall() * ledige.length), 1)[0];
+    spill.kryss.set(i, GRAV_TRYKK);
+    ut.push(i);
+  }
+  return ut;
+}
+
+/** Ett gravetrykk på et skattekryss. Etter GRAV_TRYKK trykk kommer det fram en kiste. */
+export function grav(spill, verden, i) {
+  if (!spill.kryss.has(i)) return [];
+  if (spill.sol <= 0) return [{ type: 'tomSol' }];
+  const igjen = spill.kryss.get(i) - 1;
+  spill.sol--;
+  spill.stat.trykk++;
+  const h = [];
+  if (igjen > 0) {
+    spill.kryss.set(i, igjen);
+    h.push({ type: 'grav', i, tall: GRAV_TRYKK - igjen, igjen });
+  } else {
+    spill.kryss.delete(i);
+    spill.gravd.add(i);
+    const s = spill.ting.get(i) ?? {};
+    spill.ting.set(i, { gang: (s.gang ?? 0) + 1 });   // ny størrelse og nytt innhold hver gang
+    h.push({ type: 'kisteFunnet', i, tall: GRAV_TRYKK, ting: tingVed(spill, verden, i) });
+  }
+  if (spill.sol <= 0) h.push({ type: 'kveld' });
+  return h;
+}
+
 /** Seilbåten bygges ved havna. */
 export function byggBaat(spill) {
   if (havnVed(spill) < 0 || spill.baat) return [];
@@ -383,6 +433,7 @@ export function seil(spill, seed = Math.floor(Math.random() * 2 ** 31)) {
   spill.oyer = [...(spill.oyer ?? []), {
     nr: spill.oyNr, seed: spill.seed, forlot: spill.dag, avdekket,
     take: [...spill.take], ting: [...spill.ting], bygg: [...spill.bygg], kister: [...spill.kister],
+    kryss: [...spill.kryss], gravd: [...spill.gravd],
   }];
   spill.oyNr++;
   spill.seed = seed;
@@ -391,6 +442,8 @@ export function seil(spill, seed = Math.floor(Math.random() * 2 ** 31)) {
   spill.ting = new Map();
   spill.bygg = new Map();
   spill.kister = new Set();
+  spill.kryss = new Map();
+  spill.gravd = new Set();
   spill.kisteTeller = 0;
   spill.nesteKiste = FORSTE_KISTE;
   spill.baat = false;
@@ -408,15 +461,22 @@ export function nyDag(spill, verden) {
   for (const [i, s] of spill.ting) if (s.borteTil > 0 && spill.dag < s.borteTil) for_.add(i);
   spill.dag++;
   spill.sol = SOL[spill.nivaa];
+  spill.nattFangst = 0;
   const vokst = [...for_].filter((i) => tingVed(spill, verden, i));
-  return [{ type: 'nyDag', dag: spill.dag, vokst }];
+  // Annenhver natt (før dag 3, 5, 7 …) dukker det opp nye skattekryss.
+  const kryss = (spill.dag - 1) % KRYSS.hverNatt === 0 ? leggKryss(spill, verden) : [];
+  return [{ type: 'nyDag', dag: spill.dag, vokst, kryss }];
 }
 
 /** Et stjerneskudd fanget om natta. */
 export function fangStjerne(spill) {
+  if (spill.nattFangst >= MAKS_STJERNER) return [{ type: 'fullNatt' }];
+  spill.nattFangst++;
   spill.forrad.stov = (spill.forrad.stov ?? 0) + 1;
   spill.stat.stjerner++;
-  return [{ type: 'stjerne' }];
+  const h = [{ type: 'stjerne', fanget: spill.nattFangst, maks: MAKS_STJERNER }];
+  if (spill.nattFangst >= MAKS_STJERNER) h.push({ type: 'fullNatt' });
+  return h;
 }
 
 export function byttNivaa(spill, nivaa) {
@@ -430,7 +490,10 @@ export function byttNivaa(spill, nivaa) {
 export function tilData(spill) {
   const avdekket = [];
   spill.avdekket.forEach((v, i) => { if (v) avdekket.push(i); });
-  return { ...spill, avdekket, take: [...spill.take], ting: [...spill.ting], bygg: [...spill.bygg], kister: [...spill.kister] };
+  return {
+    ...spill, avdekket, take: [...spill.take], ting: [...spill.ting], bygg: [...spill.bygg], kister: [...spill.kister],
+    kryss: [...spill.kryss], gravd: [...spill.gravd],
+  };
 }
 
 /** Versjon 1 (T1) hadde frø, nøkler og «skatter» i stedet for sølv, gull og edelsteiner. */
@@ -460,6 +523,9 @@ export function fraData(d) {
     oyer: d.oyer ?? [],
     baat: d.baat ?? false,
     kister: new Set(d.kister ?? []),
+    kryss: new Map(d.kryss ?? []),
+    gravd: new Set(d.gravd ?? []),
+    nattFangst: d.nattFangst ?? 0,
     kisteTeller: d.kisteTeller ?? 0,
     nesteKiste: d.nesteKiste ?? FORSTE_KISTE,
     forrad: { ...tomtForrad(), ...d.forrad },

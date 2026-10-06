@@ -176,6 +176,37 @@ sjekk(R.fraData({ ...R.tilData(R.nyttSpill({ navn: 'Uten' }, 4)), kister: undefi
   }
 }
 
+// Skattekryss annenhver natt, og høyst 10 stjerneskudd per natt
+{
+  const sp = R.nyttSpill({ navn: 'Graver' }, 21);
+  const ve = R.lagVerden(sp);
+  sp.avdekket.fill(1);
+  const d2 = R.nyDag(sp, ve)[0];
+  sjekk(d2.dag === 2 && d2.kryss.length === 0, 'ingen kryss etter første natt');
+  const d3 = R.nyDag(sp, ve)[0];
+  sjekk(d3.dag === 3 && d3.kryss.length === 3 && sp.kryss.size === 3, 'tre nye kryss etter andre natt');
+  sjekk(R.nyDag(sp, ve)[0].kryss.length === 0 && R.nyDag(sp, ve)[0].kryss.length === 3, 'annenhver natt');
+  const k = [...sp.kryss.keys()][0];
+  sjekk(R.grunnTing(sp, ve, k) === null && !R.tingVed(sp, ve, k), 'krysset står på en tom rute');
+  sjekk(!R.kanPlassere(sp, ve, k), 'kan ikke bygge på et kryss');
+  const tall = [];
+  let funnet = null;
+  for (let n = 0; n < 4; n++) for (const h of R.grav(sp, ve, k)) { tall.push(h.tall); if (h.type === 'kisteFunnet') funnet = h; }
+  sjekk(tall.join(',') === '1,2,3,4' && funnet?.ting?.type === 'kiste', `fire gravetrykk gir en kiste (${tall})`);
+  sjekk(!sp.kryss.has(k) && R.tingVed(sp, ve, k)?.type === 'kiste', 'krysset blir til en kiste');
+  const kiste = R.tingVed(sp, ve, k);
+  for (let n = 0; n < kiste.antall; n++) R.svarKiste(sp, ve, k, { riktig: true, forsteForsok: true, art: 'pluss' });
+  sjekk(!R.tingVed(sp, ve, k) && R.venterPaa(sp, ve, k) === 0, 'åpnet kiste blir en vanlig tom rute igjen');
+  const lagret = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
+  sjekk(lagret.kryss.size === sp.kryss.size && lagret.gravd.size === sp.gravd.size, 'kryss huskes ved lagring');
+  // Stjerner
+  let ok = 0;
+  for (let n = 0; n < 15; n++) if (R.fangStjerne(sp)[0].type === 'stjerne') ok++;
+  sjekk(ok === 10 && sp.forrad.stov === 10, `høyst 10 stjerner per natt (${ok})`);
+  R.nyDag(sp, ve);
+  sjekk(R.fangStjerne(sp)[0].type === 'stjerne', 'ny natt, nye stjerner');
+}
+
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));
 sjekk(bareGange.art === 'gange' && bareGange.a <= 2, 'bare ganging når bare ganging er valgt');
 

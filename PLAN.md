@@ -49,6 +49,12 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Dyrene lever**: sauene beiter, puster, logrer og blunker. Hjorten løfter hodet og vipper med halen, og fiskene spreller.
 - Teknikk: kortet med det som står stille lagres som før, og bare det som beveger seg tegnes på nytt hver gang skjermen tegnes, og bare for ruter man ser.
 
+## Skattekryss og stjernegrense (2026-10-06)
+- **Annenhver natt** (før dag 3, 5, 7 …) dukker det opp **3 røde skattekryss** på avdekkede, tomme landruter.
+- Trykk **4 ganger** på et kryss for å grave (det telles 1, 2, 3, 4, hullet blir større), og så **spretter en kiste fram**. Den åpnes med mattestykker som de andre.
+  Når kista er åpnet, blir ruta tom igjen, og det kan komme nye kryss der senere. Graving koster sol, som andre trykk.
+- **Høyst 10 stjerneskudd per natt.** Teksten viser «✨ 3 av 10». Ved 10 kommer det ikke flere, og etter noen sekunder blir det morgen.
+
 ## Havn og Neonøya (2026-10-06)
 - Når **alle de 20 ulike byggene** står på øya, låses **havna** opp i butikken (150 mynter). Butikken viser hvor mange man har, for eksempel «🔒 19 av 20».
   Havna må stå på land rett ved sjøen.

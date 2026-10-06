@@ -114,6 +114,16 @@ export const SJANSE = { skog: 0.7, aas: 0.6, fjell: 0.3, eng: 0.28, vann: 0.3, s
 /** Dager før noe nytt vokser fram der man har høstet (kister kommer ikke tilbake). */
 export const GJENVEKST = 2;
 
+/**
+ * Skattekryss: annenhver natt dukker det opp nye kryss på avdekkede, tomme ruter.
+ * Man graver (trykker) GRAV_TRYKK ganger på krysset, så kommer det fram en kiste.
+ */
+export const KRYSS = { perGang: 3, hverNatt: 2 };
+export const GRAV_TRYKK = 4;
+
+/** Stjerneskudd man kan fange per natt. */
+export const MAKS_STJERNER = 10;
+
 /** Børstestrøk som trengs for å fjerne tåka over en rute. */
 export const TAKE_TRYKK = 3;
 

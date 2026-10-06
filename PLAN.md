@@ -19,6 +19,8 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
    Feil svar koster ingenting (prøv igjen), og hvert riktig svar spiller en bit av «Happy Birthday».
 4. **Skattene**: stjernestøv (3 mynter), sølv, gull og edelsteiner (topas, ametyst, smaragd, safir, rubin, diamant).
 5. **Butikken** (trykk på leiren eller 🏪): selg skatter og råvarer for mynter. Salgsraden viser regnestykket, for eksempel «4 × 20 = 80».
+   Nederst i butikken velger man **farge på taket** på leiren. Den samme fargen brukes på **alle flaggene** på øya (leiren, telt, sirkustelt, tårn, borg, havn, seilbåt og landsbyer).
+   Det finnes ni farger (`js/stil/spillerfarge.js`), og valget lagres per spiller.
 6. **Kjøp bygg** og sett dem ut der du vil på øya. Det er 20 bygg fra bålplass (10) til borg (400).
 7. **Sola** er dagens budsjett (50 trykk for 🧒, 70 for 🐣). Om natta kan man fange stjerneskudd (stjernestøv kan selges).
 

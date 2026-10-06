@@ -19,12 +19,12 @@ export const KORT = RUTE - FUGE;
 /** Hva kortet viser når ruta er avdekket. */
 function avdekketInnhold(spill, verden, i) {
   const terreng = TERRENGNAVN[verden.terreng[i]];
-  if (i === verden.startIndeks) return { terreng, bygg: 'leir' };
+  if (i === verden.startIndeks) return { terreng, bygg: 'leir', farge: spill.takfarge };
   if (spill.kryss.has(i)) return { terreng, kryss: spill.kryss.get(i) };
   const pynt = pyntVed(spill, i);
   if (pynt) return { terreng: terreng === 'skog' ? 'eng' : terreng, pynt };
   const o = verden.overlegg.get(i);
-  if (o?.type === 'landsby') return { terreng, bygg: 'landsby', nivaa: 2 };
+  if (o?.type === 'landsby') return { terreng, bygg: 'landsby', nivaa: 2, farge: spill.takfarge };
   const ting = tingVed(spill, verden, i);
   if (ting) return { terreng, ting };
   if (o?.type === 'dyr' && o.art === 'hjort') return { terreng, overlegg: 'hjort' };
@@ -48,7 +48,7 @@ const signatur = (inn) => {
   if (inn.pynt) return `${inn.terreng}|pynt:${inn.pynt}`;
   if (inn.kryss) return `${inn.terreng}|kryss`;
   if (inn.ting) return LEVENDE_TING.has(inn.ting.type) ? `${inn.terreng}|bak` : `${inn.terreng}|${inn.ting.type}${inn.ting.str}|${inn.ting.seed}|${andel(inn.ting)}`;
-  return `${inn.terreng}|${inn.bygg ?? ''}|${inn.nivaa ?? ''}|${inn.overlegg ?? ''}`;
+  return `${inn.terreng}|${inn.bygg ?? ''}|${inn.nivaa ?? ''}|${inn.overlegg ?? ''}|${inn.farge ?? ''}`;
 };
 
 const STORRELSER = [48, 64, 96, 128, 192, 256, 384];

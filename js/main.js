@@ -17,6 +17,7 @@ import { poly, fasett } from './stil/lavpoly.js';
 import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER } from './data/ting.js';
 import { settNeon, neonPaa, neonKontekst, glod } from './stil/neon.js';
 import { visVersjon } from './versjon.js';
+import { TAKFARGER, STANDARD_TAKFARGE, spillerfarge, settSpillerfarge } from './stil/spillerfarge.js';
 import { ikon } from './ikoner.js';
 import { sprut, flytendeTekst, tegnEffekter, harEffekter } from './effekter.js';
 import { blandSeed, lagTilfeldig } from './rng.js';
@@ -126,6 +127,7 @@ function startSpill(id) {
   t.id = id;
   t.spill = spill;
   t.verden = R.lagVerden(spill);
+  settSpillerfarge(spill.takfarge);
   settNeon(t.verden.stil === 'neon');
   document.body.classList.toggle('neon', neonPaa());
   t.brett = new Brett(t.verden);
@@ -733,7 +735,7 @@ let fane = 'selg';
 const bildeLager = new Map();
 
 function byggBilde(id) {
-  const nokkel = `${id}|${neonPaa()}`;
+  const nokkel = `${id}|${neonPaa()}|${spillerfarge()}`;
   if (bildeLager.has(nokkel)) return bildeLager.get(nokkel);
   const S = 120, dpr = Math.min(2, window.devicePixelRatio || 1);
   const c = document.createElement('canvas');
@@ -767,6 +769,7 @@ function tegnButikk() {
   $('butikk-selg').hidden = fane !== 'selg';
   $('butikk-kjop').hidden = fane !== 'kjop';
   oppdaterButikkMynter(true);
+  tegnTakfarger();
   if (fane === 'selg') {
     const varer = [...SKATTER, ...RAVARER].filter((v) => s.forrad[v] > 0);
     const skattVerdi = SKATTER.reduce((a, v) => a + s.forrad[v] * VARER[v].pris, 0);
@@ -804,6 +807,25 @@ function havnKort() {
   return `<button class="byggkort havn${laast || staar ? ' laast' : ''}${!laast && !staar && s.mynter < HAVN.pris ? ' dyr' : ''}" data-bygg="${HAVN.id}">
     <img src="${byggBilde(HAVN.id)}" alt=""><span class="bn">⚓ ${esc(HAVN.navn)}</span>
     <span class="bp">${HAVN.pris} 🪙</span><span class="bl">${status}</span></button>`;
+}
+
+/** Fargevelgeren nederst i butikken: taket på leiren og alle flaggene. */
+function tegnTakfarger() {
+  const valgt = t.spill.takfarge ?? STANDARD_TAKFARGE;
+  $('takfarge-tekst').textContent = liten() ? '🎨' : '🎨 Farge på taket og flaggene';
+  $('takfarger').innerHTML = TAKFARGER.map((f) => `<button class="${f.farge === valgt ? 'valgt' : ''}" data-farge="${f.farge}"
+    style="background:${f.farge}" aria-label="${f.navn}" title="${f.navn}"></button>`).join('');
+  $('takfarger').querySelectorAll('[data-farge]').forEach((b) => { b.onclick = () => velgTakfarge(b.dataset.farge); });
+}
+
+function velgTakfarge(farge) {
+  L.vekk();
+  t.spill.takfarge = farge;
+  settSpillerfarge(farge);
+  L.INSTRUMENT.xylofon(659.25);
+  lagreSnart();
+  t.skitten = true;
+  tegnButikk();   // bildene i butikken får de nye flaggene
 }
 
 function selgVare(varer, knapp) {

@@ -313,3 +313,13 @@ body.neon .versjon, body.neon dialog.kort::after { color: #b9a6d6; }
 body.neon .spillerrad { background: #22113d; color: #f6eaff; }
 body.neon .spillerrad .sn small, body.neon .forklaring { color: #b9a6d6; }
 body.neon .spillerrad button { color: #ff8fa8; }
+
+/* ---------- Takfarge ---------- */
+.takfarge { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; margin-top: 12px; font-weight: 700; }
+.takfarger { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.takfarger button {
+  width: 40px; height: 40px; min-height: 0; padding: 0; border-radius: 50%; border: 3px solid rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18);
+}
+.takfarger button.valgt { border-color: #fff; box-shadow: 0 0 0 3px var(--gullkant), inset 0 -5px 0 rgba(0, 0, 0, 0.18); transform: scale(1.12); }
+body.liten #takfarge-tekst { font-size: 26px; }

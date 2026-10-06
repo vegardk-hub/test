@@ -10,6 +10,7 @@
 import { FIGUR } from './palett.js';
 import { poly, fasett, kasse, hus, iso, skygge, lys, mork, stein } from './lavpoly.js';
 import { settLag } from './neon.js';
+import { spillerfarge } from './spillerfarge.js';
 
 // ---------------------------------------------------------------------------
 // Små hjelpere
@@ -525,7 +526,7 @@ export const LIV = {
 
   telt(ctx, S, t) {
     const [tx, ty] = iso(S * 0.5, S * 0.68)(S * 0.24, 0, S * 0.3);
-    flagg(ctx, tx, ty, S * 0.13, '#3a74d8', t);
+    flagg(ctx, tx, ty, S * 0.13, spillerfarge(), t);
   },
 
   snomann(ctx, S, t, fest) {
@@ -634,7 +635,7 @@ export const LIV = {
   },
 
   sirkus(ctx, S, t) {
-    flagg(ctx, S * 0.5, S * 0.8 - S * 0.2 - S * 0.28, S * 0.12, '#3a74d8', t);
+    flagg(ctx, S * 0.5, S * 0.8 - S * 0.2 - S * 0.28, S * 0.12, spillerfarge(), t);
   },
 
   vindmolle(ctx, S, t) {
@@ -675,7 +676,7 @@ export const LIV = {
 
   taarn(ctx, S, t) {
     const [fx, fy] = iso(S * 0.5, S * 0.82)(0, 0, S * 0.48);
-    flagg(ctx, fx, fy, S * 0.16, '#e0393e', t);
+    flagg(ctx, fx, fy, S * 0.16, spillerfarge(), t);
   },
 
   fyrtaarn(ctx, S, t, fest) {
@@ -789,7 +790,7 @@ export const LIV = {
     }
     ctx.globalAlpha = 1;
     const [fx, fy] = iso(S * 0.27, S * 0.44)(0, 0, S * 0.21);
-    flagg(ctx, fx, fy, S * 0.12, '#3a74d8', t);
+    flagg(ctx, fx, fy, S * 0.12, spillerfarge(), t);
   },
 
   havnbaat(ctx, S, t, fest) {
@@ -798,18 +799,18 @@ export const LIV = {
     const ekstra = 1 + 3 * Math.exp(-(fest ?? Infinity) * 0.8);
     seilbaat(ctx, S, Math.sin(t * 1.4) * 0.035 * ekstra, (1 + Math.sin(t * 1.8)) * S * 0.006 * ekstra);
     const topp = [S * 0.75, S * 0.8 - S * 0.5];
-    flagg(ctx, topp[0], topp[1] + S * 0.01, S * 0.06, '#e0393e', t);
+    flagg(ctx, topp[0], topp[1] + S * 0.01, S * 0.06, spillerfarge(), t);
   },
 
   borg(ctx, S, t) {
     const [kx, ky] = BORG_KJERNE(S);
     const [fx, fy] = iso(kx, ky)(0, 0, S * 0.42);
-    flagg(ctx, fx, fy, S * 0.16, '#f5c431', t);
+    flagg(ctx, fx, fy, S * 0.16, spillerfarge(), t);
     const p = iso(S * 0.5, S * 0.8);
     for (const u of [-1, 1]) {
       const [tx, ty] = p(u * S * 0.27, 0, 0);
       const [vx, vy] = iso(tx, ty)(0, 0, S * 0.28);
-      flagg(ctx, vx, vy + S * 0.02 - S * 0.16, S * 0.07, '#e0393e', t, u);
+      flagg(ctx, vx, vy + S * 0.02 - S * 0.16, S * 0.07, spillerfarge(), t, u);
     }
   },
 };

@@ -103,6 +103,7 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     take: new Map(),          // rute → børstestrøk som gjenstår
     ting: new Map(),          // rute → { igjen, gang, borteTil }
     bygg: new Map(),          // rute → id for bygg man har satt ut
+    takfarge: null,           // fargen på taket og flaggene (null = standard rød)
     oyNr: 1,                  // øya man er på (1, 2, 3 …)
     oyFra: null,              // øya man fant denne fra (havna der man seilte ut)
     oyer: [],                 // de andre øyene man har vært på (pakket som data)

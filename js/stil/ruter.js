@@ -8,6 +8,7 @@ import {
 } from './lavpoly.js';
 import { tegnVei, tegnBane, lagUnngaa, HALVBREDDE } from './veier.js';
 import { settLag } from './neon.js';
+import { spillerfarge } from './spillerfarge.js';
 
 // ---------------------------------------------------------------------------
 // Bunn
@@ -362,8 +363,9 @@ const OVERLEGG = {
 // ---------------------------------------------------------------------------
 const BYGG = {
   leir(ctx, S, tilf) {
+    const f = spillerfarge();
     hus(ctx, S * 0.43, S * 0.62, S * 0.34, S * 0.3, S * 0.17, S * 0.15,
-      { vegg: FIGUR.treVegg, tak: FIGUR.takRod, pipe: true });
+      { vegg: FIGUR.treVegg, tak: [f, mork(f, 0.3)], pipe: true });
     baal(ctx, S * 0.76, S * 0.82, S * 0.1);
     flagg(ctx, S * 0.18, S * 0.82, S * 0.32);
   },
@@ -479,8 +481,9 @@ function baal(ctx, x, y, r) {
 function flagg(ctx, x, y, h) {
   ctx.fillStyle = '#6d4a30';
   ctx.fillRect(x - h * 0.02, y - h, h * 0.04, h);
-  poly(ctx, [[x + h * 0.02, y - h], [x + h * 0.38, y - h * 0.88], [x + h * 0.02, y - h * 0.74]], '#e0a030');
-  poly(ctx, [[x + h * 0.02, y - h * 0.87], [x + h * 0.38, y - h * 0.88], [x + h * 0.02, y - h * 0.74]], '#b77f1c');
+  const f = spillerfarge();
+  poly(ctx, [[x + h * 0.02, y - h], [x + h * 0.38, y - h * 0.88], [x + h * 0.02, y - h * 0.74]], f);
+  poly(ctx, [[x + h * 0.02, y - h * 0.87], [x + h * 0.38, y - h * 0.88], [x + h * 0.02, y - h * 0.74]], mork(f, 0.25));
 }
 
 function tommerstabel(ctx, x, y, r, n) {

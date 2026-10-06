@@ -29,28 +29,34 @@
     .forklaring { margin: 0 0 12px; color: var(--dempet); line-height: 1.45; }
     body.liten .forklaring, body.liten figcaption, body.liten .bare-stor { display: none; }
 
-    .scene { position: relative; border-radius: 18px; overflow: hidden; background: #010101; border: 3px solid #2a3140; }
-    #himmel { display: block; width: 100%; height: 104px; }
+    .scene { position: relative; border-radius: 18px; background: #010101; border: 3px solid #2a3140; }
+    .himmel-boks { position: sticky; top: var(--topp, 60px); z-index: 4; border-radius: 15px 15px 0 0; overflow: hidden; }
+    #himmel { display: block; width: 100%; height: 84px; }
     #sol-tekst { position: absolute; top: 8px; left: 12px; font-weight: 700; color: #1b2a3a; text-shadow: 0 1px 0 rgba(255,255,255,0.5); pointer-events: none; }
-    .ting { display: grid; gap: 18px; justify-content: center; padding: 18px 12px 14px; }
-    .ting figure { margin: 0; text-align: center; }
-    .ting canvas { display: block; touch-action: none; cursor: pointer; }
-    .ting figcaption { font-size: 14px; color: var(--dempet); margin-top: 2px; min-height: 18px; }
+    .ting { padding: 6px 10px 14px; }
+    .ravare { margin-top: 14px; }
+    .ravare h3 { margin: 0 0 8px; font-size: 19px; text-align: center; color: var(--krem); }
+    .ravare .sang { font-weight: 400; font-size: 15px; color: #ffe58a; margin-left: 6px; }
+    .rad { display: grid; gap: 14px; justify-content: center; }
+    .rad figure { margin: 0; text-align: center; }
+    .rad canvas { display: block; touch-action: none; cursor: pointer; }
+    .rad figcaption { font-size: 13px; color: var(--dempet); margin-top: 1px; min-height: 17px; }
 
-    .natt { position: absolute; inset: 0; z-index: 2; }
+    .natt { position: fixed; inset: 0; z-index: 15; }
     .natt canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
     .natt-tekst { position: absolute; top: 16px; left: 0; right: 0; text-align: center; font-size: 20px; font-weight: 700; color: #fff6d8; pointer-events: none; }
     #morgen { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); }
 
     .forrad {
-      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px;
-      background: var(--panel); color: var(--tekst); border-radius: 16px; padding: 10px; border: 3px solid var(--kant);
+      position: sticky; bottom: 6px; z-index: 6; box-shadow: 0 -4px 18px rgba(0,0,0,0.45);
+      display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin: 12px 6px 0;
+      background: var(--panel); color: var(--tekst); border-radius: 16px; padding: 6px; border: 3px solid var(--kant);
     }
-    .vare { min-width: 64px; padding: 4px 10px; border-radius: 12px; background: #fff; font-size: 20px; text-align: center; }
+    .vare { min-width: 50px; padding: 2px 7px; border-radius: 10px; background: #fff; font-size: 17px; text-align: center; }
     .vare b { font-size: 18px; }
     .vare small { font-size: 12px; color: #6d6656; }
     .vare .tom { opacity: 0.25; }
-    body.liten .vare { font-size: 24px; letter-spacing: -6px; padding-right: 14px; }
+    body.liten .vare { font-size: 22px; letter-spacing: -6px; padding-right: 14px; }
     .dunk { animation: dunk 0.35s ease-out; }
     @keyframes dunk { 40% { transform: scale(1.25); } }
     .flyr {
@@ -100,22 +106,20 @@
     <section>
       <h2>1 · Hender og sol</h2>
       <p class="forklaring">
-        Trykk på tingene. <b>Hvert trykk er én tone</b> i en kjent melodi, og siste tone åpner kista.
-        Liten kiste = 5 trykk («Ro, ro, ro din båt»), stor kiste = 10, kjempekista = 32 («Fader Jakob») – den tåler mange fingre samtidig.
-        Treet og steinen har egne instrumenter, og tåka børster du bort der du trykker.
-        <b>Hvert trykk flytter sola litt.</b> Når den går ned, kommer natta med stjerneskudd du kan fange.
+        Alt du kan samle finnes i tre størrelser, og hver råvare har sin egen sang og sitt eget instrument.
+        <b>Hvert trykk er én tone.</b> Den lille spiller starten av sangen, den mellomste litt mer – og den store spiller <b>hele sangen</b>.
+        Store ting gir mye mer. <b>Hvert trykk flytter sola litt</b>; når den går ned, kommer natta med stjerneskudd du kan fange.
       </p>
       <div id="scene" class="scene">
-        <canvas id="himmel"></canvas>
-        <div id="sol-tekst"></div>
+        <div class="himmel-boks"><canvas id="himmel"></canvas><div id="sol-tekst"></div></div>
         <div id="ting" class="ting"></div>
         <div id="natt" class="natt" hidden>
           <canvas id="natt-lerret"></canvas>
           <div class="natt-tekst">🌙 Fang stjerneskuddene!</div>
           <button id="morgen">☀️ God morgen</button>
         </div>
+        <div id="forrad" class="forrad"></div>
       </div>
-      <div id="forrad" class="forrad"></div>
     </section>
 
     <section class="tid">

@@ -1,6 +1,7 @@
-// Prøveark for «Øya i hundre år»: trykk med toner (kister, tre, stein, tåke),
-// sola som dagsbudsjett, natta med stjerneskudd, og tidsspranget der brettet eldes.
-// Bruker de samme kortene som spillet (js/stil/*).
+// Prøveark for «Øya i hundre år»: alle råvarer finnes i tre størrelser, og hvert
+// trykk er én tone i en barnesang – den lille spiller starten, den mellomste litt
+// mer og den store hele sangen. Sola er dagsbudsjettet, natta har stjerneskudd,
+// og tidsspranget viser brettet som eldes. Bruker de samme kortene som spillet.
 
 import { tegnKort, tegnUkjent, tegnTomtKort } from './stil/ruter.js';
 import { BAKGRUNN, FIGUR } from './stil/palett.js';
@@ -15,14 +16,23 @@ const myk = (u) => { u = klamp(u); return u * u * (3 - 2 * u); };
 const ut = (u) => 1 - Math.pow(1 - klamp(u), 3);
 const sprett = (u) => { u = klamp(u); const c = 1.70158; return 1 + (c + 1) * Math.pow(u - 1, 3) + c * Math.pow(u - 1, 2); };
 
-const IKON = { tre: '🪵', stein: '🪨', mat: '🍎', fro: '🌰', nokkel: '🗝️', skatt: '💎', stov: '✨' };
-const VARENAVN = { tre: 'tre', stein: 'stein', mat: 'mat', fro: 'frø', nokkel: 'nøkler', skatt: 'skatter', stov: 'stjernestøv' };
-const SOL = { liten: 60, stor: 40 };
+const IKON = {
+  tre: '🪵', stein: '🪨', jern: '⛓️', fisk: '🐟', korn: '🌾', ull: '🧶',
+  fro: '🌰', nokkel: '🗝️', skatt: '💎', stov: '✨',
+};
+const VARENAVN = {
+  tre: 'tre', stein: 'stein', jern: 'jern', fisk: 'fisk', korn: 'korn', ull: 'ull',
+  fro: 'frø', nokkel: 'nøkler', skatt: 'skatter', stov: 'stjernestøv',
+};
+// Prøvearket har mange ting å trykke på, så sola varer lenger enn den vil gjøre i spillet.
+const SOL = { liten: 200, stor: 150 };
+const STR_NAVN = ['Liten', 'Middels', 'Stor'];
+const UTBYTTE = [2, 5, 12];
 
 const T = {
   nivaa: 'stor',
   sol: SOL.stor,
-  solVis: 0,          // sola glir mot riktig plass
+  solVis: 0,
   natt: null,
   forrad: Object.fromEntries(Object.keys(IKON).map((k) => [k, 0])),
   kort: [],
@@ -30,18 +40,30 @@ const T = {
 };
 
 // ---------------------------------------------------------------------------
-// Tingene man trykker på. Antall trykk = antall toner i melodien.
+// Råvarene. Hver har sin sang, sitt instrument og sin figur i tre størrelser.
 // ---------------------------------------------------------------------------
-const TING = [
-  { id: 'take', navn: 'Tåke', melodi: 'take', instrument: 'sus', bunn: null, gir: () => ({}) },
-  { id: 'tre', navn: 'Tre', melodi: 'fugler', instrument: 'hogg', bunn: 'eng', gir: () => ({ tre: 3 }) },
-  { id: 'stein', navn: 'Stein', melodi: 'baa', instrument: 'treblokk', bunn: 'aas', gir: () => ({ stein: 3 }) },
-  { id: 'liten', navn: 'Liten kiste', melodi: 'ro', lengde: 5, instrument: 'xylofon', bunn: 'strand', str: 1,
-    gir: (r) => r.velg([{ mat: 2 }, { fro: 1, mat: 1 }, { tre: 2, mat: 1 }]) },
-  { id: 'stor', navn: 'Stor kiste', melodi: 'ro', instrument: 'xylofon', bunn: 'eng', str: 1.35,
-    gir: (r) => r.velg([{ fro: 2, nokkel: 1 }, { skatt: 1, mat: 3 }, { fro: 1, skatt: 1, tre: 2 }]) },
-  { id: 'kjempe', navn: 'Kjempekiste', melodi: 'jakob', instrument: 'xylofon', bunn: 'eng', str: 1.75,
-    gir: () => ({ skatt: 3, nokkel: 1, stov: 5 }), ekstra: '📜 Byggetegning: Fyrtårn!' },
+const RAVARER = [
+  { id: 'tre', navn: 'Tre', sang: 'petter', instrument: 'hogg', bunn: ['eng', 'eng', 'skog'], figur: figurTre, navnStr: ['Lite tre', 'Tre', 'Stort tre'],
+    sprut: ['#8a5c38', '#e8c48a', '#6f9a3f', '#8fbf55'] },
+  { id: 'stein', navn: 'Stein', sang: 'mary', instrument: 'treblokk', bunn: ['aas', 'aas', 'aas'], figur: figurStein, navnStr: ['Liten stein', 'Stein', 'Kampestein'],
+    sprut: ['#9aa1ae', '#7d7f8a', '#c4c9d2'] },
+  { id: 'jern', navn: 'Jern', sang: 'jakob', instrument: 'ambolt', bunn: ['fjell', 'fjell', 'fjell'], figur: figurJern, navnStr: ['Litt malm', 'Malmstein', 'Malmåre'],
+    sprut: ['#d98a4a', '#b8c3cf', '#ffe6a0'] },
+  { id: 'fisk', navn: 'Fisk', sang: 'ro', instrument: 'plask', bunn: ['vann', 'vann', 'vann'], figur: figurFisk, navnStr: ['Sild', 'Ørret', 'Laks'],
+    sprut: ['#ffffff', '#bfe4f7', '#7fc3e6'] },
+  { id: 'korn', navn: 'Korn', sang: 'macdonald', instrument: 'floyte', bunn: ['eng', 'eng', 'eng'], figur: figurKorn, navnStr: ['Kornaks', 'Kornband', 'Kornåker'],
+    sprut: ['#e2c25a', '#c9a23f', '#f3e3a0'] },
+  { id: 'ull', navn: 'Ull', sang: 'baa', instrument: 'spilledaase', bunn: ['eng', 'eng', 'eng'], figur: figurSau, navnStr: ['Lam', 'Sau', 'Vær'],
+    sprut: ['#ffffff', '#f3f0e7', '#e5ded0'] },
+  { id: 'kiste', navn: 'Kister', sang: 'bursdag', instrument: 'xylofon', bunn: ['strand', 'eng', 'eng'], figur: figurKiste,
+    sprut: ['#ffd23f', '#ffe58a', '#fff4c2'], navnStr: ['Liten kiste', 'Stor kiste', 'Kjempekiste'] },
+];
+const TAKE = { id: 'take', navn: 'Tåke', sang: 'take', instrument: 'sus', sprut: ['#3a4250', '#5a6372', '#7d8494'] };
+
+const KISTEGAVE = [
+  (r) => r.velg([{ fro: 1 }, { skatt: 1 }, { nokkel: 1 }]),
+  (r) => r.velg([{ fro: 2, nokkel: 1 }, { skatt: 2 }, { fro: 1, skatt: 1, nokkel: 1 }]),
+  () => ({ skatt: 3, nokkel: 1, stov: 5 }),
 ];
 
 const AVDEKK = [
@@ -59,12 +81,12 @@ function lerret(S, H = S) {
   return [c, ctx];
 }
 
-function nyTing(def) {
+function nyTing(def, str) {
+  const toner = L.tonerFor(def.sang, str);
   const k = {
-    def, seed: (Math.random() * 1e9) | 0, tTrykk: -9, tFerdig: null, tStart: naa(), partikler: [],
-    antall: def.lengde ?? L.MELODI[def.melodi].length,
+    def, str, toner, antall: toner.length, igjen: toner.length,
+    seed: (Math.random() * 1e9) | 0, tTrykk: -9, tFerdig: null, tStart: naa(), partikler: [],
   };
-  k.igjen = k.antall;
   if (def.id === 'take') {
     const r = lagTilfeldig(k.seed);
     const [u, uc] = lerret(T.K);
@@ -79,35 +101,57 @@ function nyTing(def) {
 }
 
 // ---------------------------------------------------------------------------
-// Oppsett av kortene (bygges på nytt når skjermen endrer størrelse)
+// Oppsett: én rad per råvare (liten, middels, stor) + tåka
 // ---------------------------------------------------------------------------
+const PRIKK_H = 46;
+
 function byggTing() {
   const boks = $('ting');
-  const w = boks.clientWidth;
-  const kol = w >= 620 ? 3 : 2;
-  T.K = Math.min(230, Math.floor((w - (kol - 1) * 18) / kol));
-  boks.style.gridTemplateColumns = `repeat(${kol}, ${T.K}px)`;
+  const cs = getComputedStyle(boks);
+  const w = boks.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  T.K = Math.min(230, Math.floor((w - 2 * 14) / 3));
   boks.innerHTML = '';
-  T.kort = TING.map((def) => {
+  T.kort = [];
+  const lagKort = (rad, def, str) => {
     const fig = document.createElement('figure');
-    const [c, ctx] = lerret(T.K, T.K + 34);
+    const [c, ctx] = lerret(T.K, T.K + PRIKK_H);
     c.style.width = `${T.K}px`;
-    c.style.height = `${T.K + 34}px`;
+    c.style.height = `${T.K + PRIKK_H}px`;
     const cap = document.createElement('figcaption');
     fig.append(c, cap);
-    boks.append(fig);
-    const k = nyTing(def);
+    rad.append(fig);
+    const k = nyTing(def, str);
     k.el = { canvas: c, ctx, cap };
     c.addEventListener('pointerdown', (e) => { e.preventDefault(); trykk(k, e); });
+    T.kort.push(k);
     oppdaterTekst(k);
-    return k;
-  });
+  };
+  for (const def of [...RAVARER, TAKE]) {
+    const blokk = document.createElement('div');
+    blokk.className = 'ravare';
+    const sang = L.SANG[def.sang].navn;
+    blokk.innerHTML = def.id === 'take'
+      ? '<h3>☁️ Tåke <span class="sang">børst den bort der du trykker</span></h3>'
+      : `<h3>${def.id === 'kiste' ? '🎁' : IKON[def.id]} ${def.navn} <span class="sang">♪ ${sang}</span></h3>`;
+    const rad = document.createElement('div');
+    rad.className = 'rad';
+    rad.style.gridTemplateColumns = `repeat(3, ${T.K}px)`;
+    blokk.append(rad);
+    boks.append(blokk);
+    if (def.id === 'take') lagKort(rad, def, 0);
+    else for (let s = 0; s < 3; s++) lagKort(rad, def, s);
+  }
+}
+
+function tingNavn(k) {
+  if (k.def.id === 'take') return 'Tåke';
+  return k.def.navnStr?.[k.str] ?? `${STR_NAVN[k.str]} ${k.def.navn.toLowerCase()}`;
 }
 
 function oppdaterTekst(k) {
   if (T.nivaa === 'liten') { k.el.cap.textContent = ''; return; }
-  k.el.cap.textContent = k.tFerdig !== null ? `${k.def.navn} · åpnet!`
-    : `${k.def.navn} · ${k.igjen} av ${k.antall} trykk igjen`;
+  k.el.cap.textContent = k.tFerdig !== null ? `${tingNavn(k)} · ferdig!`
+    : `${tingNavn(k)} · ${k.igjen} igjen`;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,8 +163,7 @@ function trykk(k, e) {
   if (T.sol <= 0) { L.tomt(); return; }
   const r = k.el.canvas.getBoundingClientRect();
   const x = e.clientX - r.left, y = Math.min(T.K * 0.95, e.clientY - r.top);
-  const nr = k.antall - k.igjen;
-  L.INSTRUMENT[k.def.instrument](L.MELODI[k.def.melodi][nr]);
+  L.INSTRUMENT[k.def.instrument](k.toner[k.antall - k.igjen]);
   k.igjen--;
   k.tTrykk = naa();
   T.sol--;
@@ -144,15 +187,8 @@ function borst(k, x, y) {
   c.restore();
 }
 
-const SPRUTFARGER = {
-  take: ['#3a4250', '#5a6372', '#7d8494'],
-  tre: ['#8a5c38', '#e8c48a', '#6f9a3f', '#8fbf55'],
-  stein: ['#9aa1ae', '#7d7f8a', '#c4c9d2'],
-  kiste: ['#ffd23f', '#ffe58a', '#fff4c2'],
-};
-
-function sprut(k, x, y, { antall = 7, kraft = 1, farger } = {}) {
-  const f = farger ?? SPRUTFARGER[k.def.id] ?? SPRUTFARGER.kiste;
+function sprut(k, x, y, { antall = 7, kraft = 1 } = {}) {
+  const f = k.def.sprut;
   const t = naa();
   for (let i = 0; i < antall; i++) {
     const v = -Math.PI / 2 + (Math.random() - 0.5) * 2.4;
@@ -166,14 +202,15 @@ function sprut(k, x, y, { antall = 7, kraft = 1, farger } = {}) {
 
 function ferdig(k) {
   k.tFerdig = naa();
-  const gave = k.def.gir(lagTilfeldig(k.seed + 7));
-  setTimeout(() => L.fanfare(k.def.str ?? 1), 180);
-  if (k.def.id === 'take') L.vend();
-  if (k.def.str) sprut(k, T.K * 0.5, T.K * 0.55, { antall: 26, kraft: 1.4 });
+  const id = k.def.id;
+  const gave = id === 'kiste' ? KISTEGAVE[k.str](lagTilfeldig(k.seed + 7)) : id === 'take' ? {} : { [id]: UTBYTTE[k.str] };
+  setTimeout(() => L.fanfare(k.str + 1), 180);
+  if (id === 'take') L.vend();
+  else sprut(k, T.K * 0.5, T.K * 0.55, { antall: 10 + k.str * 8, kraft: 1.3 });
   setTimeout(() => flyTil(k, gave), 550);
-  if (k.def.ekstra) setTimeout(() => melding(k.def.ekstra), 900);
+  if (id === 'kiste' && k.str === 2) setTimeout(() => melding('📜 Byggetegning: Fyrtårn!'), 900);
   setTimeout(() => {
-    Object.assign(k, nyTing(k.def));
+    Object.assign(k, nyTing(k.def, k.str));
     oppdaterTekst(k);
   }, 3000);
   if (T.sol <= 0) setTimeout(startNatt, 2600);
@@ -200,7 +237,7 @@ function flyTil(k, gave, fra = null) {
         T.forrad[vare]++;
         tegnForrad(vare);
       }, 900 + forsink);
-      forsink += 110;
+      forsink += n > 6 ? 70 : 110;
     }
   }
 }
@@ -218,10 +255,11 @@ function tegnForrad(dunk) {
   for (const v of Object.keys(IKON)) {
     const el = $(`f-${v}`), n = T.forrad[v];
     if (T.nivaa === 'stor') {
-      el.innerHTML = `${IKON[v]} <b>${n}</b> <small>${VARENAVN[v]}</small>`;
+      el.innerHTML = `${IKON[v]} <b>${n}</b>`;
+      el.title = VARENAVN[v];
     } else {
       // De minste ser en haug, ikke et tall.
-      el.innerHTML = n ? `${IKON[v].repeat(Math.min(n, 8))}${n > 8 ? '<small>+</small>' : ''}` : `<span class="tom">${IKON[v]}</span>`;
+      el.innerHTML = n ? `${IKON[v].repeat(Math.min(n, 6))}${n > 6 ? '<small>+</small>' : ''}` : `<span class="tom">${IKON[v]}</span>`;
     }
   }
   if (dunk) {
@@ -245,12 +283,12 @@ function melding(tekst) {
 }
 
 // ---------------------------------------------------------------------------
-// Tegning av tingene
+// Tegning av kortene
 // ---------------------------------------------------------------------------
 function tegnTing(k, t) {
   const { ctx } = k.el;
   const S = T.K;
-  ctx.clearRect(0, 0, S, S + 34);
+  ctx.clearRect(0, 0, S, S + PRIKK_H);
   const p = 1 - k.igjen / k.antall;
   const alder = t - k.tTrykk;
   const ferdigT = k.tFerdig === null ? null : t - k.tFerdig;
@@ -266,7 +304,7 @@ function tegnTing(k, t) {
     ctx.drawImage(k.take, 0, 0, S, S);
     ctx.globalAlpha = 1;
   } else {
-    tegnTomtKort(ctx, S, lagTilfeldig(k.seed + 3), k.def.bunn, () => {
+    tegnTomtKort(ctx, S, lagTilfeldig(k.seed + 3), k.def.bunn[k.str], () => {
       // Vugg og klem rundt foten av figuren når man trykker.
       const vugg = ferdigT === null ? Math.exp(-alder * 7) * Math.sin(alder * 38) * 0.07 : 0;
       const klem = ferdigT === null ? Math.exp(-alder * 16) * 0.08 : 0;
@@ -275,16 +313,13 @@ function tegnTing(k, t) {
       ctx.rotate(vugg);
       ctx.scale(1 + klem * 0.6, 1 - klem);
       ctx.translate(-S * 0.5, -S * 0.86);
-      const r = lagTilfeldig(k.seed);
-      if (k.def.id === 'tre') figurTre(ctx, S, r, p, ferdigT);
-      else if (k.def.id === 'stein') figurStein(ctx, S, r, k, p, ferdigT);
-      else figurKiste(ctx, S, k, p, ferdigT, t);
+      k.def.figur(ctx, S, lagTilfeldig(k.seed), k, p, ferdigT, t);
       ctx.restore();
     });
   }
   ctx.restore();
 
-  // Spruten (flis, gnister, tåkedotter)
+  // Sprut (flis, gnister, vanndråper, ull …)
   k.partikler = k.partikler.filter((q) => t - q.t0 < q.liv);
   for (const q of k.partikler) {
     const a = t - q.t0;
@@ -302,34 +337,36 @@ function tegnTing(k, t) {
   tegnPrikker(ctx, S, k);
 }
 
-/** Prikker under kortet: én per trykk. Fylte prikker = trykk som er gjort. */
+/** Prikker under kortet: én per tone i sangen. Fylte prikker = toner som er spilt. */
 function tegnPrikker(ctx, S, k) {
   const n = k.antall, gjort = n - k.igjen;
-  const toRader = n > 12;
-  const perRad = toRader ? Math.ceil(n / 2) : n;
-  const stor = T.nivaa === 'liten' ? 1.25 : 1;
-  const r = Math.min((toRader ? 4.2 : 7.5) * stor, (S - 16) / perRad / 2.6);
+  const rader = n <= 12 ? 1 : Math.ceil(n / 15);
+  const perRad = Math.ceil(n / rader);
+  const maks = T.nivaa === 'liten' ? 9.5 : 7.5;
+  const r = Math.min(maks, (S - 8) / perRad / 2.6, (PRIKK_H - 6) / rader / 2.6);
   const avst = r * 2.6;
+  const y0 = S + 4 + (PRIKK_H - 4 - rader * avst) / 2 + avst / 2;
   for (let i = 0; i < n; i++) {
-    const rad = toRader ? Math.floor(i / perRad) : 0;
-    const kol = i - rad * perRad;
-    const x = S / 2 + (kol - (perRad - 1) / 2) * avst;
-    const y = S + (toRader ? 10 + rad * avst : 17);
+    const rad = Math.floor(i / perRad), kol = i - rad * perRad;
+    const iRad = Math.min(perRad, n - rad * perRad);
+    const x = S / 2 + (kol - (iRad - 1) / 2) * avst;
+    const y = y0 + rad * avst;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     if (i < gjort) {
       ctx.fillStyle = '#ffd23f';
       ctx.fill();
     } else {
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = Math.max(1, r * 0.3);
       ctx.strokeStyle = 'rgba(250, 242, 219, 0.45)';
       ctx.stroke();
     }
   }
 }
 
-function treFigur(ctx, r, x, y, h, p) {
-  skygge(ctx, x + h * 0.1, y, h * 0.34, h * 0.09);
+// --- Tre ---------------------------------------------------------------------
+function treFigur(ctx, r, x, y, h, p, bred = 1) {
+  skygge(ctx, x + h * 0.1, y, h * 0.34 * bred, h * 0.09);
   const sb = h * 0.12;
   poly(ctx, [[x - sb / 2, y], [x - sb * 0.38, y - h * 0.48], [x + sb * 0.38, y - h * 0.48], [x + sb / 2, y]], '#8a5c38');
   poly(ctx, [[x + sb * 0.05, y], [x + sb * 0.05, y - h * 0.48], [x + sb * 0.38, y - h * 0.48], [x + sb / 2, y]], '#6a4428');
@@ -338,13 +375,15 @@ function treFigur(ctx, r, x, y, h, p) {
     const d = sb * 0.95 * p;
     poly(ctx, [[x - sb / 2 - 0.5, y - h * 0.1], [x - sb / 2 + d, y - h * 0.15], [x - sb / 2 - 0.5, y - h * 0.21]], '#ecc98e');
   }
-  fasett(ctx, klump(r, x - h * 0.15, y - h * 0.6, h * 0.25, h * 0.22, 8, 0.12), mork(FIGUR.lov, 0.1));
-  fasett(ctx, klump(r, x + h * 0.15, y - h * 0.63, h * 0.24, h * 0.22, 8, 0.12), FIGUR.lov);
-  fasett(ctx, klump(r, x, y - h * 0.8, h * 0.27, h * 0.22, 8, 0.12), lys(FIGUR.lov, 0.08));
+  const kl = bred > 1.1
+    ? [[-0.24, -0.58, 0.24], [0.24, -0.6, 0.24], [-0.1, -0.78, 0.25], [0.14, -0.82, 0.22], [0, -0.64, 0.26]]
+    : [[-0.15, -0.6, 0.25], [0.15, -0.63, 0.24], [0, -0.8, 0.27]];
+  const farger = [mork(FIGUR.lov, 0.1), FIGUR.lov, lys(FIGUR.lov, 0.08), lys(FIGUR.lov, 0.12), FIGUR.lov];
+  kl.forEach(([dx, dy, rr], i) => fasett(ctx, klump(r, x + dx * h * bred, y + dy * h, rr * h * bred, rr * h * 0.88, 8, 0.12), farger[i]));
   for (const [dx, dy] of [[-0.14, -0.62], [0.12, -0.72], [0.02, -0.86], [0.2, -0.56]]) {
     ctx.fillStyle = '#d0453f';
     ctx.beginPath();
-    ctx.arc(x + h * dx, y + h * dy, h * 0.028, 0, Math.PI * 2);
+    ctx.arc(x + h * dx * bred, y + h * dy, h * 0.028, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -363,11 +402,11 @@ function stubbe(ctx, x, y, r) {
   ctx.stroke();
 }
 
-function figurTre(ctx, S, r, p, ferdigT) {
-  const x = S * 0.5, y = S * 0.86, h = S * 0.7;
-  if (ferdigT === null) { treFigur(ctx, r, x, y, h, p); return; }
+function figurTre(ctx, S, r, k, p, ferdigT) {
+  const x = S * 0.5, y = S * 0.88, h = S * [0.5, 0.68, 0.86][k.str], bred = [0.8, 1, 1.25][k.str];
+  if (ferdigT === null) { treFigur(ctx, r, x, y, h, p, bred); return; }
   // Treet faller mot høyre, blir liggende litt og blekner; stubben står igjen.
-  stubbe(ctx, x, y, S * 0.06);
+  stubbe(ctx, x, y, S * [0.04, 0.06, 0.08][k.str]);
   const fall = klamp(ferdigT / 0.75);
   if (ferdigT < 1.8) {
     ctx.save();
@@ -375,23 +414,50 @@ function figurTre(ctx, S, r, p, ferdigT) {
     ctx.translate(x, y - h * 0.06);
     ctx.rotate((Math.PI / 2) * fall * fall);
     ctx.translate(-x, -(y - h * 0.06));
-    treFigur(ctx, r, x, y, h, 1);
+    treFigur(ctx, r, x, y, h, 1, bred);
     ctx.restore();
   }
 }
 
-function figurStein(ctx, S, r, k, p, ferdigT) {
-  const x = S * 0.5, y = S * 0.82, R = S * 0.28;
+// --- Stein og jern ----------------------------------------------------------
+function steinbit(ctx, S, r, k, p, ferdigT, { farge, mork: morkFarge, malm = false }) {
+  const x = S * 0.5, y = S * 0.84, R = S * [0.16, 0.25, 0.34][k.str];
   if (ferdigT === null) {
-    stein(ctx, r, x, y, R, FIGUR.stein);
-    // Sprekker: én ny for hvert trykk.
+    if (k.str === 2) {
+      // Den store har småstein rundt seg
+      stein(ctx, lagTilfeldig(k.seed + 30), x - R * 1.05, y + S * 0.02, R * 0.32, morkFarge);
+      stein(ctx, lagTilfeldig(k.seed + 31), x + R * 1.1, y + S * 0.03, R * 0.26, farge);
+    }
+    stein(ctx, r, x, y, R, farge);
+    if (malm) {
+      // Malmklumper og blanke flekker som glitrer mer jo nærmere man er
+      const rm = lagTilfeldig(k.seed + 12);
+      const n = [3, 5, 8][k.str];
+      for (let i = 0; i < n; i++) {
+        const mx = x + (rm.tall() - 0.5) * R * 1.3, my = y - R * (0.2 + rm.tall() * 0.6);
+        const mr = R * (0.08 + rm.tall() * 0.08);
+        poly(ctx, [[mx - mr, my], [mx, my - mr * 0.8], [mx + mr, my], [mx, my + mr * 0.7]], i % 3 === 2 ? FIGUR.malm[1] : FIGUR.malm[0]);
+      }
+      if (p > 0) {
+        const t = naa();
+        for (let i = 0; i < n; i++) {
+          const gx = x + (Math.sin(i * 7.3 + k.seed) * 0.5) * R * 1.2, gy = y - R * (0.3 + 0.25 * Math.cos(i * 3.1));
+          const a = p * (0.5 + 0.5 * Math.sin(t * 6 + i * 2));
+          ctx.fillStyle = `rgba(255, 250, 220, ${a})`;
+          const g = R * 0.09;
+          poly(ctx, [[gx, gy - g], [gx + g * 0.3, gy - g * 0.3], [gx + g, gy], [gx + g * 0.3, gy + g * 0.3], [gx, gy + g], [gx - g * 0.3, gy + g * 0.3], [gx - g, gy], [gx - g * 0.3, gy - g * 0.3]], ctx.fillStyle);
+        }
+      }
+    }
+    // Sprekker: kommer gradvis, én bit for hvert trykk.
     const rs = lagTilfeldig(k.seed + 11);
-    const n = Math.round(p * 7);
-    ctx.strokeStyle = 'rgba(45, 45, 58, 0.8)';
-    ctx.lineWidth = Math.max(1.2, S * 0.012);
+    const totalt = 7;
+    const n = Math.round(p * totalt);
+    ctx.strokeStyle = 'rgba(40, 40, 52, 0.8)';
+    ctx.lineWidth = Math.max(1.2, R * 0.045);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < totalt; i++) {
       const v = rs.tall() * Math.PI * 2;
       const pkt = [[x + (rs.tall() - 0.5) * R * 0.3, y - R * 0.45 + (rs.tall() - 0.5) * R * 0.2]];
       for (let s = 0; s < 3; s++) {
@@ -407,25 +473,186 @@ function figurStein(ctx, S, r, k, p, ferdigT) {
     }
     return;
   }
-  // Steinen sprekker i tre biter som triller fra hverandre.
+  // Steinen sprekker i biter som triller fra hverandre.
   const u = ut(ferdigT / 0.7);
   ctx.globalAlpha = 1 - klamp((ferdigT - 1.3) / 0.6);
   [[-1, 0.8], [0.15, 1.2], [1, 0.9]].forEach(([retn, hopp], i) => {
     const px = x + retn * u * S * 0.26;
     const py = y - Math.sin(u * Math.PI) * S * 0.12 * hopp;
-    stein(ctx, lagTilfeldig(k.seed + 20 + i), px, py, R * 0.42, i === 1 ? FIGUR.steinMork : FIGUR.stein);
+    stein(ctx, lagTilfeldig(k.seed + 20 + i), px, py, R * 0.42, i === 1 ? morkFarge : (malm ? FIGUR.malm[0] : farge));
   });
   ctx.globalAlpha = 1;
 }
 
-const KISTEFARGER = {
-  liten: { kropp: { topp: '#c99a62', venstre: '#b07a45', hoyre: '#86582f' }, lokk: ['#d6a86e', '#946137'], baand: '#6b6f78', laas: '#e2b33c' },
-  stor: { kropp: { topp: '#9c6438', venstre: '#8a5530', hoyre: '#653b1f' }, lokk: ['#a8703f', '#6e4223'], baand: '#d9a520', laas: '#ffd23f' },
-  kjempe: { kropp: { topp: '#46697c', venstre: '#35505f', hoyre: '#253b47' }, lokk: ['#4f7488', '#2a4250'], baand: '#e0b13a', laas: '#ffd23f' },
-};
+function figurStein(ctx, S, r, k, p, ferdigT) {
+  steinbit(ctx, S, r, k, p, ferdigT, { farge: FIGUR.stein, mork: FIGUR.steinMork });
+}
 
-function figurKiste(ctx, S, k, p, ferdigT, t) {
-  const f = KISTEFARGER[k.def.id], s = k.def.str;
+function figurJern(ctx, S, r, k, p, ferdigT) {
+  steinbit(ctx, S, r, k, p, ferdigT, { farge: '#7b7e8c', mork: '#5d5f6b', malm: true });
+}
+
+// --- Fisk --------------------------------------------------------------------
+const FISKEFARGER = [
+  { rygg: '#6f8ea6', side: '#c9dbe7', finne: '#5a7890' },   // sild
+  { rygg: '#7c6a4a', side: '#e2b98d', finne: '#6a5638', prikker: '#c8553f' }, // ørret
+  { rygg: '#5d7488', side: '#dfe6ec', finne: '#4c6274', stripe: '#e89a8a' },  // laks
+];
+
+function fiskFigur(ctx, x, y, L, vinkel, f) {
+  const H = L * 0.36;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(vinkel);
+  poly(ctx, [[-L * 0.4, 0], [-L * 0.64, -H * 0.55], [-L * 0.58, 0], [-L * 0.64, H * 0.55]], f.finne);   // hale
+  poly(ctx, [[-L * 0.05, -H * 0.45], [L * 0.12, -H * 0.85], [L * 0.2, -H * 0.42]], f.finne);              // ryggfinne
+  const kropp = [[L * 0.5, 0], [L * 0.3, -H * 0.42], [0, -H * 0.5], [-L * 0.3, -H * 0.36], [-L * 0.42, 0],
+    [-L * 0.3, H * 0.36], [0, H * 0.5], [L * 0.3, H * 0.42]];
+  poly(ctx, kropp, f.side);
+  poly(ctx, [[L * 0.5, 0], [L * 0.3, -H * 0.42], [0, -H * 0.5], [-L * 0.3, -H * 0.36], [-L * 0.42, 0], [0, -H * 0.12]], f.rygg);
+  if (f.stripe) poly(ctx, [[L * 0.32, H * 0.02], [-L * 0.36, H * 0.02], [-L * 0.3, H * 0.14], [L * 0.26, H * 0.16]], f.stripe);
+  if (f.prikker) {
+    ctx.fillStyle = f.prikker;
+    for (const [px, py] of [[-0.2, -0.18], [0, -0.05], [0.15, -0.22], [-0.05, -0.3], [0.25, 0.05]]) {
+      ctx.beginPath(); ctx.arc(L * px, H * py, L * 0.018, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  poly(ctx, [[L * 0.02, H * 0.1], [L * 0.12, H * 0.1], [L * 0.04, H * 0.42]], f.finne);                   // sidefinne
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(L * 0.36, -H * 0.1, L * 0.045, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1d232b';
+  ctx.beginPath(); ctx.arc(L * 0.375, -H * 0.1, L * 0.025, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function figurFisk(ctx, S, r, k, p, ferdigT, t) {
+  const L = S * [0.34, 0.5, 0.7][k.str];
+  const x = S * 0.5, vann = S * 0.7;
+  const bob = Math.sin(t * 2.2 + k.seed) * S * 0.015;
+  // Ringer i vannet
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.lineWidth = Math.max(1, S * 0.008);
+  for (let i = 0; i < 2; i++) {
+    const u = ((t * 0.6 + i * 0.5 + (k.seed % 7) * 0.1) % 1);
+    ctx.globalAlpha = 1 - u;
+    ctx.beginPath();
+    ctx.ellipse(x, vann, L * (0.35 + u * 0.4), L * (0.08 + u * 0.08), 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  if (ferdigT === null) {
+    // Fisken spreller over vannet, og spreller mer jo nærmere man er
+    const spreller = Math.sin(t * (4 + p * 10)) * (0.06 + p * 0.12);
+    fiskFigur(ctx, x, vann - L * 0.28 + bob, L, -0.15 + spreller, FISKEFARGER[k.str]);
+    return;
+  }
+  // Ferdig: fisken hopper høyt opp og forsvinner
+  const u = klamp(ferdigT / 0.9);
+  ctx.globalAlpha = 1 - klamp((ferdigT - 0.8) / 0.5);
+  fiskFigur(ctx, x + u * S * 0.15, vann - L * 0.28 - Math.sin(u * Math.PI * 0.9) * S * 0.45 - u * S * 0.1, L, -0.15 - u * 1.2, FISKEFARGER[k.str]);
+  ctx.globalAlpha = 1;
+}
+
+// --- Korn --------------------------------------------------------------------
+function straa(ctx, bx, by, h, vinkel, kuttet) {
+  const tx = bx + Math.sin(vinkel) * h, ty = by - Math.cos(vinkel) * h;
+  ctx.strokeStyle = '#b89a3e';
+  ctx.lineWidth = Math.max(1, h * 0.04);
+  ctx.lineCap = 'round';
+  if (kuttet) {
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + Math.sin(vinkel) * h * 0.15, by - Math.cos(vinkel) * h * 0.15); ctx.stroke();
+    return;
+  }
+  ctx.beginPath(); ctx.moveTo(bx, by); ctx.quadraticCurveTo(bx, by - h * 0.5, tx, ty); ctx.stroke();
+  // Akset: små korn langs toppen
+  for (let i = 0; i < 6; i++) {
+    const u = 0.68 + i * 0.06;
+    const cx = bx + (tx - bx) * u + (i % 2 ? 1 : -1) * h * 0.035, cy = by + (ty - by) * u;
+    ctx.fillStyle = i % 2 ? FIGUR.korn[0] : FIGUR.korn[1];
+    ctx.beginPath(); ctx.ellipse(cx, cy, h * 0.035, h * 0.06, vinkel, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function figurKorn(ctx, S, r, k, p, ferdigT, t) {
+  const rs = lagTilfeldig(k.seed + 40);
+  const vind = (i) => Math.sin(t * 1.6 + i * 0.7) * 0.05;
+  let straaene = [];
+  if (k.str === 0) {
+    // En liten tust med kornaks
+    for (let i = 0; i < 5; i++) straaene.push([S * (0.42 + i * 0.04), S * 0.84, S * (0.36 + rs.tall() * 0.1), (i - 2) * 0.12]);
+  } else if (k.str === 1) {
+    // Et kornband: straa samlet i midten
+    for (let i = 0; i < 11; i++) straaene.push([S * (0.4 + i * 0.02), S * 0.86, S * (0.5 + rs.tall() * 0.08), (i - 5) * 0.06]);
+  } else {
+    // En liten åker: rader med straa på mørk jord
+    poly(ctx, [[S * 0.1, S * 0.36], [S * 0.9, S * 0.36], [S * 0.92, S * 0.92], [S * 0.08, S * 0.92]], mork(FIGUR.jord, 0.05));
+    for (let rad = 0; rad < 5; rad++) {
+      for (let i = 0; i < 7; i++) straaene.push([S * (0.16 + i * 0.113 + (rad % 2) * 0.03), S * (0.46 + rad * 0.1), S * 0.22, (rs.tall() - 0.5) * 0.2]);
+    }
+  }
+  // Rekkefølgen strå blir kuttet i (ett nytt kutt for hvert trykk, omtrent)
+  const orden = straaene.map((_, i) => i).sort(() => rs.tall() - 0.5);
+  const kuttet = new Set(orden.slice(0, Math.round((ferdigT === null ? p : 1) * straaene.length)));
+  if (k.str < 2) skygge(ctx, S * 0.52, S * 0.86, S * 0.16, S * 0.04);
+  straaene.forEach(([bx, by, h, v], i) => straa(ctx, bx, by, h, v + vind(i), kuttet.has(i)));
+  if (k.str === 1 && !kuttet.size) {
+    // Båndet rundt kornbandet
+    ctx.fillStyle = '#c0614a';
+    ctx.fillRect(S * 0.43, S * 0.66, S * 0.17, S * 0.035);
+  }
+  if (ferdigT !== null && ferdigT < 1.2) {
+    // Et nek med korn som spretter opp
+    const u = klamp(ferdigT / 1.2);
+    ctx.globalAlpha = 1 - u;
+    for (let i = 0; i < 8; i++) {
+      const v = -Math.PI / 2 + (i - 3.5) * 0.3;
+      ctx.fillStyle = FIGUR.korn[i % 2];
+      ctx.beginPath(); ctx.arc(S * 0.5 + Math.cos(v) * u * S * 0.35, S * 0.6 + Math.sin(v) * u * S * 0.35, S * 0.02, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+// --- Sau og ull --------------------------------------------------------------
+function figurSau(ctx, S, r, k, p, ferdigT, t) {
+  const s = [0.62, 0.9, 1.25][k.str];
+  const hopp = ferdigT === null ? 0 : Math.abs(Math.sin(klamp(ferdigT / 1.2) * Math.PI * 2)) * S * 0.1 * (1 - klamp(ferdigT / 1.6));
+  const x = S * 0.5, y = S * 0.8 - hopp;
+  const ull = ferdigT === null ? 1 - 0.5 * p : 0.5;   // ulla blir mindre for hvert klipp
+  skygge(ctx, x + S * 0.02, S * 0.8 + S * 0.02, S * 0.2 * s, S * 0.05 * s);
+  // Bein
+  ctx.fillStyle = '#3b3a3f';
+  for (const dx of [-0.11, -0.05, 0.05, 0.11]) ctx.fillRect(x + S * dx * s, y - S * 0.06 * s, S * 0.03 * s, S * 0.08 * s);
+  // Klippet kropp under ulla
+  poly(ctx, klump(lagTilfeldig(k.seed + 50), x, y - S * 0.12 * s, S * 0.13 * s, S * 0.08 * s, 9, 0.05), '#ead8c7');
+  // Ulla
+  if (ull > 0.5 || ferdigT === null) {
+    fasett(ctx, klump(r, x, y - S * 0.13 * s, S * 0.2 * s * ull, S * 0.13 * s * ull, 11, 0.12), FIGUR.ull, { styrke: 0.7 });
+  }
+  // Hode og øre
+  const hx = x - S * 0.2 * s, hy = y - S * 0.16 * s;
+  fasett(ctx, [[hx - S * 0.07 * s, hy + S * 0.02 * s], [hx - S * 0.02 * s, hy - S * 0.07 * s], [hx + S * 0.05 * s, hy - S * 0.03 * s], [hx + S * 0.03 * s, hy + S * 0.06 * s]], '#45434a');
+  poly(ctx, [[hx + S * 0.02 * s, hy - S * 0.05 * s], [hx + S * 0.09 * s, hy - S * 0.08 * s], [hx + S * 0.05 * s, hy - S * 0.01 * s]], '#3b3a3f');
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(hx - S * 0.02 * s, hy - S * 0.015 * s, S * 0.012 * s, 0, Math.PI * 2); ctx.fill();
+  if (k.str === 2) {
+    // Væren har horn
+    ctx.strokeStyle = '#c9b79a';
+    ctx.lineWidth = S * 0.025;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(hx + S * 0.035, hy - S * 0.02, S * 0.04, Math.PI * 1.1, Math.PI * 2.6); ctx.stroke();
+  }
+}
+
+// --- Kister ------------------------------------------------------------------
+const KISTEFARGER = [
+  { kropp: { topp: '#c99a62', venstre: '#b07a45', hoyre: '#86582f' }, lokk: ['#d6a86e', '#946137'], baand: '#6b6f78', laas: '#e2b33c' },
+  { kropp: { topp: '#9c6438', venstre: '#8a5530', hoyre: '#653b1f' }, lokk: ['#a8703f', '#6e4223'], baand: '#d9a520', laas: '#ffd23f' },
+  { kropp: { topp: '#46697c', venstre: '#35505f', hoyre: '#253b47' }, lokk: ['#4f7488', '#2a4250'], baand: '#e0b13a', laas: '#ffd23f' },
+];
+
+function figurKiste(ctx, S, r, k, p, ferdigT, t) {
+  const f = KISTEFARGER[k.str], s = [1, 1.35, 1.75][k.str];
   const W = S * 0.15 * s, D = S * 0.1 * s, H = S * 0.13 * s, R = S * 0.07 * s;
   const ax = S * 0.5, ay = S * 0.86 - (W + D) * 0.5;
   const q = iso(ax, ay);
@@ -440,7 +667,7 @@ function figurKiste(ctx, S, k, p, ferdigT, t) {
     ctx.beginPath(); ctx.moveTo(...q(u * W, D, 0)); ctx.lineTo(...q(u * W, D, H)); ctx.stroke();
   }
   ctx.beginPath(); ctx.moveTo(...q(W, 0, 0)); ctx.lineTo(...q(W, 0, H)); ctx.stroke();
-  if (k.def.id === 'kjempe') {
+  if (k.str === 2) {
     ctx.fillStyle = f.laas;
     for (const u of [-0.6, 0.6]) for (const v of [0.2, 0.5, 0.8]) {
       ctx.beginPath(); ctx.arc(...q(u * W, D, v * H), bred * 0.55, 0, Math.PI * 2); ctx.fill();
@@ -1009,6 +1236,10 @@ function start() {
   $('lyd').onclick = () => { L.settLyd(!L.lydPaa()); $('lyd').textContent = L.lydPaa() ? '🔊 Lyd på' : '🔇 Lyd av'; L.vekk(); };
   $('tid-knapp').onclick = startTidssprang;
   $('brev-ok').onclick = () => { $('brev').hidden = true; flyTil(null, { fro: 4 }, { x: innerWidth / 2, y: innerHeight / 2 }); };
+  // Himmelen ligger fast rett under toppen mens man blar.
+  const settTopp = () => document.documentElement.style.setProperty('--topp', `${document.querySelector('header').offsetHeight}px`);
+  settTopp();
+  addEventListener('resize', settTopp);
   byggTing();
   maalTidsbrett();
   settNivaa('stor');

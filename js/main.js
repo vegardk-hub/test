@@ -885,25 +885,119 @@ function avbrytPlassering() {
 // ---------------------------------------------------------------------------
 // Foreldrekontroll (bak et regnestykke for voksne)
 // ---------------------------------------------------------------------------
+// Porten: første gang løser man et voksent gangestykke og lager en firesifret kode.
+// Etter det kreves koden. Har man glemt den, kan man lage en ny etter et vanskeligere stykke.
 let port = null;
-function aapnePort() {
-  $('meny').close();
-  const a = 6 + Math.floor(Math.random() * 4), b = 6 + Math.floor(Math.random() * 4);
-  port = { fasit: a * b, inn: '' };
-  $('port-stykke').textContent = `${a} × ${b} =`;
-  $('port-svar').textContent = '?';
-  $('port').showModal();
+const PORTTEKST = {
+  matte: 'Løs stykket for å komme til foreldrekontrollen:',
+  ny1: 'Lag en firesifret foreldrekode. Den trengs hver gang du skal inn hit.',
+  ny2: 'Skriv den samme koden én gang til:',
+  kode: 'Skriv foreldrekoden:',
+  glemt: 'Glemt koden? Løs stykket, så kan du lage en ny kode:',
+};
+const tilfeldig = (n) => Math.floor(Math.random() * n);
+const kodeModus = () => port && port.modus !== 'matte' && port.modus !== 'glemt';
+
+/** Åpner porten. maal kalles når man er sluppet inn. */
+function aapnePort(maal, modus = null) {
+  if ($('meny').open) $('meny').close();
+  port = { maal, inn: '' };
+  settPort(modus ?? (Lagring.hentKode() ? 'kode' : 'matte'));
+  if (!$('port').open) $('port').showModal();
+}
+
+function settPort(modus, tekst = '') {
+  port.modus = modus;
+  port.inn = '';
+  port.stykke = '';
+  if (modus === 'matte' || modus === 'glemt') {
+    const a = modus === 'matte' ? 6 + tilfeldig(4) : 13 + tilfeldig(37), b = 6 + tilfeldig(4);
+    port.fasit = a * b;
+    port.stykke = `${a} × ${b} =`;
+  }
+  $('port-tekst').textContent = PORTTEKST[modus];
+  $('port-melding').textContent = tekst;
+  $('port-glemt').hidden = modus !== 'kode';
+  visPort();
+}
+
+function visPort() {
+  const kode = kodeModus();
+  $('port-stykke').textContent = port.stykke;
+  $('port-svar').textContent = kode ? [0, 1, 2, 3].map((i) => (i < port.inn.length ? '●' : '○')).join('') : (port.inn || '?');
+  $('port-svar').classList.toggle('kode', kode);
+}
+
+function slippInn() {
+  const { maal } = port;
+  port = null;
+  $('port').close();
+  maal();
 }
 
 function tastPort(k) {
   if (!port) return;
   if (k === 'slett') port.inn = port.inn.slice(0, -1);
-  else if (k === 'ok') {
-    if (Number(port.inn) === port.fasit) { $('port').close(); port = null; aapneForeldre(); return; }
-    port.inn = '';
+  else if (k === 'ok') { if (port.inn) sjekkPort(); else rist($('port')); return; }
+  else if (port.inn.length < 4) port.inn += k;
+  visPort();
+  // Koden sjekkes av seg selv når fire sifre er skrevet.
+  if (kodeModus() && port.inn.length === 4) setTimeout(sjekkPort, 180);
+}
+
+function sjekkPort() {
+  if (!port) return;
+  const { modus, inn } = port;
+  if (modus === 'matte' || modus === 'glemt') {
+    if (Number(inn) === port.fasit) settPort('ny1');
+    else { rist($('port')); port.inn = ''; visPort(); }
+  } else if (inn.length !== 4) {
     rist($('port'));
-  } else if (port.inn.length < 3) port.inn += k;
-  $('port-svar').textContent = port.inn || '?';
+  } else if (modus === 'ny1') {
+    port.forste = inn;
+    settPort('ny2');
+  } else if (modus === 'ny2') {
+    if (inn === port.forste) {
+      Lagring.lagreKode(inn);
+      melding('Foreldrekoden er lagret. Husk den!', { ikon: '🔑' });
+      slippInn();
+    } else {
+      rist($('port'));
+      settPort('ny1', 'Kodene var ikke like. Prøv igjen.');
+    }
+  } else if (modus === 'kode') {
+    if (inn === Lagring.hentKode()) slippInn();
+    else { rist($('port')); settPort('kode', 'Feil kode. Prøv igjen.'); }
+  }
+}
+
+/** Foreldrene: alle spillerne på enheten, med mulighet til å fjerne dem. */
+function aapneSpillere() {
+  const liste = Lagring.profiler();
+  $('spillerliste').innerHTML = liste.length ? liste.map((p) => `<div class="spillerrad">
+      <span class="ava">${esc(p.avatar)}</span>
+      <span class="sn"><b>${esc(p.navn)}</b><small>${NIVAA[p.nivaa]?.ikon ?? ''} Dag ${p.dag}${p.id === t.id ? ' · spiller nå' : ''}</small></span>
+      <button data-fjern="${esc(p.id)}">🗑️ Fjern</button></div>`).join('')
+    : '<p class="midt forklaring">Ingen spillere ennå.</p>';
+  $('spillerliste').querySelectorAll('[data-fjern]').forEach((b) => { b.onclick = () => fjernSpiller(b.dataset.fjern); });
+  if (!$('spillere').open) $('spillere').showModal();
+}
+
+function fjernSpiller(id) {
+  const p = Lagring.profiler().find((q) => q.id === id);
+  if (!p || !confirm(`Fjerne ${p.navn}? Øya og alt ${p.navn} har samlet, blir slettet. Dette kan ikke angres.`)) return;
+  if (id === t.id) {
+    // Spilleren som er i gang: tilbake til valg av spiller.
+    t.id = null;
+    t.spill = null;
+    Lagring.slett(id);
+    $('spillere').close();
+    visVelg();
+    return;
+  }
+  Lagring.slett(id);
+  aapneSpillere();
+  if (!$('velg').hidden) visVelg();
 }
 
 function aapneForeldre() {
@@ -1341,7 +1435,12 @@ function start() {
     lagreSnart();
     $('meny').close();
   };
-  $('meny-foreldre').onclick = aapnePort;
+  $('meny-foreldre').onclick = () => aapnePort(aapneForeldre);
+  $('foreldre-start').onclick = () => { L.vekk(); aapnePort(aapneSpillere); };
+  $('port-glemt').onclick = () => settPort('glemt');
+  $('f-spillere').onclick = () => { lagreSnart(); $('foreldre').close(); aapneSpillere(); };
+  $('spillere-lukk').onclick = () => $('spillere').close();
+  $('endre-kode').onclick = () => { $('spillere').close(); aapnePort(aapneSpillere, 'ny1'); };
   lagTastatur($('port-tast'), tastPort);
   $('port-avbryt').onclick = () => { port = null; $('port').close(); };
   $('foreldre-lukk').onclick = () => { lagreSnart(); $('foreldre').close(); };
@@ -1352,15 +1451,6 @@ function start() {
     Lagring.lagre(t.id, R.nyttSpill({ navn: s.navn, nivaa: s.nivaa, avatar: s.avatar, foreldre: s.foreldre }));
     $('meny').close();
     startSpill(t.id);
-  };
-  $('meny-slett').onclick = () => {
-    if (!confirm(`Slette ${t.spill.navn} og øya til ${t.spill.navn}?`)) return;
-    const id = t.id;
-    t.id = null;
-    t.spill = null;
-    Lagring.slett(id);
-    $('meny').close();
-    visVelg();
   };
 
   visVelg();

@@ -36,4 +36,9 @@ export function slett(id) {
   skriv(PROFILER, profiler().filter((p) => p.id !== id));
 }
 
+/** Foreldrekoden (fire sifre), felles for alle spillerne på denne enheten. null = ikke laget ennå. */
+const KODE = 'oya-foreldrekode';
+export const hentKode = () => les(KODE, null);
+export const lagreKode = (kode) => skriv(KODE, kode);
+
 export const nyId = () => `${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`;

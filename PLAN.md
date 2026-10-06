@@ -22,7 +22,10 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 6. **Kjøp bygg** og sett dem ut der du vil på øya. Det er 20 bygg fra bålplass (10) til borg (400).
 7. **Sola** er dagens budsjett (50 trykk for 🧒, 70 for 🐣). Om natta kan man fange stjerneskudd (stjernestøv kan selges).
 
-## Foreldrekontroll (menyen → 🔒 For foreldre, bak et voksent gangestykke)
+## Foreldrekontroll (menyen → 🔒 For foreldre, eller «🔒 For foreldre» på startsiden)
+- **Foreldrekode:** første gang løser man et voksent gangestykke og lager en firesifret kode (skrives to ganger). Etter det kreves koden.
+  «Glemt koden?» gir et vanskeligere stykke (for eksempel 39 × 6), og så kan man lage en ny kode. Koden gjelder for hele enheten (`oya-foreldrekode`).
+- **Spillere:** foreldrene kan fjerne spillere (med bekreftelse). «Slett spilleren» er tatt ut av barnas meny. Koden kan endres samme sted.
 - Per spiller: **pluss** og **minus** (tall opp til 5/10/20/50/100), **gange** og **deling** (tabell opp til 2/3/4/5/10).
 - Ganging har av og til **× 0** på alle nivåer (10 %), og **× 10** også på nivåene 2–5 (15 %). Ganging med 6–9 kommer først når man velger 10.
 - Hurtigvalg fra HEX: 4–5 år, 6–8 år og 9–10 år.

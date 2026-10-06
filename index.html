@@ -23,7 +23,7 @@
     <p class="under">Hvem skal spille?</p>
     <div id="profilliste" class="profilliste"></div>
     <button id="ny-spiller" class="stor-knapp">➕ Ny spiller</button>
-    <p class="smaa"><a href="katalog.html">🏰 Byggekatalogen</a></p>
+    <p class="smaa"><a href="katalog.html">🏰 Byggekatalogen</a> · <button id="foreldre-start" class="lenke">🔒 For foreldre</button></p>
   </section>
 
   <dialog id="ny" class="kort">
@@ -90,7 +90,6 @@
       <button id="meny-foreldre">🔒 For foreldre</button>
       <button id="meny-bytt">👥 Bytt spiller</button>
       <button id="meny-ny-oy">🏝️ Ny øy</button>
-      <button id="meny-slett">🗑️ Slett spilleren</button>
       <button id="meny-lukk" class="hoved">Tilbake til øya</button>
     </div>
   </dialog>
@@ -120,9 +119,11 @@
 
   <dialog id="port" class="kort">
     <h2>🔒 For voksne</h2>
-    <p class="midt">Løs stykket for å komme til foreldrekontrollen:</p>
+    <p id="port-tekst" class="midt"></p>
     <div class="matte-stykke"><span id="port-stykke"></span> <span id="port-svar" class="matte-svar">?</span></div>
+    <p id="port-melding" class="matte-melding feil midt"></p>
     <div id="port-tast" class="tastatur"></div>
+    <button id="port-glemt" class="full" hidden>Glemt koden?</button>
     <button id="port-avbryt" class="full">Avbryt</button>
   </dialog>
 
@@ -139,7 +140,16 @@
     <div id="f-telling" class="valgrad"></div>
     <p class="etikett">Statistikk</p>
     <p id="f-stat" class="statistikk"></p>
+    <button id="f-spillere" class="full">👥 Spillere og foreldrekode</button>
     <button id="foreldre-lukk" class="hoved full">Lagre og lukk</button>
+  </dialog>
+
+  <dialog id="spillere" class="kort">
+    <h2>🔒 Spillere</h2>
+    <p class="midt forklaring">Her kan du fjerne spillere. Øya og alt spilleren har samlet, blir slettet.</p>
+    <div id="spillerliste" class="spillerliste"></div>
+    <button id="endre-kode" class="full">🔑 Endre foreldrekoden</button>
+    <button id="spillere-lukk" class="hoved full">Lukk</button>
   </dialog>
 
   <div id="plasser" class="plasser" hidden>

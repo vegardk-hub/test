@@ -272,6 +272,47 @@ for (const tak of [2, 3, 4, 5, 10]) {
   }
 }
 
+// Hjelpere: én per fem bygg (høyst fem), forskjellige oppdrag hver morgen
+{
+  const sp = R.nyttSpill({ navn: 'Sjef' }, 17);
+  const ve = R.lagVerden(sp);
+  sp.avdekket.fill(1);
+  sp.mynter = 99999;
+  const ledig = () => [...sp.avdekket.keys()].find((x) => R.kanPlassere(sp, ve, x));
+  const nye = [];
+  for (let n = 0; n < 4; n++) nye.push(...R.kjopOgPlasser(sp, ve, ledig(), 'baal').filter((h) => h.type === 'nyHjelper'));
+  sjekk(nye.length === 0 && sp.hjelpere.length === 0, 'ingen hjelper før fem bygg');
+  const femte = R.kjopOgPlasser(sp, ve, ledig(), 'telt');
+  sjekk(femte[1]?.type === 'nyHjelper' && femte[1].hjelper.navn === 'Ola' && sp.hjelpere.length === 1, 'første hjelper kommer ved bygg nr. 5');
+  for (let n = 0; n < 40; n++) R.kjopOgPlasser(sp, ve, ledig(), 'baal');
+  sjekk(sp.hjelpere.length === 5, `høyst fem hjelpere (${sp.hjelpere.length})`);
+  const for_ = { ...sp.forrad };
+  const dag = R.nyDag(sp, ve)[0];
+  const typer = dag.oppdrag.map((o) => o.type);
+  sjekk(dag.oppdrag.length === 5, `fem oppdrag (${dag.oppdrag.length})`);
+  sjekk(new Set(typer).size === Math.min(5, new Set(typer).size) && new Set(typer).size >= 4, `forskjellige typer: ${typer}`);
+  sjekk(new Set(dag.oppdrag.map((o) => o.i)).size === 5, 'aldri to hjelpere på samme rute');
+  let hostet = 0;
+  for (const o of dag.oppdrag) {
+    const ting = R.tingVed(sp, ve, o.i);
+    const h = R.hjelperFerdig(sp, ve, o.h)[0];
+    if (h.type === 'hjelperHostet') {
+      hostet++;
+      sjekk(sp.forrad[o.type] === for_[o.type] + h.gave[o.type] - 0 || sp.forrad[o.type] > for_[o.type], 'det hjelperen samler, havner i forrådet');
+      sjekk(!R.tingVed(sp, ve, o.i) && R.venterPaa(sp, ve, o.i) === 2 && ting.type === o.type, 'tingen er høstet og vokser fram igjen');
+    }
+  }
+  sjekk(hostet === 5 && sp.oppdrag.length === 0, 'alle fem samlet inn én ting');
+  // Dagen etter: nye oppdrag, og det som ikke ble gjort, gjøres ferdig først
+  const dag2 = R.nyDag(sp, ve)[0];
+  sjekk(dag2.oppdrag.length === 5, 'nye oppdrag neste dag');
+  const lagret = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
+  sjekk(lagret.hjelpere.length === 5 && lagret.oppdrag.length === 5, 'hjelpere og oppdrag huskes ved lagring');
+  const ubrukt = sp.stat.hjulpet;
+  R.nyDag(sp, ve);
+  sjekk(sp.stat.hjulpet === ubrukt + 5, 'oppdrag fra i går gjøres ferdig om morgenen');
+}
+
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));
 sjekk(bareGange.art === 'gange' && [bareGange.a, bareGange.b].every((x) => x <= 2 || x === 10), 'bare ganging når bare ganging er valgt');
 

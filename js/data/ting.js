@@ -123,6 +123,20 @@ export const GJENVEKST = 2;
 export const KRYSS = { perGang: 3, hverNatt: 2 };
 export const GRAV_TRYKK = 4;
 
+/**
+ * Hjelpere: for hvert femte bygg man har satt opp (totalt, på alle øyene), kommer det
+ * en hjelper – høyst fem. Hver morgen går de ut av leiren og samler inn én ting hver
+ * (hogger et tre, fisker, slår korn …), og helst forskjellige typer.
+ */
+export const HJELPER = { perBygg: 5, maks: 5 };
+export const HJELPERE = [
+  { navn: 'Ola', farge: '#3a74d8' },
+  { navn: 'Siri', farge: '#e0393e' },
+  { navn: 'Per', farge: '#25b86a' },
+  { navn: 'Ida', farge: '#f39a2b' },
+  { navn: 'Nils', farge: '#9b59d0' },
+];
+
 /** Stjerneskudd man kan fange per natt. */
 export const MAKS_STJERNER = 10;
 

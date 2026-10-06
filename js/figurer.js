@@ -456,6 +456,92 @@ export function tegnKryss(ctx, S, t, igjen, maks = 4, rist = 0) {
   ctx.globalAlpha = 1;
 }
 
+// --- Hjelperne: små mennesker som samler inn for deg ------------------------
+const HUD = '#f2c9a0', HAAR = ['#5b3a24', '#e3b04b', '#2b2a2e', '#a0522d', '#d9d4c7'];
+
+/** Verktøyet hjelperen bærer, etter hva den skal samle inn. Tegnes fra hånda (0, 0) og oppover langs −y. */
+function verktoy(ctx, type, h) {
+  const skaft = (l) => { ctx.strokeStyle = '#8a5a3a'; ctx.lineWidth = h * 0.05; ctx.beginPath(); ctx.moveTo(0, h * 0.05); ctx.lineTo(0, -l); ctx.stroke(); };
+  if (type === 'tre') {          // øks
+    skaft(h * 0.42);
+    poly(ctx, [[0, -h * 0.42], [h * 0.16, -h * 0.47], [h * 0.18, -h * 0.3], [0, -h * 0.33]], '#b8c3cf');
+  } else if (type === 'stein' || type === 'jern') {   // hakke
+    skaft(h * 0.42);
+    poly(ctx, [[-h * 0.2, -h * 0.36], [0, -h * 0.46], [h * 0.2, -h * 0.36], [0, -h * 0.41]], '#8d929e');
+  } else if (type === 'korn') {  // ljå
+    skaft(h * 0.55);
+    poly(ctx, [[0, -h * 0.55], [-h * 0.3, -h * 0.5], [-h * 0.36, -h * 0.42], [-h * 0.05, -h * 0.5]], '#d8dde3');
+  } else if (type === 'fisk') {  // fiskestang med snøre
+    ctx.strokeStyle = '#8a5a3a'; ctx.lineWidth = h * 0.035;
+    ctx.beginPath(); ctx.moveTo(0, h * 0.05); ctx.lineTo(h * 0.15, -h * 0.6); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; ctx.lineWidth = Math.max(0.6, h * 0.012);
+    ctx.beginPath(); ctx.moveTo(h * 0.15, -h * 0.6); ctx.quadraticCurveTo(h * 0.45, -h * 0.4, h * 0.42, h * 0.1); ctx.stroke();
+  } else if (type === 'ull') {   // saks
+    ctx.strokeStyle = '#b8c3cf'; ctx.lineWidth = h * 0.04;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(h * 0.04, -h * 0.2); ctx.moveTo(0, 0); ctx.lineTo(-h * 0.04, -h * 0.2); ctx.stroke();
+  } else {                       // kurv
+    poly(ctx, [[-h * 0.1, 0], [h * 0.1, 0], [h * 0.08, h * 0.1], [-h * 0.08, h * 0.1]], '#c9a26b');
+  }
+}
+
+/**
+ * Et lite menneske med føttene i (x, y) og høyde h.
+ * o: { farge (skjorta), nr (hår), t (sekunder), gaar (0–1), arbeid (0–1), type (verktøy), mot (−1 venstre / 1 høyre), vink }
+ */
+export function tegnMenneske(ctx, x, y, h, { farge = '#3a74d8', nr = 0, t = 0, gaar = 0, arbeid = 0, type = null, mot = 1, vink = 0 } = {}) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = 'rgba(20, 25, 15, 0.25)';
+  ctx.beginPath(); ctx.ellipse(0, 0, h * 0.2, h * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+  const hopp = gaar ? Math.abs(Math.sin(t * 9)) * h * 0.04 * gaar : 0;
+  ctx.translate(0, -hopp);
+  ctx.scale(mot, 1);
+  // Bein
+  const steg = Math.sin(t * 9) * h * 0.1 * gaar;
+  ctx.strokeStyle = '#3d3a4a';
+  ctx.lineWidth = h * 0.09;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-h * 0.05, -h * 0.4); ctx.lineTo(-h * 0.06 + steg, -h * 0.03);
+  ctx.moveTo(h * 0.05, -h * 0.4); ctx.lineTo(h * 0.06 - steg, -h * 0.03);
+  ctx.stroke();
+  // Kropp (skjorte)
+  poly(ctx, [[-h * 0.13, -h * 0.42], [h * 0.13, -h * 0.42], [h * 0.11, -h * 0.72], [-h * 0.11, -h * 0.72]], farge);
+  poly(ctx, [[h * 0.02, -h * 0.42], [h * 0.13, -h * 0.42], [h * 0.11, -h * 0.72], [h * 0.02, -h * 0.72]], mork(farge, 0.2));
+  // Bakre arm
+  ctx.strokeStyle = mork(farge, 0.25);
+  ctx.lineWidth = h * 0.07;
+  ctx.beginPath(); ctx.moveTo(-h * 0.1, -h * 0.68); ctx.lineTo(-h * 0.16 - steg * 0.5, -h * 0.46); ctx.stroke();
+  // Hode med hår
+  ctx.fillStyle = HUD;
+  ctx.beginPath(); ctx.arc(0, -h * 0.84, h * 0.13, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = HAAR[nr % HAAR.length];
+  ctx.beginPath(); ctx.arc(0, -h * 0.87, h * 0.135, Math.PI * 1.05, Math.PI * 1.95); ctx.fill();
+  ctx.fillStyle = '#2b2a2e';
+  ctx.beginPath(); ctx.arc(h * 0.06, -h * 0.84, h * 0.018, 0, Math.PI * 2); ctx.fill();
+  // Fremre arm med verktøyet; når den arbeider, svinger den
+  const fisker = arbeid && type === 'fisk';
+  const sving = fisker ? -0.6 + Math.sin(t * 1.5) * 0.08
+    : arbeid ? -0.9 + Math.abs(Math.sin(t * 6)) * 1.6
+    : vink ? -2.6 + Math.sin(t * 10) * 0.35 : 0.25 - steg * 0.02;
+  ctx.save();
+  ctx.translate(h * 0.08, -h * 0.68);
+  ctx.rotate(sving);
+  ctx.strokeStyle = farge;
+  ctx.lineWidth = h * 0.07;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, h * 0.24); ctx.stroke();
+  ctx.fillStyle = HUD;
+  ctx.beginPath(); ctx.arc(0, h * 0.26, h * 0.04, 0, Math.PI * 2); ctx.fill();
+  if (type && !vink) {
+    ctx.translate(0, h * 0.26);
+    // I arbeid peker verktøyet framover; på vei ut og hjem bæres det oppreist.
+    ctx.rotate(arbeid ? Math.PI * 0.5 : -0.25);
+    verktoy(ctx, type, h);
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
 // --- Hjort (pynt på brettet, ikke noe man samler) -----------------------------
 /** Hjorten løfter hodet, ser seg rundt og beiter; halen vipper. */
 export function tegnHjort(ctx, S, t, seed = 0) {

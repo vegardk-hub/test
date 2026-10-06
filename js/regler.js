@@ -8,7 +8,7 @@
 import { genererVerden } from './kartgen.js';
 import { T } from './data/terreng.js';
 import {
-  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER,
+  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, HJELPER, HJELPERE,
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
 import { medStandard } from './matte.js';
@@ -104,6 +104,8 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     ting: new Map(),          // rute → { igjen, gang, borteTil }
     bygg: new Map(),          // rute → id for bygg man har satt ut
     takfarge: null,           // fargen på taket og flaggene (null = standard rød)
+    hjelpere: [],             // hjelperne som har kommet (én per fem bygg, høyst fem)
+    oppdrag: [],              // dagens oppdrag for hjelperne: { h, i, type } som ikke er gjort ennå
     oyNr: 1,                  // øya man er på (1, 2, 3 …)
     oyFra: null,              // øya man fant denne fra (havna der man seilte ut)
     oyer: [],                 // de andre øyene man har vært på (pakket som data)
@@ -370,7 +372,80 @@ export function kjopOgPlasser(spill, verden, i, id) {
   spill.mynter -= b.pris;
   spill.bygg.set(i, id);
   spill.stat.bygg++;
-  return [{ type: 'bygget', i, id }];
+  return [{ type: 'bygget', i, id }, ...nyeHjelpere(spill)];
+}
+
+// ---------------------------------------------------------------------------
+// Hjelpere: de går ut av leiren hver morgen og samler inn én ting hver
+// ---------------------------------------------------------------------------
+/** Hvor mange hjelpere man skal ha etter antall bygg man har satt opp. */
+export const hjelpereFor = (antallBygg) => Math.min(HJELPER.maks, Math.floor(antallBygg / HJELPER.perBygg));
+
+/** Nye hjelpere som kommer når man har bygget nok (også for spill som hadde nok bygg fra før). */
+export function nyeHjelpere(spill) {
+  const ut = [];
+  while (spill.hjelpere.length < hjelpereFor(spill.stat.bygg)) {
+    const nr = spill.hjelpere.length;
+    const h = { ...HJELPERE[nr] };
+    spill.hjelpere.push(h);
+    ut.push({ type: 'nyHjelper', nr, hjelper: h });
+  }
+  return ut;
+}
+
+/**
+ * Dagens oppdrag: hver hjelper får sin egen type ting (så langt det finnes nok typer)
+ * og går til den nærmeste av den typen. Ingen to hjelpere går til samme rute.
+ */
+export function planleggOppdrag(spill, verden) {
+  spill.oppdrag = [];
+  if (!spill.hjelpere.length) return [];
+  const B = verden.bredde, st = verden.startIndeks;
+  const avst = (i) => Math.hypot(i % B - st % B, Math.floor(i / B) - Math.floor(st / B));
+  const perType = new Map();
+  spill.avdekket.forEach((v, i) => {
+    if (!v || i === st) return;
+    const ting = tingVed(spill, verden, i);
+    if (!ting || ting.type === 'kiste') return;
+    if (!perType.has(ting.type)) perType.set(ting.type, []);
+    perType.get(ting.type).push(i);
+  });
+  for (const liste of perType.values()) liste.sort((a, b) => avst(a) - avst(b));
+  // Typene i tilfeldig (men seedet) rekkefølge, så hjelperne bytter på hva de gjør fra dag til dag.
+  const r = lagTilfeldig(blandSeed(spill.seed, 'oppdrag', spill.dag));
+  const typer = [...perType.keys()].sort().map((tp) => [r.tall(), tp]).sort((a, b) => a[0] - b[0]).map(([, tp]) => tp);
+  const tatt = new Set();
+  spill.hjelpere.forEach((_, h) => {
+    // Først en type ingen andre har fått, så hva som helst som er igjen.
+    const brukt = new Set(spill.oppdrag.map((o) => o.type));
+    const rekke = [...typer.filter((tp) => !brukt.has(tp)), ...typer];
+    for (const type of rekke) {
+      const i = perType.get(type).find((x) => !tatt.has(x));
+      if (i === undefined) continue;
+      tatt.add(i);
+      spill.oppdrag.push({ h, i, type });
+      return;
+    }
+  });
+  return spill.oppdrag;
+}
+
+/** Hjelper nr. h er ferdig med oppdraget sitt: tingen høstes, og det den gir, går i forrådet. */
+export function hjelperFerdig(spill, verden, h) {
+  const o = spill.oppdrag.find((x) => x.h === h);
+  if (!o) return [];
+  spill.oppdrag = spill.oppdrag.filter((x) => x !== o);
+  const ting = tingVed(spill, verden, o.i);
+  if (!ting || ting.type !== o.type) return [{ type: 'fantIkke', h, i: o.i }];   // noen kom før
+  const s = spill.ting.get(o.i) ?? {};
+  const gave = { [ting.type]: UTBYTTE[ting.str] };
+  gi(spill, gave);
+  s.gang = (s.gang ?? 0) + 1;
+  delete s.igjen;
+  s.borteTil = spill.dag + GJENVEKST;
+  spill.ting.set(o.i, s);
+  spill.stat.hjulpet = (spill.stat.hjulpet ?? 0) + 1;
+  return [{ type: 'hjelperHostet', h, i: o.i, ting, gave }];
 }
 
 // ---------------------------------------------------------------------------
@@ -491,6 +566,7 @@ export function seil(spill, seed = Math.floor(Math.random() * 2 ** 31)) {
   const fra = spill.oyNr;
   const nr = Math.max(spill.oyNr, ...(spill.oyer ?? []).map((o) => o.nr)) + 1;
   spill.oyer = [...(spill.oyer ?? []), pakkOy(spill)];
+  spill.oppdrag = [];
   pakkUt(spill, { nr, fra, seed, avdekket: [], take: [], ting: [], bygg: [] });
   spill.sol = SOL[spill.nivaa];
   avdekkStart(spill);
@@ -502,6 +578,7 @@ export function seilTil(spill, nr) {
   const maal = (spill.oyer ?? []).find((o) => o.nr === nr);
   if (!spill.baat || !maal || nr === spill.oyNr) return [];
   spill.oyer = [...spill.oyer.filter((o) => o !== maal), pakkOy(spill)];
+  spill.oppdrag = [];
   pakkUt(spill, maal);
   return [{ type: 'seilt', ny: false, oyNr: nr, stil: lagVerden(spill).stil }];
 }
@@ -519,7 +596,10 @@ export function nyDag(spill, verden) {
   const vokst = [...for_].filter((i) => tingVed(spill, verden, i));
   // Annenhver natt (før dag 3, 5, 7 …) dukker det opp nye skattekryss.
   const kryss = (spill.dag - 1) % KRYSS.hverNatt === 0 ? leggKryss(spill, verden) : [];
-  return [{ type: 'nyDag', dag: spill.dag, vokst, kryss }];
+  // Det hjelperne ikke rakk i går, gjøres ferdig før de får nye oppdrag.
+  for (const o of [...spill.oppdrag]) hjelperFerdig(spill, verden, o.h);
+  const oppdrag = planleggOppdrag(spill, verden);
+  return [{ type: 'nyDag', dag: spill.dag, vokst, kryss, oppdrag }];
 }
 
 /** Et stjerneskudd fanget om natta. */
@@ -579,6 +659,8 @@ export function fraData(d) {
     oyer: (d.oyer ?? []).map((o) => ({ ...o, fra: o.fra !== undefined ? o.fra : (o.nr > 1 ? o.nr - 1 : null) })),
     baat: d.baat || (d.oyer ?? []).length > 0,
     kister: new Set(d.kister ?? []),
+    hjelpere: d.hjelpere ?? [],
+    oppdrag: d.oppdrag ?? [],
     kryss: new Map(d.kryss ?? []),
     gravd: new Set(d.gravd ?? []),
     nattFangst: d.nattFangst ?? 0,

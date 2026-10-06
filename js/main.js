@@ -10,7 +10,7 @@ import * as R from './regler.js';
 import * as Lagring from './lagring.js';
 import * as L from './trykk/toner.js';
 import * as M from './matte.js';
-import { tegnFigur } from './figurer.js';
+import { tegnMenneske, tegnFigur } from './figurer.js';
 import { tegnTomtKort } from './stil/ruter.js';
 import { PYNT, LIV, tegnBygg, ivrig } from './stil/pynt.js';
 import { poly, fasett } from './stil/lavpoly.js';
@@ -33,6 +33,8 @@ const t = {
   avdekkAnim: new Map(), borstAnim: new Map(), byggAnim: new Map(),
   naer: null, natt: null, plasser: null, skitten: true, solVis: 0,
   vist: {},           // det forrådet viser (tingene teller først når de har fløyet ned)
+  tur: null,          // hjelpernes tur ut og hjem om morgenen
+  velkomst: null,     // en ny hjelper som kommer ut og vinker
   forrigeStykke: '',
 };
 
@@ -150,6 +152,11 @@ function startSpill(id) {
   k.maksSkala = kort / (1.6 * RUTE);
   k.sentrer((start.x + 0.5) * RUTE, (start.y + 0.5) * RUTE, kort / ((liten() ? 5.5 : 6.5) * RUTE));
   t.skitten = true;
+  t.tur = null;
+  t.velkomst = null;
+  const nye = R.nyeHjelpere(spill);
+  if (nye.length) setTimeout(() => velkommenHjelper(nye), 900);
+  else if (spill.oppdrag.length) setTimeout(startTur, 1200);
   if (spill.stat.avdekket === 0) setTimeout(() => melding('Trykk på tåka for å børste den bort', { ikon: '👆☁️' }), 600);
   if (spill.sol <= 0) setTimeout(startNatt, 500);
 }
@@ -887,6 +894,8 @@ function plasserHer(i) {
     }, 2200);
   }
   if (id === HAVN.id) setTimeout(() => melding(liten() ? '⛵❓' : 'Trykk på havna for å bygge en seilbåt.', { ikon: '⛵' }), 2200);
+  const nyeHjelpere = h.filter((e) => e.type === 'nyHjelper');
+  if (nyeHjelpere.length) setTimeout(() => velkommenHjelper(nyeHjelpere), 2400);
   trekkVist('mynter', BYGG_ETTER_ID[id].pris);
   t.byggAnim.set(i, naa());
   const [kx, ky] = midtAv(i);
@@ -1220,7 +1229,18 @@ function godMorgen() {
   setTimeout(() => {
     t.natt = null;
     $('natt').hidden = true;
+    t.tur = null;
     const [h] = R.nyDag(t.spill, t.verden);
+    // Det hjelperne ikke rakk i går, ble gjort ferdig i natt: forrådet vises som det er.
+    t.vist = { ...t.spill.forrad, mynter: t.spill.mynter };
+    tegnForrad();
+    if (h.oppdrag.length) {
+      setTimeout(startTur, 1300);
+      const navn = h.oppdrag.map((o) => t.spill.hjelpere[o.h].navn);
+      const liste = navn.length > 1 ? `${navn.slice(0, -1).join(', ')} og ${navn.at(-1)}` : navn[0];
+      setTimeout(() => melding(liten() ? `${'🧑‍🌾'.repeat(navn.length)}`
+        : `${liste} går ut for å samle inn.`, { ikon: liten() ? '' : '🧑‍🌾' }), h.kryss.length ? 4200 : 2600);
+    }
     oppdaterHud();
     lagreSnart();
     t.skitten = true;
@@ -1378,6 +1398,130 @@ function hintRuter() {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Hjelperne: ut av leiren om morgenen, samle inn én ting hver, og hjem igjen
+// ---------------------------------------------------------------------------
+const HJELPER_H = RUTE * 0.4;
+
+/** Døra på leiren (der hjelperne kommer ut og går inn). */
+function dor() {
+  const [x, y] = midtAv(t.verden.startIndeks);
+  return [x - RUTE * 0.05, y + RUTE * 0.25];
+}
+
+/** Fra et punkt på brettet til skjermen (for ting som flyr ned i forrådet). */
+function paaSkjerm(kx, ky) {
+  const k = t.kamera, r = k.lerret.getBoundingClientRect();
+  return { x: r.left + ((kx - k.x) * k.skala) / k.dpr, y: r.top + ((ky - k.y) * k.skala) / k.dpr };
+}
+
+function startTur() {
+  const s = t.spill;
+  if (!s?.oppdrag.length) return;
+  const [lx, ly] = dor();
+  t.tur = {
+    t0: naa(),
+    ledd: s.oppdrag.map((o, k) => {
+      const [mx, my] = midtAv(o.i);
+      const til = [mx - RUTE * 0.3, my + RUTE * 0.24];
+      const ut = 1000 + (Math.hypot(til[0] - lx, til[1] - ly) / RUTE) * 600;
+      return { ...o, til, ut, arbeid: 3000, start: 300 + k * 900, ferdig: false, hugg: 0 };
+    }),
+  };
+  t.skitten = true;
+}
+
+function hjelperFerdig(l) {
+  const [h] = R.hjelperFerdig(t.spill, t.verden, l.h);
+  const [kx, ky] = midtAv(l.i);
+  if (h?.type === 'hjelperHostet') {
+    const def = TING[l.type];
+    sprut(kx, ky, { farger: def.sprut, antall: 18, fart: 1.4 });
+    L.INSTRUMENT[def.instrument](523.25);
+    setTimeout(() => flyTil(h.gave, paaSkjerm(kx, ky)), 250);
+  } else {
+    flytendeTekst(kx, ky - 20, '🤷', { varighet: 1200 });
+  }
+  t.skitten = true;
+  lagreSnart();
+}
+
+const myk = (u) => u * u * (3 - 2 * u);
+
+function tegnHjelpere(ctx, ms) {
+  const tsek = ms / 1000, [lx, ly] = dor();
+  const tegn = [];   // samles og tegnes ovenfra og ned, så de som står foran, havner foran
+  const tur = t.tur;
+  if (tur) {
+    let igang = false;
+    for (const l of tur.ledd) {
+      const hj = t.spill.hjelpere[l.h];
+      const tau = ms - tur.t0 - l.start;
+      if (!hj || tau > l.ut * 2 + l.arbeid) continue;
+      igang = true;
+      if (tau < 0) continue;
+      let x, y, gaar = 1, arbeid = 0, mot;
+      if (tau < l.ut) {
+        const u = myk(tau / l.ut);
+        x = lx + (l.til[0] - lx) * u; y = ly + (l.til[1] - ly) * u;
+        mot = l.til[0] >= lx ? 1 : -1;
+      } else if (tau < l.ut + l.arbeid) {
+        [x, y] = l.til;
+        gaar = 0; arbeid = 1; mot = 1;
+        const hugg = Math.floor((tau - l.ut) / 520);
+        if (hugg > l.hugg) {
+          l.hugg = hugg;
+          const [kx, ky] = midtAv(l.i);
+          sprut(kx, ky, { farger: TING[l.type].sprut, antall: 5, fart: 0.8 });
+        }
+        if (!l.ferdig && tau > l.ut + l.arbeid * 0.85) { l.ferdig = true; hjelperFerdig(l); }
+      } else {
+        const u = myk((tau - l.ut - l.arbeid) / l.ut);
+        x = l.til[0] + (lx - l.til[0]) * u; y = l.til[1] + (ly - l.til[1]) * u;
+        mot = lx >= l.til[0] ? 1 : -1;
+      }
+      // Ute av døra og inn igjen: de blir synlige gradvis
+      const ved = Math.min(1, Math.hypot(x - lx, y - ly) / (RUTE * 0.15));
+      tegn.push({ x, y, alfa: ved, o: { farge: hj.farge, nr: l.h, t: tsek + l.h * 0.7, gaar, arbeid, type: l.type, mot } });
+    }
+    if (!igang) { t.tur = null; lagreSnart(); }
+  }
+  const v = t.velkomst;
+  if (v) {
+    const tau = ms - v.t0;
+    if (tau > 4200) t.velkomst = null;
+    else {
+      v.nye.forEach((n, k) => {
+        const hj = t.spill.hjelpere[n.nr];
+        const maal = [lx + RUTE * (0.3 + 0.18 * k), ly + RUTE * 0.12];
+        const ut = myk(Math.min(1, tau / 900)), inn = myk(Math.max(0, (tau - 3300) / 900));
+        const u = ut - inn;
+        const x = lx + (maal[0] - lx) * u, y = ly + (maal[1] - ly) * u;
+        const vinker = tau > 900 && tau < 3300;
+        tegn.push({ x, y, alfa: Math.min(1, u * 4), o: { farge: hj.farge, nr: n.nr, t: tsek + k, gaar: vinker ? 0 : 1, vink: vinker ? 1 : 0, mot: tau > 3300 ? -1 : 1 } });
+      });
+    }
+  }
+  tegn.sort((a, b) => a.y - b.y);
+  for (const d of tegn) {
+    ctx.globalAlpha = d.alfa;
+    tegnMenneske(ctx, d.x, d.y, HJELPER_H, d.o);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** En eller flere nye hjelpere har kommet: de kommer ut av leiren og vinker. */
+function velkommenHjelper(nye) {
+  if (!t.spill) return;
+  t.velkomst = { t0: naa(), nye };
+  L.fanfare(2);
+  const navn = nye.map((n) => n.hjelper.navn);
+  const liste = navn.length > 1 ? `${navn.slice(0, -1).join(', ')} og ${navn.at(-1)}` : navn[0];
+  melding(liten() ? `${'🧑‍🌾'.repeat(nye.length)} 👋`
+    : `${liste} har kommet til øya! Hver morgen går ${navn.length > 1 ? 'de' : navn[0]} ut og samler inn for deg.`, { ikon: liten() ? '' : '🧑‍🌾👋' });
+  t.skitten = true;
+}
+
 function tegnBrett(ms) {
   const k = t.kamera, l = k.lerret;
   const ctx = l.getContext('2d');
@@ -1391,6 +1535,7 @@ function tegnBrett(ms) {
   };
   const hint = hintRuter();
   t.brett.tegn(ctx, t.spill, { utsnitt, skala: k.skala, avdekkAnim: t.avdekkAnim, borstAnim: t.borstAnim, byggAnim: t.byggAnim, naa: ms, hint });
+  tegnHjelpere(ctx, ms);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   tegnEffekter(ctx, (kx, ky) => ({ x: (kx - k.x) * k.skala, y: (ky - k.y) * k.skala }), k.skala, k.dpr);
   t.brett.jobb(6);
@@ -1402,7 +1547,7 @@ function sloyfe() {
   const ms = naa();
   if (t.spill && !$('spill').hidden) {
     tegnHimmel(ms / 1000);
-    if (t.skitten || t.brett.harLiv || t.avdekkAnim.size || t.borstAnim.size || t.byggAnim.size || harEffekter()) tegnBrett(ms);
+    if (t.skitten || t.tur || t.velkomst || t.brett.harLiv || t.avdekkAnim.size || t.borstAnim.size || t.byggAnim.size || harEffekter()) tegnBrett(ms);
   }
   if (t.naer) { tegnNaer(ms / 1000); glod($('naer-lerret'), 0.5); }
   if (t.natt) tegnNatt(ms / 1000);

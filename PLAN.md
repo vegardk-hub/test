@@ -24,6 +24,14 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 6. **Kjøp bygg** og sett dem ut der du vil på øya. Det er 20 bygg fra bålplass (10) til borg (400).
 7. **Sola** er dagens budsjett (50 trykk for 🧒, 70 for 🐣). Om natta kan man fange stjerneskudd (stjernestøv kan selges).
 
+## Hjelpere (2026-10-06)
+- For hvert **femte bygg** man setter opp (totalt, på alle øyene) kommer det en hjelper: Ola, Siri, Per, Ida og Nils (høyst fem, `HJELPER` i `ting.js`).
+  De kommer ut av leiren og vinker når de kommer.
+- **Hver morgen** går hjelperne ut av døra på leiren, hver til sin type ting (tre, stein, jern, korn, sau, fisk), og helst forskjellige typer.
+  De går til den nærmeste av typen og jobber med verktøy (øks, hakke, ljå, fiskestang, saks). Så høstes tingen, det den gir, flyr ned i forrådet, og de går hjem igjen.
+- Hver hjelper samler **én ting per dag**. Det de ikke rakk, gjøres ferdig før neste morgen, og turen starter på nytt hvis man åpner spillet midt i den.
+  Det er reglene (`planleggOppdrag`, `hjelperFerdig`) som bestemmer, og skjermen viser bare turen.
+
 ## Foreldrekontroll (menyen → 🔒 For foreldre, eller «🔒 For foreldre» på startsiden)
 - **Foreldrekode:** første gang løser man et voksent gangestykke og lager en firesifret kode (skrives to ganger). Etter det kreves koden.
   «Glemt koden?» gir et vanskeligere stykke (for eksempel 39 × 6), og så kan man lage en ny kode. Koden gjelder for hele enheten (`oya-foreldrekode`).

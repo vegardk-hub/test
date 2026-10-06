@@ -1,0 +1,128 @@
+:root {
+  --bunn: #0b0f14; --panel: #f6f1e4; --kant: #c9bfa6; --tekst: #2b2a26; --krem: #faf2db;
+  --dempet: #cfc6ad; --gull: #ffd23f; --gullkant: #d9a520;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+html { touch-action: manipulation; }
+body {
+  margin: 0; background: var(--bunn); color: var(--krem); overflow: hidden;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+[hidden] { display: none !important; }
+button {
+  font: inherit; font-size: 17px; min-height: 48px; padding: 6px 16px; border-radius: 14px;
+  border: 2px solid var(--kant); background: #fff; color: var(--tekst); cursor: pointer;
+}
+button.hoved, .stor-knapp { background: #ffe58a; border-color: var(--gullkant); font-weight: 700; }
+.stor-knapp { font-size: 20px; min-height: 58px; padding: 8px 26px; border-radius: 18px; }
+button.rund { width: 52px; height: 52px; min-height: 0; padding: 0; border-radius: 50%; font-size: 28px; flex: none; }
+
+/* ---------- Velg spiller ---------- */
+.velg { height: 100%; overflow-y: auto; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px 16px; }
+.velg h1 { margin: 0; font-size: 34px; text-align: center; }
+.velg .under { margin: 0; font-size: 20px; color: var(--dempet); }
+.profilliste { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; width: min(100%, 720px); }
+.profil { width: 160px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 8px; min-height: 150px; border-radius: 22px; }
+.profil .ava { font-size: 60px; line-height: 1; }
+.profil .navn { font-size: 20px; font-weight: 700; }
+.profil .info { font-size: 14px; color: #6d6656; }
+.velg .tom { text-align: center; color: var(--dempet); font-size: 18px; }
+.smaa { font-size: 14px; color: var(--dempet); }
+.smaa a { color: var(--dempet); }
+
+/* ---------- Dialoger ---------- */
+dialog.kort {
+  width: min(92vw, 460px); border: 3px solid var(--kant); border-radius: 22px; background: var(--panel); color: var(--tekst);
+  padding: 20px 22px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+dialog.kort::backdrop { background: rgba(5, 8, 15, 0.6); }
+dialog h2 { margin: 0 0 12px; font-size: 24px; text-align: center; }
+.navnefelt { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
+.navnefelt input { font: inherit; font-size: 20px; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--kant); -webkit-user-select: text; user-select: text; }
+.etikett { margin: 16px 0 6px; font-weight: 700; }
+.valgrad { display: flex; flex-wrap: wrap; gap: 8px; }
+.avatarer button { width: 54px; height: 54px; padding: 0; font-size: 30px; border-radius: 14px; }
+.valgrad button.valgt { background: #ffe58a; border-color: var(--gullkant); box-shadow: 0 0 0 3px rgba(217, 165, 32, 0.35); }
+.valgrad .niva { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px; }
+.valgrad .niva small { font-size: 13px; color: #6d6656; }
+.knapper { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.menyknapper { display: grid; gap: 10px; }
+.menyknapper button { text-align: left; }
+.menyknapper .hoved { text-align: center; }
+
+/* ---------- Spillet ---------- */
+.spill { height: 100%; height: 100dvh; display: flex; flex-direction: column; }
+.topp {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top));
+  background: var(--panel); border-bottom: 3px solid var(--kant); flex: none;
+}
+.himmel { position: relative; flex: 1; height: 56px; border-radius: 14px; overflow: hidden; border: 2px solid var(--kant); }
+.himmel canvas { display: block; width: 100%; height: 100%; }
+#dag, #sol-tall {
+  position: absolute; top: 50%; transform: translateY(-50%); font-weight: 800; font-size: 18px; color: #1b2a3a;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); pointer-events: none;
+}
+#dag { left: 12px; }
+#sol-tall { right: 12px; }
+#lerret { flex: 1; min-height: 0; width: 100%; display: block; touch-action: none; }
+
+.forrad {
+  flex: none; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding: 8px 10px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom)); background: var(--panel); border-top: 3px solid var(--kant); color: var(--tekst);
+}
+.vare { min-width: 54px; padding: 3px 9px; border-radius: 12px; background: #fff; font-size: 19px; text-align: center; white-space: nowrap; }
+.vare.null { opacity: 0.4; }
+.vare b { font-size: 18px; }
+body.liten .vare { font-size: 22px; letter-spacing: -7px; padding-right: 16px; }
+body.liten .vare.null { letter-spacing: 0; padding-right: 9px; }
+.dunk { animation: dunk 0.35s ease-out; }
+@keyframes dunk { 40% { transform: scale(1.25); } }
+.flyr {
+  position: fixed; z-index: 40; font-size: 36px; margin: -21px 0 0 -21px; pointer-events: none;
+  transition: transform 0.85s cubic-bezier(0.5, -0.5, 0.6, 1);
+}
+
+/* ---------- Nærbilde ---------- */
+.naer { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(5, 8, 15, 0.72); animation: inn 0.2s ease-out; }
+.naer-boks { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.naer-tittel { font-size: 24px; font-weight: 800; text-align: center; min-height: 30px; }
+.naer-tittel .sang { font-weight: 400; color: #ffe58a; font-size: 19px; margin-left: 6px; }
+.naer-tittel .stor-ikon { font-size: 44px; }
+#naer-lerret { display: block; touch-action: none; cursor: pointer; }
+.naer .lukk { position: absolute; top: -8px; right: -8px; font-size: 22px; }
+@keyframes inn { from { opacity: 0; } }
+
+/* ---------- Natta ---------- */
+.natt { position: fixed; inset: 0; z-index: 30; }
+.natt canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+.natt-tekst { position: absolute; top: max(24px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center; font-size: 30px; pointer-events: none; }
+#morgen { position: absolute; bottom: max(28px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); }
+
+/* ---------- Sangboka ---------- */
+.sangliste { display: grid; gap: 8px; margin: 10px 0 16px; }
+.sang-rad { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 5px 12px; border: 2px solid transparent; }
+.sang-rad.hel { border-color: var(--gullkant); background: #fff6d0; }
+.sang-rad .ikon { font-size: 28px; }
+.sang-rad .sangnavn { flex: 1; font-weight: 700; }
+.sang-rad .noter { display: flex; gap: 6px; }
+.note { color: #cfc6ad; font-size: 18px; font-weight: 800; }
+.note.har { color: #d9a520; }
+#sangbok-tekst { margin: 0; text-align: center; color: #6d6656; }
+#sangbok-lukk { width: 100%; }
+
+/* ---------- Melding ---------- */
+.melding {
+  position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 35; max-width: 90vw; text-align: center;
+  background: var(--panel); color: var(--tekst); border: 3px solid var(--gullkant); border-radius: 16px;
+  padding: 10px 18px; font-size: 19px; font-weight: 700; pointer-events: none;
+}
+body.liten .melding { font-size: 34px; padding: 6px 18px; }
+.melding.vis { animation: dunk 0.4s ease-out; }
+
+@media (max-width: 560px) {
+  .vare { min-width: 0; font-size: 16px; padding: 2px 6px; }
+  .velg h1 { font-size: 26px; }
+}

@@ -2,148 +2,91 @@
 <html lang="nb">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Øya i hundre år – prøveark</title>
-  <style>
-    :root { --panel: #f6f1e4; --kant: #c9bfa6; --tekst: #2b2a26; --krem: #faf2db; --dempet: #cfc6ad; }
-    * { box-sizing: border-box; }
-    html { touch-action: manipulation; }
-    body {
-      margin: 0; background: #0b0f14; color: var(--krem);
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
-    }
-    header {
-      position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center;
-      padding: 8px 16px; background: var(--panel); color: var(--tekst); border-bottom: 3px solid var(--kant);
-    }
-    header h1 { margin: 0 auto 0 0; font-size: 18px; }
-    button {
-      font: inherit; font-size: 16px; min-height: 44px; padding: 4px 14px; border-radius: 12px;
-      border: 2px solid var(--kant); background: #fff; color: var(--tekst); cursor: pointer;
-    }
-    button.valgt { background: #ffe58a; border-color: #d9a520; font-weight: 700; }
-    button:disabled { opacity: 0.5; }
-    main { max-width: 820px; margin: 0 auto; padding: 16px 16px 60px; display: grid; gap: 34px; }
-    h2 { margin: 0 0 4px; font-size: 20px; }
-    .forklaring { margin: 0 0 12px; color: var(--dempet); line-height: 1.45; }
-    body.liten .forklaring, body.liten figcaption, body.liten .bare-stor { display: none; }
-
-    .scene { position: relative; border-radius: 18px; background: #010101; border: 3px solid #2a3140; }
-    .himmel-boks { position: sticky; top: var(--topp, 60px); z-index: 4; border-radius: 15px 15px 0 0; overflow: hidden; }
-    #himmel { display: block; width: 100%; height: 84px; }
-    #sol-tekst { position: absolute; top: 8px; left: 12px; font-weight: 700; color: #1b2a3a; text-shadow: 0 1px 0 rgba(255,255,255,0.5); pointer-events: none; }
-    .ting { padding: 6px 10px 14px; }
-    .ravare { margin-top: 14px; }
-    .ravare h3 { margin: 0 0 8px; font-size: 19px; text-align: center; color: var(--krem); }
-    .ravare .sang { font-weight: 400; font-size: 15px; color: #ffe58a; margin-left: 6px; }
-    .rad { display: grid; gap: 14px; justify-content: center; }
-    .rad figure { margin: 0; text-align: center; }
-    .rad canvas { display: block; touch-action: none; cursor: pointer; }
-    .rad figcaption { font-size: 13px; color: var(--dempet); margin-top: 1px; min-height: 17px; }
-
-    .natt { position: fixed; inset: 0; z-index: 15; }
-    .natt canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
-    .natt-tekst { position: absolute; top: 16px; left: 0; right: 0; text-align: center; font-size: 20px; font-weight: 700; color: #fff6d8; pointer-events: none; }
-    #morgen { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); }
-
-    .forrad {
-      position: sticky; bottom: 6px; z-index: 6; box-shadow: 0 -4px 18px rgba(0,0,0,0.45);
-      display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin: 12px 6px 0;
-      background: var(--panel); color: var(--tekst); border-radius: 16px; padding: 6px; border: 3px solid var(--kant);
-    }
-    .vare { min-width: 50px; padding: 2px 7px; border-radius: 10px; background: #fff; font-size: 17px; text-align: center; }
-    .vare b { font-size: 18px; }
-    .vare small { font-size: 12px; color: #6d6656; }
-    .vare .tom { opacity: 0.25; }
-    body.liten .vare { font-size: 22px; letter-spacing: -6px; padding-right: 14px; }
-    .dunk { animation: dunk 0.35s ease-out; }
-    @keyframes dunk { 40% { transform: scale(1.25); } }
-    .flyr {
-      position: fixed; z-index: 30; font-size: 34px; margin: -20px 0 0 -20px; pointer-events: none;
-      transition: transform 0.85s cubic-bezier(0.5, -0.5, 0.6, 1);
-    }
-
-    .tid { text-align: center; }
-    .tid h3 { margin: 0 0 6px; font-size: 22px; color: #ffe58a; }
-    #tid-tekst { margin: 0 auto 12px; max-width: 640px; line-height: 1.45; min-height: 3em; }
-    #tid { display: block; margin: 0 auto 14px; border-radius: 14px; }
-    #tid-knapp { font-size: 19px; min-height: 52px; padding: 6px 22px; background: #ffe58a; border-color: #d9a520; font-weight: 700; }
-    .album { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 18px; }
-    .album figure { margin: 0; animation: dunk 0.4s ease-out; }
-    .album img { display: block; width: 150px; border-radius: 8px; border: 2px solid #2a3140; }
-    .album figcaption { font-size: 14px; color: var(--dempet); margin-top: 3px; }
-
-    .brev {
-      position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(5, 8, 15, 0.55);
-    }
-    .brev[hidden] { display: none; }
-    .brev > div {
-      width: min(90%, 380px); background: #fbf3dc; color: #3a2e1c; border-radius: 6px; padding: 22px 24px;
-      font-family: Georgia, "Times New Roman", serif; box-shadow: 0 10px 40px rgba(0,0,0,0.5); transform: rotate(-1.5deg);
-      animation: dunk 0.45s ease-out;
-    }
-    .brev p { font-size: 19px; line-height: 1.5; margin: 0 0 10px; }
-    .brev .liten-tekst { font-size: 15px; font-family: system-ui, sans-serif; color: #6d5a3a; }
-    .melding {
-      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 25;
-      background: var(--panel); color: var(--tekst); border: 3px solid #d9a520; border-radius: 14px;
-      padding: 10px 18px; font-size: 18px; font-weight: 700;
-    }
-    .melding.vis { animation: dunk 0.4s ease-out; }
-    @media (max-width: 560px) { header h1 { font-size: 15px; width: 100%; } }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Øya">
+  <meta name="theme-color" content="#0b0f14">
+  <title>Øya i hundre år</title>
+  <link rel="stylesheet" href="spill.css">
 </head>
 <body>
-  <header>
-    <h1>🏝️ Øya i hundre år – prøveark</h1>
-    <button data-nivaa="liten">🐣 Liten</button>
-    <button data-nivaa="stor">🧒 Stor</button>
-    <button id="natt-naa">🌙 Natta nå</button>
-    <button id="lyd">🔊 Lyd på</button>
-  </header>
-  <main>
-    <section>
-      <h2>1 · Hender og sol</h2>
-      <p class="forklaring">
-        Alt du kan samle finnes i tre størrelser, og hver råvare har sin egen sang og sitt eget instrument.
-        <b>Hvert trykk er én tone.</b> Den lille spiller starten av sangen, den mellomste litt mer – og den store spiller <b>hele sangen</b>.
-        Store ting gir mye mer. <b>Hvert trykk flytter sola litt</b>; når den går ned, kommer natta med stjerneskudd du kan fange.
-      </p>
-      <div id="scene" class="scene">
-        <div class="himmel-boks"><canvas id="himmel"></canvas><div id="sol-tekst"></div></div>
-        <div id="ting" class="ting"></div>
-        <div id="natt" class="natt" hidden>
-          <canvas id="natt-lerret"></canvas>
-          <div class="natt-tekst">🌙 Fang stjerneskuddene!</div>
-          <button id="morgen">☀️ God morgen</button>
-        </div>
-        <div id="forrad" class="forrad"></div>
-      </div>
-    </section>
+  <!-- Velg spiller -->
+  <section id="velg" class="velg">
+    <h1>🏝️ Øya i hundre år</h1>
+    <p class="under">Hvem skal spille?</p>
+    <div id="profilliste" class="profilliste"></div>
+    <button id="ny-spiller" class="stor-knapp">➕ Ny spiller</button>
+    <p class="smaa"><a href="proveark.html">Prøvearket</a> · fase T1 (trykkmotoren)</p>
+  </section>
 
-    <section class="tid">
-      <h2>2 · Tidsspranget</h2>
-      <p class="forklaring">Det samme lille stykket av øya gjennom fire generasjoner. Det du plantet, bygde og gravde ned, har vokst når tiden går.</p>
-      <h3 id="tid-aar"></h3>
-      <p id="tid-tekst"></p>
-      <canvas id="tid"></canvas>
-      <button id="tid-knapp">⏳ La tiden gå – 30 år</button>
-      <div id="album" class="album"></div>
-    </section>
+  <dialog id="ny" class="kort">
+    <h2>Ny spiller</h2>
+    <label class="navnefelt">Navn <input id="ny-navn" maxlength="16" autocomplete="off" placeholder="Hva heter du?"></label>
+    <p class="etikett">Velg et dyr</p>
+    <div id="ny-avatar" class="valgrad avatarer"></div>
+    <p class="etikett">Hvem spiller?</p>
+    <div id="ny-nivaa" class="valgrad"></div>
+    <div class="knapper">
+      <button id="ny-avbryt">Avbryt</button>
+      <button id="ny-start" class="hoved">Seil til øya ⛵</button>
+    </div>
+  </dialog>
+
+  <!-- Spillet -->
+  <main id="spill" class="spill" hidden>
+    <header class="topp">
+      <button id="meny-knapp" class="rund" aria-label="Meny"></button>
+      <div class="himmel">
+        <canvas id="himmel"></canvas>
+        <span id="dag"></span>
+        <span id="sol-tall"></span>
+      </div>
+      <button id="sangbok-knapp" class="rund" aria-label="Sangboka">🎵</button>
+    </header>
+    <canvas id="lerret"></canvas>
+    <footer id="forrad" class="forrad"></footer>
   </main>
 
-  <div id="brev" class="brev" hidden>
-    <div>
-      <p>📜 <i>Til den som finner dette:</i></p>
-      <p>«Ta godt vare på eika. Jeg la noen frø i kapselen – plant dem der sola skinner.»</p>
-      <p style="text-align:right">– Oldemor, 1926</p>
-      <p class="liten-tekst">De 2 frøene har blitt til 4 mens de lå i jorda.</p>
-      <button id="brev-ok">🌰 Så fint!</button>
+  <!-- Nærbilde av en ting -->
+  <div id="naer" class="naer" hidden>
+    <div class="naer-boks">
+      <div id="naer-tittel" class="naer-tittel"></div>
+      <canvas id="naer-lerret"></canvas>
+      <button id="naer-lukk" class="rund lukk" aria-label="Lukk">✕</button>
     </div>
   </div>
+
+  <!-- Natta -->
+  <div id="natt" class="natt" hidden>
+    <canvas id="natt-lerret"></canvas>
+    <div class="natt-tekst">🌙 ✨</div>
+    <button id="morgen" class="stor-knapp">☀️ God morgen</button>
+  </div>
+
+  <dialog id="meny" class="kort">
+    <h2 id="meny-tittel"></h2>
+    <div class="menyknapper">
+      <button id="meny-sov">🌙 Legg deg nå</button>
+      <button id="meny-nivaa"></button>
+      <button id="meny-lyd"></button>
+      <button id="meny-bytt">👥 Bytt spiller</button>
+      <button id="meny-ny-oy">🏝️ Ny øy</button>
+      <button id="meny-slett">🗑️ Slett spilleren</button>
+      <button id="meny-lukk" class="hoved">Tilbake til øya</button>
+    </div>
+  </dialog>
+
+  <dialog id="sangbok" class="kort">
+    <h2>🎵 Sangboka</h2>
+    <p id="sangbok-tekst"></p>
+    <div id="sangliste" class="sangliste"></div>
+    <button id="sangbok-lukk" class="hoved">Lukk</button>
+  </dialog>
+
   <div id="melding" class="melding" hidden></div>
 
-  <script type="module" src="js/trykkprove.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -6,8 +6,8 @@
 import { tegnKort, tegnUkjent, tegnTomtKort } from './stil/ruter.js';
 import { BAKGRUNN } from './stil/palett.js';
 import { blandSeed, lagTilfeldig } from './rng.js';
-import { tegnFigur } from './figurer.js';
-import { PYNT } from './stil/pynt.js';
+import { tegnFigur, tegnHjort } from './figurer.js';
+import { PYNT, LIV } from './stil/pynt.js';
 import { TAKE_TRYKK } from './data/ting.js';
 import { TERRENGNAVN, tingVed, kanBorstes } from './regler.js';
 
@@ -37,10 +37,14 @@ export function innholdFor(spill, verden, i) {
 }
 
 const andel = (ting) => Math.floor((1 - ting.igjen / ting.antall) * 8) / 8;
+
+/** Dyr som lever: kortet tegnes uten dyret, og dyret tegnes på nytt hver gang skjermen tegnes. */
+const LEVENDE_TING = new Set(['ull', 'fisk']);
+const harLiv = (inn) => !inn.ukjent && ((inn.ting && LEVENDE_TING.has(inn.ting.type)) || (inn.pynt && LIV[inn.pynt]) || inn.overlegg === 'hjort');
 const signatur = (inn) => {
   if (inn.ukjent) return '?';
   if (inn.pynt) return `${inn.terreng}|pynt:${inn.pynt}`;
-  if (inn.ting) return `${inn.terreng}|${inn.ting.type}${inn.ting.str}|${inn.ting.seed}|${andel(inn.ting)}`;
+  if (inn.ting) return LEVENDE_TING.has(inn.ting.type) ? `${inn.terreng}|bak` : `${inn.terreng}|${inn.ting.type}${inn.ting.str}|${inn.ting.seed}|${andel(inn.ting)}`;
   return `${inn.terreng}|${inn.bygg ?? ''}|${inn.nivaa ?? ''}|${inn.overlegg ?? ''}`;
 };
 
@@ -65,7 +69,10 @@ export class Brett {
     else if (innhold.pynt) {
       tegnTomtKort(ctx, str, tilf, innhold.terreng, () => PYNT[innhold.pynt](ctx, str, lagTilfeldig(blandSeed(this.verden.seed, 'pynt', i))));
     } else if (innhold.ting) {
-      tegnTomtKort(ctx, str, tilf, innhold.terreng, () => tegnFigur(ctx, str, innhold.ting, { p: andel(innhold.ting) }));
+      const levende = LEVENDE_TING.has(innhold.ting.type);
+      tegnTomtKort(ctx, str, tilf, innhold.terreng, levende ? null : () => tegnFigur(ctx, str, innhold.ting, { p: andel(innhold.ting) }));
+    } else if (innhold.overlegg === 'hjort') {
+      tegnKort(ctx, str, tilf, { terreng: innhold.terreng, lysning: true });
     } else tegnKort(ctx, str, tilf, innhold);
     const k = { sig: signatur(innhold), str, lerret };
     this.kort.set(nokkel, k);
@@ -133,6 +140,7 @@ export class Brett {
   tegn(ctx, spill, { utsnitt, skala, avdekkAnim, borstAnim, byggAnim, naa, hint }) {
     const { bredde: B, hoyde: H } = this.verden;
     const str = passendeStorrelse(KORT * skala);
+    this.harLiv = false;
 
     const royk = this.#roykBilde(spill);
     const M = this.roykMarg;
@@ -177,6 +185,20 @@ export class Brett {
           continue;
         }
         ctx.drawImage(this.hent(innhold.ukjent ? -1 - i : i, i, innhold, str), px, py, KORT, KORT);
+        if (harLiv(innhold)) {
+          // Det som beveger seg tegnes oppå kortet, i kortets egne mål.
+          this.harLiv = true;
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(px, py, KORT, KORT);
+          ctx.clip();
+          ctx.translate(px, py);
+          const tsek = naa / 1000;
+          if (innhold.pynt) LIV[innhold.pynt](ctx, KORT, tsek, Infinity);
+          else if (innhold.ting) tegnFigur(ctx, KORT, innhold.ting, { p: 1 - innhold.ting.igjen / innhold.ting.antall, t: tsek });
+          else tegnHjort(ctx, KORT, tsek, i % 17);
+          ctx.restore();
+        }
       }
     }
 

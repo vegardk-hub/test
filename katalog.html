@@ -13,26 +13,46 @@
   </style>
 </head>
 <body>
-  <h1>Byggekatalog – alle 20 bygg</h1>
+  <h1>Byggekatalog – alle 20 bygg (trykk på et bygg)</h1>
   <div id="galleri" class="galleri"></div>
   <script type="module">
+    // Alle byggene, levende: den faste delen tegnes én gang, det som beveger seg hele tiden.
     import { BYGG } from './js/data/ting.js';
-    import { PYNT } from './js/stil/pynt.js';
+    import { PYNT, LIV } from './js/stil/pynt.js';
     import { tegnTomtKort } from './js/stil/ruter.js';
     import { lagTilfeldig } from './js/rng.js';
     const S = 180, dpr = devicePixelRatio || 1;
-    for (const [k, b] of BYGG.entries()) {
+    const kort = BYGG.map((b, k) => {
+      const fast = document.createElement('canvas');
+      fast.width = fast.height = S * dpr;
+      const fctx = fast.getContext('2d');
+      fctx.scale(dpr, dpr);
+      tegnTomtKort(fctx, S, lagTilfeldig(k + 1), b.id === 'iglo' || b.id === 'snomann' ? 'strand' : 'eng', () => PYNT[b.id](fctx, S, lagTilfeldig(k + 7)));
       const c = document.createElement('canvas');
       c.width = c.height = S * dpr;
       c.style.width = c.style.height = `${S}px`;
-      const ctx = c.getContext('2d');
-      ctx.scale(dpr, dpr);
-      tegnTomtKort(ctx, S, lagTilfeldig(k + 1), b.id === 'iglo' || b.id === 'snomann' ? 'strand' : 'eng', () => PYNT[b.id](ctx, S, lagTilfeldig(k + 7)));
       const f = document.createElement('figure');
       f.append(c);
       f.insertAdjacentHTML('beforeend', `<figcaption>${b.navn} · ${b.pris} 🪙</figcaption>`);
       document.getElementById('galleri').append(f);
+      let fest = Infinity;
+      c.onclick = () => { fest = 0; };
+      return { b, fast, c, ctx: c.getContext('2d'), fest: () => fest, tikk: (dt) => { fest += dt; } };
+    });
+    let sist = performance.now();
+    function tegn(ms) {
+      const dt = (ms - sist) / 1000;
+      sist = ms;
+      for (const k of kort) {
+        k.tikk(dt);
+        k.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        k.ctx.drawImage(k.fast, 0, 0);
+        k.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        LIV[k.b.id]?.(k.ctx, S, ms / 1000, k.fest());
+      }
+      requestAnimationFrame(tegn);
     }
+    requestAnimationFrame(tegn);
   </script>
 </body>
 </html>

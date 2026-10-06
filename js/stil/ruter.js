@@ -733,7 +733,7 @@ const BUNN_FOR = { eng: 'eng', skog: 'skog', aas: 'aas', fjell: 'fjell', vann: '
  * Tegner én rute (kort) i et S×S-område. innhold:
  *  { terreng, bygg?, nivaa?, overlegg? } – bygg tegnes på en enklere bunn uten terrengpynt.
  */
-export function tegnKort(ctx, S, tilf, { terreng, bygg, nivaa = 1, overlegg, vei, bane, biom = 'temperert' }) {
+export function tegnKort(ctx, S, tilf, { terreng, bygg, nivaa = 1, overlegg, vei, bane, biom = 'temperert', lysning = false }) {
   ctx.save();
   BIOM = biom;
   BA = BIOM_BUNN[biom] ?? BUNN;
@@ -762,7 +762,7 @@ export function tegnKort(ctx, S, tilf, { terreng, bygg, nivaa = 1, overlegg, vei
     if (bane) lag.push({ retninger: bane.retninger, halvbredde: S * HALVBREDDE.bane });
     // Med overlegg lager terrenget en lysning i midten så figuren synes.
     TERRENG[terreng](ctx, S, tilf, {
-      lysning: !!overlegg,
+      lysning: !!overlegg || lysning,
       unngaa: lag.length ? lagUnngaa(S, lag) : null,
       etterBunn: lag.length ? tegnFerdsel : null,
     });

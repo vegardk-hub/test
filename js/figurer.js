@@ -265,7 +265,11 @@ function figurSau(ctx, S, r, k, p, ferdigT, t) {
   const s = [0.62, 0.9, 1.25][k.str];
   const hopp = ferdigT === null ? 0 : Math.abs(Math.sin(klamp(ferdigT / 1.2) * Math.PI * 2)) * S * 0.1 * (1 - klamp(ferdigT / 1.6));
   const x = S * 0.5, y = S * 0.8 - hopp;
-  const ull = ferdigT === null ? 1 - 0.5 * p : 0.5;   // ulla blir mindre for hvert klipp
+  // Pust: ulla løfter seg litt. Beiting: hodet går ned i gresset og opp igjen.
+  const pust = 1 + 0.03 * Math.sin(t * 2.2 + k.seed % 7);
+  const b = 0.5 + 0.5 * Math.sin(t * 0.7 + (k.seed % 13));
+  const beite = ferdigT === null ? b * b * (3 - 2 * b) : 0;
+  const ull = (ferdigT === null ? 1 - 0.5 * p : 0.5) * pust;   // ulla blir mindre for hvert klipp
   skygge(ctx, x + S * 0.02, S * 0.8 + S * 0.02, S * 0.2 * s, S * 0.05 * s);
   // Bein
   ctx.fillStyle = '#3b3a3f';
@@ -276,12 +280,17 @@ function figurSau(ctx, S, r, k, p, ferdigT, t) {
   if (ull > 0.5 || ferdigT === null) {
     fasett(ctx, klump(r, x, y - S * 0.13 * s, S * 0.2 * s * ull, S * 0.13 * s * ull, 11, 0.12), FIGUR.ull, { styrke: 0.7 });
   }
+  // Halen logrer
+  const hale = Math.sin(t * 7 + k.seed % 5) * S * 0.012 * s;
+  poly(ctx, [[x + S * 0.18 * s, y - S * 0.16 * s], [x + S * 0.24 * s, y - S * 0.15 * s + hale], [x + S * 0.19 * s, y - S * 0.11 * s]], FIGUR.ull);
   // Hode og øre
-  const hx = x - S * 0.2 * s, hy = y - S * 0.16 * s;
+  const hx = x - S * (0.2 + 0.015 * beite) * s, hy = y - S * (0.16 - 0.08 * beite) * s;
   fasett(ctx, [[hx - S * 0.07 * s, hy + S * 0.02 * s], [hx - S * 0.02 * s, hy - S * 0.07 * s], [hx + S * 0.05 * s, hy - S * 0.03 * s], [hx + S * 0.03 * s, hy + S * 0.06 * s]], '#45434a');
   poly(ctx, [[hx + S * 0.02 * s, hy - S * 0.05 * s], [hx + S * 0.09 * s, hy - S * 0.08 * s], [hx + S * 0.05 * s, hy - S * 0.01 * s]], '#3b3a3f');
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath(); ctx.arc(hx - S * 0.02 * s, hy - S * 0.015 * s, S * 0.012 * s, 0, Math.PI * 2); ctx.fill();
+  if ((t * 0.45 + (k.seed % 9) * 0.1) % 3 > 0.12) {   // blunker av og til
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(hx - S * 0.02 * s, hy - S * 0.015 * s, S * 0.012 * s, 0, Math.PI * 2); ctx.fill();
+  }
   if (k.str === 2) {
     // Væren har horn
     ctx.strokeStyle = '#c9b79a';
@@ -401,6 +410,40 @@ function figurKiste(ctx, S, r, k, p, ferdigT, t) {
       ctx.stroke();
       ctx.restore();
     }
+  }
+}
+
+// --- Hjort (pynt på brettet, ikke noe man samler) -----------------------------
+/** Hjorten løfter hodet, ser seg rundt og beiter; halen vipper. */
+export function tegnHjort(ctx, S, t, seed = 0) {
+  const x = S * 0.5, y = S * 0.7, f = FIGUR.hjort;
+  skygge(ctx, x + S * 0.02, y + S * 0.01, S * 0.15, S * 0.04);
+  ctx.fillStyle = f[1];
+  for (const dx of [-0.1, -0.06, 0.06, 0.1]) ctx.fillRect(x + S * dx, y - S * 0.1, S * 0.022, S * 0.11);
+  const vipp = Math.max(0, Math.sin(t * 3 + seed)) * S * 0.03;
+  poly(ctx, [[x + S * 0.12, y - S * 0.17], [x + S * 0.17, y - S * 0.2 - vipp], [x + S * 0.14, y - S * 0.14]], '#f4ece0');
+  poly(ctx, [[x - S * 0.13, y - S * 0.18], [x + S * 0.12, y - S * 0.17], [x + S * 0.13, y - S * 0.08], [x - S * 0.12, y - S * 0.08]], f[0]);
+  poly(ctx, [[x - S * 0.12, y - S * 0.08], [x + S * 0.13, y - S * 0.08], [x + S * 0.1, y - S * 0.12]], f[1]);
+  // Hodet dreier rundt halsroten: ned for å beite, opp for å se seg rundt.
+  const b = 0.5 + 0.5 * Math.sin(t * 0.55 + seed);
+  const a = (b * b * (3 - 2 * b)) * 0.8 - 0.1;
+  const rot = ([px, py]) => {
+    const ox = x - S * 0.1, oy = y - S * 0.17;
+    const dx = px - ox, dy = py - oy;
+    return [ox + dx * Math.cos(-a) - dy * Math.sin(-a), oy + dx * Math.sin(-a) + dy * Math.cos(-a)];
+  };
+  poly(ctx, [[x - S * 0.13, y - S * 0.18], [x - S * 0.17, y - S * 0.3], [x - S * 0.12, y - S * 0.31], [x - S * 0.08, y - S * 0.17]].map(rot), f[0]);
+  poly(ctx, [[x - S * 0.2, y - S * 0.32], [x - S * 0.11, y - S * 0.34], [x - S * 0.13, y - S * 0.27]].map(rot), f[1]);
+  ctx.strokeStyle = '#e9dcc0';
+  ctx.lineWidth = S * 0.012;
+  ctx.lineCap = 'round';
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(...rot([x - S * 0.15, y - S * 0.33]));
+    ctx.lineTo(...rot([x - S * (0.15 + side * 0.05), y - S * 0.43]));
+    ctx.moveTo(...rot([x - S * (0.15 + side * 0.03), y - S * 0.38]));
+    ctx.lineTo(...rot([x - S * (0.15 + side * 0.08), y - S * 0.39]));
+    ctx.stroke();
   }
 }
 

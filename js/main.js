@@ -12,7 +12,7 @@ import * as L from './trykk/toner.js';
 import * as M from './matte.js';
 import { tegnFigur } from './figurer.js';
 import { tegnTomtKort } from './stil/ruter.js';
-import { PYNT } from './stil/pynt.js';
+import { PYNT, LIV, tegnBygg, ivrig } from './stil/pynt.js';
 import { poly, fasett } from './stil/lavpoly.js';
 import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID } from './data/ting.js';
 import { ikon } from './ikoner.js';
@@ -343,7 +343,14 @@ function tegnNaer(tsek) {
     ctx.rotate(vugg);
     ctx.scale(1 + klem * 0.6, 1 - klem);
     ctx.translate(-S * 0.5, -S * 0.86);
-    if (n.pynt) PYNT[n.pynt](ctx, S, lagTilfeldig(blandSeed(t.verden.seed, 'pynt', n.i)));
+    if (n.pynt) {
+      // Bygget lever: et trykk gir ekstra fart en stund (og raketten skytes opp).
+      const fest = tsek - n.tTrykk;
+      n.tv = (n.tv ?? tsek) + Math.min(0.1, tsek - (n.sist ?? tsek)) * ivrig(fest);
+      n.sist = tsek;
+      PYNT[n.pynt](ctx, S, lagTilfeldig(blandSeed(t.verden.seed, 'pynt', n.i)));
+      LIV[n.pynt]?.(ctx, S, n.tv, fest);
+    }
     else tegnFigur(ctx, S, ting, { p, ferdigT, t: tsek });
     ctx.restore();
   });
@@ -600,7 +607,7 @@ function byggBilde(id) {
   const ctx = c.getContext('2d');
   ctx.scale(dpr, dpr);
   tegnTomtKort(ctx, S, lagTilfeldig(blandSeed('butikk', id)), id === 'iglo' || id === 'snomann' ? 'strand' : 'eng',
-    () => PYNT[id](ctx, S, lagTilfeldig(blandSeed('butikk-pynt', id))));
+    () => tegnBygg(ctx, S, id, lagTilfeldig(blandSeed('butikk-pynt', id))));
   const url = c.toDataURL();
   bildeLager.set(id, url);
   return url;
@@ -1039,7 +1046,7 @@ function sloyfe() {
   const ms = naa();
   if (t.spill && !$('spill').hidden) {
     tegnHimmel(ms / 1000);
-    if (t.skitten || t.avdekkAnim.size || t.borstAnim.size || t.byggAnim.size || harEffekter()) tegnBrett(ms);
+    if (t.skitten || t.brett.harLiv || t.avdekkAnim.size || t.borstAnim.size || t.byggAnim.size || harEffekter()) tegnBrett(ms);
   }
   if (t.naer) tegnNaer(ms / 1000);
   if (t.natt) tegnNatt(ms / 1000);

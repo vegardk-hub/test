@@ -41,9 +41,15 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - `js/main.js` – skjermen (nærbilde, teller, regnepanel, butikk, foreldrekontroll)
 - Test: `node test/regler.test.js`
 
+## Animasjoner (2026-10-06)
+- **Byggene lever** (`LIV` i `js/stil/pynt.js`): flagg blafrer, bålet flakker med gnister, røyk fra pipa, vindmølla og pariserhjulet går rundt,
+  fontenen spruter, ballongen dupper, fyrtårnet feier med lys, fugler flyr rundt trehuset og stavkirka, værhanen snur seg, snøen daler, ildfluer svever.
+- **Trykk på et bygg i nærbildet**: alt går fortere en stund, og **raketten skytes opp** og lander igjen.
+- **Dyrene lever**: sauene beiter, puster, logrer og blunker. Hjorten løfter hodet og vipper med halen, og fiskene spreller.
+- Teknikk: kortet med det som står stille lagres som før, og bare det som beveger seg tegnes på nytt hver gang skjermen tegnes, og bare for ruter man ser.
+
 ## Mulige neste steg
 - Flytte eller rive bygg man har satt ut, og «Mine bygg» i butikken
-- Små animasjoner på byggene (vindmølla snurrer, raketten skytes opp, pariserhjulet går rundt)
 - Telling også i butikken (mynter som telles opp én og én for de minste)
 - Flere regnearter for de eldste (tallforståelse, klokka, penger)
 - PWA (ikon og bruk uten nett) når spillet er klart til å installeres

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skatteøya – byggekatalog</title>
+  <style>
+    body { margin: 0; background: #0b0f14; color: #faf2db; font-family: system-ui, sans-serif; padding: 16px; }
+    h1 { font-size: 22px; text-align: center; }
+    .galleri { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
+    figure { margin: 0; text-align: center; }
+    figcaption { font-size: 14px; color: #cfc6ad; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Byggekatalog – alle 20 bygg</h1>
+  <div id="galleri" class="galleri"></div>
+  <script type="module">
+    import { BYGG } from './js/data/ting.js';
+    import { PYNT } from './js/stil/pynt.js';
+    import { tegnTomtKort } from './js/stil/ruter.js';
+    import { lagTilfeldig } from './js/rng.js';
+    const S = 180, dpr = devicePixelRatio || 1;
+    for (const [k, b] of BYGG.entries()) {
+      const c = document.createElement('canvas');
+      c.width = c.height = S * dpr;
+      c.style.width = c.style.height = `${S}px`;
+      const ctx = c.getContext('2d');
+      ctx.scale(dpr, dpr);
+      tegnTomtKort(ctx, S, lagTilfeldig(k + 1), b.id === 'iglo' || b.id === 'snomann' ? 'strand' : 'eng', () => PYNT[b.id](ctx, S, lagTilfeldig(k + 7)));
+      const f = document.createElement('figure');
+      f.append(c);
+      f.insertAdjacentHTML('beforeend', `<figcaption>${b.navn} · ${b.pris} 🪙</figcaption>`);
+      document.getElementById('galleri').append(f);
+    }
+  </script>
+</body>
+</html>

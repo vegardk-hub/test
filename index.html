@@ -6,19 +6,19 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Øya">
+  <meta name="apple-mobile-web-app-title" content="Skatteøya">
   <meta name="theme-color" content="#0b0f14">
-  <title>Øya i hundre år</title>
+  <title>Skatteøya</title>
   <link rel="stylesheet" href="spill.css">
 </head>
 <body>
   <!-- Velg spiller -->
   <section id="velg" class="velg">
-    <h1>🏝️ Øya i hundre år</h1>
+    <h1>🏝️ Skatteøya</h1>
     <p class="under">Hvem skal spille?</p>
     <div id="profilliste" class="profilliste"></div>
     <button id="ny-spiller" class="stor-knapp">➕ Ny spiller</button>
-    <p class="smaa"><a href="proveark.html">Prøvearket</a> · fase T1 (trykkmotoren)</p>
+    <p class="smaa"><a href="proveark.html">Prøvearket</a> · <a href="katalog.html">Byggekatalogen</a></p>
   </section>
 
   <dialog id="ny" class="kort">
@@ -43,6 +43,7 @@
         <span id="dag"></span>
         <span id="sol-tall"></span>
       </div>
+      <button id="butikk-knapp" class="rund" aria-label="Butikken">🏪</button>
       <button id="sangbok-knapp" class="rund" aria-label="Sangboka">🎵</button>
     </header>
     <canvas id="lerret"></canvas>
@@ -53,7 +54,15 @@
   <div id="naer" class="naer" hidden>
     <div class="naer-boks">
       <div id="naer-tittel" class="naer-tittel"></div>
-      <canvas id="naer-lerret"></canvas>
+      <div class="naer-innhold">
+        <canvas id="naer-lerret"></canvas>
+        <div id="matte" class="matte" hidden>
+          <div class="matte-stykke"><span id="matte-stykke"></span> <span id="matte-svar" class="matte-svar">?</span></div>
+          <div id="matte-melding" class="matte-melding"></div>
+          <div id="matte-valg" class="matte-valg"></div>
+          <div id="matte-tast" class="tastatur"></div>
+        </div>
+      </div>
       <button id="naer-lukk" class="rund lukk" aria-label="Lukk">✕</button>
     </div>
   </div>
@@ -71,6 +80,7 @@
       <button id="meny-sov">🌙 Legg deg nå</button>
       <button id="meny-nivaa"></button>
       <button id="meny-lyd"></button>
+      <button id="meny-foreldre">🔒 For foreldre</button>
       <button id="meny-bytt">👥 Bytt spiller</button>
       <button id="meny-ny-oy">🏝️ Ny øy</button>
       <button id="meny-slett">🗑️ Slett spilleren</button>
@@ -84,6 +94,44 @@
     <div id="sangliste" class="sangliste"></div>
     <button id="sangbok-lukk" class="hoved">Lukk</button>
   </dialog>
+
+  <dialog id="butikk" class="kort bred">
+    <h2>🏪 Butikken</h2>
+    <div class="faner"><button id="fane-selg">💰 Selg</button><button id="fane-kjop">🏰 Kjøp bygg</button></div>
+    <div id="butikk-mynter" class="mynter-linje"></div>
+    <div id="butikk-selg" class="butikk-innhold"></div>
+    <div id="butikk-kjop" class="butikk-innhold byggliste" hidden></div>
+    <button id="butikk-lukk" class="hoved full">Tilbake til øya</button>
+  </dialog>
+
+  <dialog id="port" class="kort">
+    <h2>🔒 For voksne</h2>
+    <p class="midt">Løs stykket for å komme til foreldrekontrollen:</p>
+    <div class="matte-stykke"><span id="port-stykke"></span> <span id="port-svar" class="matte-svar">?</span></div>
+    <div id="port-tast" class="tastatur"></div>
+    <button id="port-avbryt" class="full">Avbryt</button>
+  </dialog>
+
+  <dialog id="foreldre" class="kort bred">
+    <h2>🔒 Foreldrekontroll – <span id="foreldre-navn"></span></h2>
+    <p class="etikett">Hurtigvalg</p>
+    <div id="f-hurtig" class="valgrad"></div>
+    <p class="etikett">Mattestykker i kistene</p>
+    <div id="f-arter" class="arter"></div>
+    <p id="f-eksempel" class="eksempel"></p>
+    <p class="etikett">Svarmåte</p>
+    <div id="f-svar" class="valgrad"></div>
+    <p class="etikett">Telling</p>
+    <div id="f-telling" class="valgrad"></div>
+    <p class="etikett">Statistikk</p>
+    <p id="f-stat" class="statistikk"></p>
+    <button id="foreldre-lukk" class="hoved full">Lagre og lukk</button>
+  </dialog>
+
+  <div id="plasser" class="plasser" hidden>
+    <span id="plasser-tekst"></span>
+    <button id="plasser-avbryt">✕ Avbryt</button>
+  </div>
 
   <div id="melding" class="melding" hidden></div>
 

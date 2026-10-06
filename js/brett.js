@@ -7,6 +7,7 @@ import { tegnKort, tegnUkjent, tegnTomtKort } from './stil/ruter.js';
 import { BAKGRUNN } from './stil/palett.js';
 import { blandSeed, lagTilfeldig } from './rng.js';
 import { tegnFigur } from './figurer.js';
+import { PYNT } from './stil/pynt.js';
 import { TAKE_TRYKK } from './data/ting.js';
 import { TERRENGNAVN, tingVed, kanBorstes } from './regler.js';
 
@@ -18,6 +19,8 @@ export const KORT = RUTE - FUGE;
 function avdekketInnhold(spill, verden, i) {
   const terreng = TERRENGNAVN[verden.terreng[i]];
   if (i === verden.startIndeks) return { terreng, bygg: 'leir' };
+  const pynt = spill.bygg.get(i);
+  if (pynt) return { terreng: terreng === 'skog' ? 'eng' : terreng, pynt };
   const o = verden.overlegg.get(i);
   if (o?.type === 'landsby') return { terreng, bygg: 'landsby', nivaa: 2 };
   const ting = tingVed(spill, verden, i);
@@ -36,6 +39,7 @@ export function innholdFor(spill, verden, i) {
 const andel = (ting) => Math.floor((1 - ting.igjen / ting.antall) * 8) / 8;
 const signatur = (inn) => {
   if (inn.ukjent) return '?';
+  if (inn.pynt) return `${inn.terreng}|pynt:${inn.pynt}`;
   if (inn.ting) return `${inn.terreng}|${inn.ting.type}${inn.ting.str}|${inn.ting.seed}|${andel(inn.ting)}`;
   return `${inn.terreng}|${inn.bygg ?? ''}|${inn.nivaa ?? ''}|${inn.overlegg ?? ''}`;
 };
@@ -58,7 +62,9 @@ export class Brett {
     const ctx = lerret.getContext('2d');
     const tilf = lagTilfeldig(blandSeed(this.verden.seed, this.verden.forsok, 'kort', i));
     if (innhold.ukjent) tegnUkjent(ctx, str, tilf);
-    else if (innhold.ting) {
+    else if (innhold.pynt) {
+      tegnTomtKort(ctx, str, tilf, innhold.terreng, () => PYNT[innhold.pynt](ctx, str, lagTilfeldig(blandSeed(this.verden.seed, 'pynt', i))));
+    } else if (innhold.ting) {
       tegnTomtKort(ctx, str, tilf, innhold.terreng, () => tegnFigur(ctx, str, innhold.ting, { p: andel(innhold.ting) }));
     } else tegnKort(ctx, str, tilf, innhold);
     const k = { sig: signatur(innhold), str, lerret };
@@ -124,7 +130,7 @@ export class Brett {
    * avdekkAnim: rute → starttid for kort som snus fram. borstAnim: rute → tid for siste strøk.
    * hint: ruter som skal ha en pulserende ring (de første trykkene).
    */
-  tegn(ctx, spill, { utsnitt, skala, avdekkAnim, borstAnim, naa, hint }) {
+  tegn(ctx, spill, { utsnitt, skala, avdekkAnim, borstAnim, byggAnim, naa, hint }) {
     const { bredde: B, hoyde: H } = this.verden;
     const str = passendeStorrelse(KORT * skala);
 
@@ -148,6 +154,16 @@ export class Brett {
           const bilde = p < 0.5 ? this.hent(-1 - i, i, { ukjent: true }, str) : this.hent(i, i, innhold, str);
           ctx.drawImage(bilde, px + KORT * (1 - sx) / 2, py, KORT * sx, KORT);
           if (p >= 1) avdekkAnim.delete(i);
+          continue;
+        }
+        const bygd = byggAnim?.get(i);
+        if (bygd !== undefined) {
+          // Nytt bygg: kortet spretter fram.
+          const p = Math.min(1, (naa - bygd) / 600);
+          const c = 1.70158, u = p - 1;
+          const sk = 0.3 + 0.7 * (1 + (c + 1) * u ** 3 + c * u ** 2);
+          ctx.drawImage(this.hent(i, i, innhold, str), px + KORT * (1 - sk) / 2, py + KORT * (1 - sk) / 2, KORT * sk, KORT * sk);
+          if (p >= 1) byggAnim.delete(i);
           continue;
         }
         if (innhold.ukjent && innhold.take < TAKE_TRYKK) {

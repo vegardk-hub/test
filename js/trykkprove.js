@@ -1,7 +1,7 @@
-// Prøveark for «Øya i hundre år»: alle råvarer finnes i tre størrelser, og hvert
+// Prøveark for Skatteøya: alle råvarer finnes i tre størrelser, og hvert
 // trykk er én tone i en barnesang – den lille spiller starten, den mellomste litt
 // mer og den store hele sangen. Sola er dagsbudsjettet, natta har stjerneskudd,
-// og tidsspranget viser brettet som eldes. Bruker de samme kortene som spillet.
+// Bruker de samme kortene som spillet.
 
 import { tegnKort, tegnUkjent, tegnTomtKort } from './stil/ruter.js';
 import { BAKGRUNN, FIGUR } from './stil/palett.js';
@@ -947,266 +947,6 @@ function fangStjerne(e) {
 }
 
 // ---------------------------------------------------------------------------
-// Tidsspranget: det samme lille brettet gjennom fire generasjoner
-// ---------------------------------------------------------------------------
-const AAR0 = 1926;
-const KOL = 6, RAD = 4;
-const TID = { g: 0, anim: null, cache: new Map(), S: 100, blader: [] };
-const TIDSTEKST = [
-  'Oldemor setter opp en liten hytte, sår den første åkeren, planter en eikespire og graver ned en tidskapsel med frø og en hilsen.',
-  'Eika har vokst. Hytta er blitt en liten grend, stien er blitt steinvei, sauene beiter – og tidskapselen er funnet!',
-  'Barna til dem du ga mat, er blitt hjelpere: de hogger i skogen. Toget har kommet til bygda, og gården har fått låve.',
-  'Eika er blitt en kjempeeik med huske. Oldebarnet leker der oldemor plantet en liten spire for hundre år siden.',
-];
-
-function spes(g) {
-  const e = (o = {}) => ({ terreng: 'eng', ...o });
-  const veiType = g === 0 ? 'tre' : 'stein';
-  const rett = (ret) => (g >= 2 ? e({ bane: { retninger: ret } }) : e({ vei: [{ type: veiType, retninger: ret }] }));
-  const hus = g === 0
-    ? e({ bygg: 'leir', vei: [{ type: 'tre', retninger: 'WE' }] })
-    : e({ bygg: 'landsby', nivaa: [0, 2, 4, 5][g], vei: [{ type: 'stein', retninger: g >= 2 ? 'W' : 'WE' }], ...(g >= 2 ? { bane: { retninger: 'E' } } : {}) });
-  const rad = [
-    [{ terreng: 'skog' }, { terreng: 'skog' }, e(), e(), { terreng: 'aas' }, { terreng: 'fjell' }],
-    [{ terreng: 'skog' }, e({ egen: `eik${g}` }), e({ vei: [{ type: veiType, retninger: 'E' }] }), hus, rett('EW'), rett('EW')],
-    [e(), e(), g >= 1 ? e({ overlegg: 'sau' }) : e(), g === 0 ? e({ egen: 'saad' }) : e({ bygg: 'gard', nivaa: g }), e(), { terreng: 'vann' }],
-    [e(), g === 1 ? e({ overlegg: 'skatt' }) : e({ egen: g === 0 ? 'kapsel' : 'minne' }), e(), e(), { terreng: 'vann' }, { terreng: 'vann' }],
-  ];
-  if (g >= 2) rad[1][0] = { terreng: 'skog', bygg: 'hogstbu', nivaa: g };
-  if (g >= 3) rad[0][4] = { terreng: 'aas', bygg: 'steinbrudd' };
-  return rad;
-}
-
-function storKrone(ctx, r, x, y, h, bred = 1) {
-  const farger = [mork(FIGUR.lov, 0.12), FIGUR.lov, lys(FIGUR.lov, 0.06), lys(FIGUR.lov, 0.12)];
-  const klumper = [[-0.22, -0.55, 0.24], [0.22, -0.57, 0.24], [-0.1, -0.74, 0.25], [0.12, -0.8, 0.22], [0, -0.62, 0.26]];
-  klumper.forEach(([dx, dy, rr], i) => {
-    fasett(ctx, klump(r, x + dx * h * bred, y + dy * h, rr * h * bred, rr * h * 0.85, 8, 0.14), farger[i % farger.length]);
-  });
-}
-
-const EGNE = {
-  eik0(ctx, S) {
-    // Nyplantet spire med en liten pinne
-    const x = S * 0.5, y = S * 0.66;
-    ctx.fillStyle = '#8a5a3a';
-    ctx.beginPath(); ctx.ellipse(x, y, S * 0.11, S * 0.04, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#c9a26b'; ctx.lineWidth = S * 0.012;
-    ctx.beginPath(); ctx.moveTo(x + S * 0.06, y); ctx.lineTo(x + S * 0.06, y - S * 0.17); ctx.stroke();
-    ctx.strokeStyle = '#5e8f3a'; ctx.lineWidth = S * 0.015;
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - S * 0.11); ctx.stroke();
-    poly(ctx, [[x, y - S * 0.1], [x - S * 0.08, y - S * 0.15], [x - S * 0.02, y - S * 0.08]], FIGUR.spire[0]);
-    poly(ctx, [[x, y - S * 0.11], [x + S * 0.07, y - S * 0.17], [x + S * 0.02, y - S * 0.08]], FIGUR.spire[1]);
-  },
-  eik1(ctx, S, r) {
-    const x = S * 0.5, y = S * 0.74, h = S * 0.48;
-    skygge(ctx, x + h * 0.1, y, h * 0.3, h * 0.09);
-    poly(ctx, [[x - h * 0.05, y], [x - h * 0.04, y - h * 0.45], [x + h * 0.04, y - h * 0.45], [x + h * 0.05, y]], '#7a5236');
-    storKrone(ctx, r, x, y, h, 0.8);
-  },
-  eik2(ctx, S, r) {
-    const x = S * 0.5, y = S * 0.82, h = S * 0.7;
-    skygge(ctx, x + h * 0.1, y, h * 0.4, h * 0.1);
-    poly(ctx, [[x - h * 0.08, y], [x - h * 0.05, y - h * 0.45], [x + h * 0.05, y - h * 0.45], [x + h * 0.08, y]], '#7a5236');
-    poly(ctx, [[x, y], [x, y - h * 0.45], [x + h * 0.05, y - h * 0.45], [x + h * 0.08, y]], '#5e3f28');
-    storKrone(ctx, r, x, y, h, 1.05);
-  },
-  eik3(ctx, S, r) {
-    // Kjempeeik med huske
-    const x = S * 0.46, y = S * 0.9, h = S * 0.86;
-    skygge(ctx, x + h * 0.1, y, h * 0.5, h * 0.1);
-    poly(ctx, [[x - h * 0.12, y], [x - h * 0.07, y - h * 0.42], [x + h * 0.07, y - h * 0.42], [x + h * 0.13, y]], '#7a5236');
-    poly(ctx, [[x + h * 0.01, y], [x + h * 0.01, y - h * 0.42], [x + h * 0.07, y - h * 0.42], [x + h * 0.13, y]], '#5e3f28');
-    // Gren ut til høyre med huske
-    ctx.strokeStyle = '#6a4428'; ctx.lineWidth = S * 0.035; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(x + h * 0.04, y - h * 0.4); ctx.lineTo(x + h * 0.4, y - h * 0.5); ctx.stroke();
-    storKrone(ctx, r, x, y, h, 1.18);
-    const hx = x + h * 0.32;
-    ctx.strokeStyle = '#e9dcc0'; ctx.lineWidth = S * 0.008;
-    for (const dx of [-0.05, 0.05]) {
-      ctx.beginPath(); ctx.moveTo(hx + h * dx, y - h * 0.48); ctx.lineTo(hx + h * dx, y - h * 0.16); ctx.stroke();
-    }
-    poly(ctx, [[hx - h * 0.075, y - h * 0.16], [hx + h * 0.075, y - h * 0.16], [hx + h * 0.075, y - h * 0.13], [hx - h * 0.075, y - h * 0.13]], '#c0614a');
-  },
-  saad(ctx, S) {
-    // Nysådd åker: jordrader med små spirer
-    poly(ctx, [[S * 0.14, S * 0.3], [S * 0.86, S * 0.3], [S * 0.86, S * 0.86], [S * 0.14, S * 0.86]], FIGUR.jord);
-    for (let i = 0; i < 6; i++) {
-      const y = S * (0.36 + i * 0.09);
-      ctx.fillStyle = mork(FIGUR.jord, 0.2);
-      ctx.fillRect(S * 0.16, y, S * 0.68, S * 0.022);
-      ctx.fillStyle = FIGUR.spire[0];
-      for (let j = 0; j < 7; j++) {
-        ctx.beginPath(); ctx.arc(S * (0.2 + j * 0.1), y - S * 0.005, S * 0.012, 0, Math.PI * 2); ctx.fill();
-      }
-    }
-  },
-  kapsel(ctx, S, r) {
-    // Nedgravd tidskapsel: jordhaug med et lite flagg
-    const x = S * 0.5, y = S * 0.66;
-    skygge(ctx, x, y + S * 0.02, S * 0.17, S * 0.05);
-    fasett(ctx, klump(r, x, y - S * 0.04, S * 0.15, S * 0.07, 7, 0.1), FIGUR.jord);
-    ctx.strokeStyle = '#6a4428'; ctx.lineWidth = S * 0.014;
-    ctx.beginPath(); ctx.moveTo(x + S * 0.02, y - S * 0.06); ctx.lineTo(x + S * 0.02, y - S * 0.3); ctx.stroke();
-    poly(ctx, [[x + S * 0.02, y - S * 0.3], [x + S * 0.15, y - S * 0.26], [x + S * 0.02, y - S * 0.21]], '#d9483b');
-  },
-  minne(ctx, S, r) {
-    // Minnestein med blomster der kapselen lå
-    stein(ctx, r, S * 0.5, S * 0.68, S * 0.12, FIGUR.steinMork);
-    for (const [dx, dy, f] of [[-0.16, 0.04, '#f3d77a'], [0.15, 0.06, '#e88ab4'], [-0.07, 0.1, '#ffffff'], [0.08, 0.12, '#f3d77a']]) {
-      ctx.fillStyle = f;
-      ctx.beginPath(); ctx.arc(S * (0.5 + dx), S * (0.68 + dy), S * 0.022, 0, Math.PI * 2); ctx.fill();
-    }
-  },
-};
-
-function cellebilde(s, x, y, S) {
-  const n = `${JSON.stringify(s)}|${x},${y}|${S}`;
-  if (TID.cache.has(n)) return TID.cache.get(n);
-  const [c, ctx] = lerret(S);
-  const tilf = lagTilfeldig(blandSeed('tid', x, y));
-  if (s.egen) tegnTomtKort(ctx, S, tilf, s.terreng, () => EGNE[s.egen](ctx, S, lagTilfeldig(blandSeed('egen', x, y))));
-  else tegnKort(ctx, S, tilf, s);
-  TID.cache.set(n, c);
-  return c;
-}
-
-function maalTidsbrett() {
-  const c = $('tid');
-  const w = Math.min(c.parentElement.clientWidth, 760);
-  TID.S = Math.max(48, Math.floor((w - 24) / KOL / 1.015));
-  const fuge = Math.max(2, Math.round(TID.S * 0.015));
-  TID.fuge = fuge;
-  const B = KOL * (TID.S + fuge) + 2 * 12, H = RAD * (TID.S + fuge) + 2 * 12;
-  const dpr = window.devicePixelRatio || 1;
-  c.width = Math.round(B * dpr);
-  c.height = Math.round(H * dpr);
-  c.style.width = `${B}px`;
-  c.style.height = `${H}px`;
-  TID.B = B;
-  TID.H = H;
-  TID.cache.clear();
-  TID.skitten = true;
-}
-
-function tegnTidsbrett(t) {
-  const c = $('tid');
-  const ctx = c.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = BAKGRUNN;
-  ctx.fillRect(0, 0, TID.B, TID.H);
-  const S = TID.S, steg = S + TID.fuge, a = TID.anim;
-  const naaSpes = spes(a ? a.til : TID.g), forSpes = a ? spes(a.fra) : null;
-  for (let y = 0; y < RAD; y++) {
-    for (let x = 0; x < KOL; x++) {
-      const px = 12 + x * steg, py = 12 + y * steg;
-      const ny = naaSpes[y][x];
-      if (!a || JSON.stringify(forSpes[y][x]) === JSON.stringify(ny)) {
-        ctx.drawImage(cellebilde(ny, x, y, S), px, py, S, S);
-        continue;
-      }
-      // Kortet snus: først det gamle, så det nye.
-      const start = 0.7 + Math.hypot(x - 2.5, y - 1.5) * 0.22;
-      const q = klamp((t - a.t0 - start) / 0.55);
-      const bilde = q < 0.5 ? cellebilde(forSpes[y][x], x, y, S) : cellebilde(ny, x, y, S);
-      const sx = Math.max(0.02, Math.abs(Math.cos(Math.PI * q)));
-      ctx.save();
-      ctx.translate(px + S / 2, py + S / 2);
-      ctx.scale(sx, 1);
-      ctx.drawImage(bilde, -S / 2, -S / 2, S, S);
-      if (q > 0 && q < 1) {
-        ctx.fillStyle = `rgba(255, 240, 190, ${0.45 * Math.sin(Math.PI * q)})`;
-        ctx.fillRect(-S / 2, -S / 2, S, S);
-      }
-      ctx.restore();
-    }
-  }
-  if (!a) return;
-  const u = t - a.t0;
-  // Løv som virvler over brettet
-  for (const b of TID.blader) {
-    const by = ((b.y + u * b.fart) % 1.2) * TID.H - 20;
-    const bx = b.x * TID.B + Math.sin(u * 2 + b.fase) * 30;
-    ctx.save();
-    ctx.globalAlpha = Math.sin(Math.PI * klamp(u / 3.6)) * 0.9;
-    ctx.translate(bx, by);
-    ctx.rotate(u * b.spinn);
-    poly(ctx, [[-6, 0], [0, -3.5], [6, 0], [0, 3.5]], b.farge);
-    ctx.restore();
-  }
-  // Årstallet ruller
-  const synlig = Math.sin(Math.PI * klamp(u / 3.6));
-  const aar = Math.round(AAR0 + 30 * a.fra + 30 * myk((u - 0.3) / 2.4));
-  ctx.globalAlpha = synlig;
-  ctx.fillStyle = 'rgba(1, 1, 1, 0.55)';
-  const bw = 210, bh = 76;
-  ctx.beginPath();
-  ctx.roundRect(TID.B / 2 - bw / 2, TID.H / 2 - bh / 2, bw, bh, 18);
-  ctx.fill();
-  ctx.fillStyle = '#faf2db';
-  ctx.font = '800 50px system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(String(aar), TID.B / 2, TID.H / 2 + 2);
-  ctx.globalAlpha = 1;
-  if (u > 3.7) {
-    TID.g = a.til;
-    TID.anim = null;
-    etterSprang();
-  }
-}
-
-function startTidssprang() {
-  L.vekk();
-  if (TID.anim) return;
-  if (TID.g >= 3) {
-    TID.g = 0;
-    $('album').innerHTML = '';
-    TID.skitten = true;
-    visTidstekst();
-    setTimeout(leggIAlbum, 50);
-    return;
-  }
-  TID.anim = { fra: TID.g, til: TID.g + 1, t0: naa() };
-  TID.blader = Array.from({ length: 40 }, () => ({
-    x: Math.random(), y: Math.random() * 1.2, fart: 0.25 + Math.random() * 0.3, fase: Math.random() * 6, spinn: (Math.random() - 0.5) * 6,
-    farge: ['#c98a35', '#e0a030', '#6f9a3f', '#b5562e', '#8fbf55'][Math.floor(Math.random() * 5)],
-  }));
-  $('tid-knapp').disabled = true;
-  L.tidssprang();
-}
-
-function etterSprang() {
-  visTidstekst();
-  TID.skitten = true;
-  setTimeout(leggIAlbum, 30);
-  if (TID.g === 1) setTimeout(() => { $('brev').hidden = false; L.fanfare(1); }, 500);
-}
-
-function visTidstekst() {
-  const aar = AAR0 + 30 * TID.g;
-  $('tid-aar').textContent = `${aar} · ${TID.g + 1}. generasjon`;
-  $('tid-tekst').textContent = TIDSTEKST[TID.g];
-  const k = $('tid-knapp');
-  k.disabled = false;
-  k.textContent = TID.g >= 3 ? '↺ Tilbake til 1926' : '⏳ La tiden gå – 30 år';
-}
-
-function leggIAlbum() {
-  const kilde = $('tid');
-  const [c, ctx] = lerret(150, Math.round(150 * TID.H / TID.B));
-  ctx.drawImage(kilde, 0, 0, 150, Math.round(150 * TID.H / TID.B));
-  const fig = document.createElement('figure');
-  const img = new Image();
-  img.src = c.toDataURL('image/png');
-  const cap = document.createElement('figcaption');
-  cap.textContent = String(AAR0 + 30 * TID.g);
-  fig.append(img, cap);
-  $('album').append(fig);
-}
-
-// ---------------------------------------------------------------------------
 // Nivå, oppstart og tegnesløyfe
 // ---------------------------------------------------------------------------
 function settNivaa(n) {
@@ -1224,7 +964,6 @@ function sloyfe() {
   for (const k of T.kort) tegnTing(k, t);
   tegnHimmel(t);
   if (T.natt) tegnNatt(t);
-  if (TID.anim || TID.skitten) { tegnTidsbrett(t); TID.skitten = false; }
   requestAnimationFrame(sloyfe);
 }
 
@@ -1234,24 +973,18 @@ function start() {
   $('morgen').onclick = () => { L.vekk(); godMorgen(); };
   $('natt-lerret').addEventListener('pointerdown', (e) => { e.preventDefault(); fangStjerne(e); });
   $('lyd').onclick = () => { L.settLyd(!L.lydPaa()); $('lyd').textContent = L.lydPaa() ? '🔊 Lyd på' : '🔇 Lyd av'; L.vekk(); };
-  $('tid-knapp').onclick = startTidssprang;
-  $('brev-ok').onclick = () => { $('brev').hidden = true; flyTil(null, { fro: 4 }, { x: innerWidth / 2, y: innerHeight / 2 }); };
   // Himmelen ligger fast rett under toppen mens man blar.
   const settTopp = () => document.documentElement.style.setProperty('--topp', `${document.querySelector('header').offsetHeight}px`);
   settTopp();
   addEventListener('resize', settTopp);
   byggTing();
-  maalTidsbrett();
   settNivaa('stor');
-  visTidstekst();
-  setTimeout(leggIAlbum, 100);
   let tidtaker = 0;
   addEventListener('resize', () => {
     clearTimeout(tidtaker);
-    tidtaker = setTimeout(() => { byggTing(); maalTidsbrett(); }, 200);
+    tidtaker = setTimeout(byggTing, 200);
   });
   requestAnimationFrame(sloyfe);
 }
 
 start();
-window.__prove = { T, TID }; // for testing i nettleseren

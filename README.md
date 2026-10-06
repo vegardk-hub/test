@@ -1,9 +1,10 @@
-# Øya i hundre år
+# Skatteøya
 
-Et koselig byggespill der alt du samler, samler du med hendene: hvert trykk er én tone i en barnesang,
-og sola på himmelen er dagens budsjett. Senere går tiden i sprang, og øya eldes mellom generasjonene.
+Et koselig utforskingsspill for barn med læring bygget inn: tell når du trykker på ting,
+regn for å åpne skattekister, og bruk skattene til å kjøpe bygg til øya din.
 
-- **Spill (fase T1, trykkmotoren):** https://vegardk-hub.github.io/test/
+- **Spill:** https://vegardk-hub.github.io/test/
 - **Prøveark:** https://vegardk-hub.github.io/test/proveark.html
+- **Byggekatalog:** https://vegardk-hub.github.io/test/katalog.html
 
-Tester: `node test/regler.test.js`
+Tester: `node test/regler.test.js`. Plan og status: `PLAN.md`.

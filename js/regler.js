@@ -86,10 +86,13 @@ function kyststart(v, seed) {
   return best ? { x: best.x, y: best.y } : v.start;
 }
 
-/** Foreldreinnstillinger som passer nivået, til foreldrene endrer dem. */
-const foreldreFor = (nivaa) => medStandard(nivaa === 'liten'
-  ? { pluss: { paa: true, tak: 10 }, svar: 'velg' }
-  : { pluss: { paa: true, tak: 20 }, minus: { paa: true, tak: 20 }, svar: 'tastatur' });
+/**
+ * Foreldreinnstillinger som passer nivået, til foreldrene endrer dem:
+ * 🐣 Liten: bare pluss opp til 5. 🧒 Stor: bare ganging opp til 5.
+ */
+export const foreldreFor = (nivaa) => medStandard(nivaa === 'liten'
+  ? { pluss: { paa: true, tak: 5 }, minus: { paa: false }, gange: { paa: false }, deling: { paa: false }, svar: 'velg' }
+  : { pluss: { paa: false }, minus: { paa: false }, gange: { paa: true, tak: 5 }, deling: { paa: false }, svar: 'tastatur' });
 
 export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = null }, seed = Math.floor(Math.random() * 2 ** 31)) {
   const spill = {

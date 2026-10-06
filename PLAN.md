@@ -28,6 +28,7 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Spillere:** foreldrene kan fjerne spillere (med bekreftelse). «Slett spilleren» er tatt ut av barnas meny. Koden kan endres samme sted.
 - Per spiller: **pluss** og **minus** (tall opp til 5/10/20/50/100), **gange** og **deling** (tabell opp til 2/3/4/5/10).
 - Ganging har av og til **× 0** på alle nivåer (10 %), og **× 10** også på nivåene 2–5 (15 %). Ganging med 6–9 kommer først når man velger 10.
+- **Standard for nye spillere:** 🐣 Liten får bare pluss opp til 5 (velg blant tre svar), 🧒 Stor får bare ganging opp til 5 (talltastatur).
 - Hurtigvalg fra HEX: 4–5 år, 6–8 år og 9–10 år.
 - **Svarmåte**: velg blant tre svar (for de minste) eller skriv svaret på talltastatur.
 - **Telling**: vis tallene, og les dem høyt (norsk stemme på iPad).

@@ -88,7 +88,7 @@ sjekk(R.trykkTing(s, v, j).some((x) => x.type === 'kveld'), 'kveld når sola er 
 // --- Lagring og overføring fra versjon 1 -------------------------------------
 const tilbake = R.fraData(JSON.parse(JSON.stringify(R.tilData(s))));
 sjekk(tilbake.bygg.get(tomRute) === 'telt' && tilbake.mynter === s.mynter, 'bygg og mynter lagres');
-sjekk(tilbake.foreldre.pluss.paa === true, 'foreldreinnstillinger lagres');
+sjekk(tilbake.foreldre.gange.paa === true && tilbake.foreldre.pluss.paa === false, 'foreldreinnstillinger lagres');
 const gammel = { ...R.tilData(R.nyttSpill({ navn: 'Gammel' }, 3)), versjon: 1, forrad: { tre: 4, skatt: 2, fro: 1, nokkel: 1 } };
 delete gammel.bygg; delete gammel.mynter; delete gammel.foreldre;
 const flyttet = R.fraData(JSON.parse(JSON.stringify(gammel)));
@@ -257,6 +257,19 @@ for (const tak of [2, 3, 4, 5, 10]) {
   sjekk(feilFaktor === 0, `ingen faktorer over ${tak} utenom 10 (nivå ${tak})`);
   const nullSvar = M.alternativer({ fasit: 0 });
   sjekk(nullSvar.includes(0) && new Set(nullSvar).size === 3 && nullSvar.every((x) => x >= 0), 'svaralternativer når svaret er 0');
+}
+
+// Standardinnstillinger for nye spillere
+{
+  const stor = R.nyttSpill({ navn: 'Stor', nivaa: 'stor' }, 1).foreldre;
+  const liten = R.nyttSpill({ navn: 'Liten', nivaa: 'liten' }, 1).foreldre;
+  const paa = (f) => Object.keys(M.TEGN).filter((a) => f[a].paa).join(',');
+  sjekk(paa(stor) === 'gange' && stor.gange.tak === 5, `stor: bare ganging opp til 5 (${paa(stor)})`);
+  sjekk(paa(liten) === 'pluss' && liten.pluss.tak === 5 && liten.svar === 'velg', `liten: bare pluss opp til 5 (${paa(liten)})`);
+  for (let n = 0; n < 300; n++) {
+    const o = M.lagOppgave(liten);
+    sjekk(o.art === 'pluss' && o.fasit <= 5, `liten får pluss opp til 5: ${o.tekst}`);
+  }
 }
 
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));

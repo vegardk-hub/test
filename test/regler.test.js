@@ -105,7 +105,7 @@ for (let n = 0; n < 2000; n++) {
   forrige = o.tekst;
   if (o.art === 'pluss') sjekk(o.fasit <= 10 && o.a >= 1 && o.b >= 1, `pluss innenfor 10: ${o.tekst}`);
   if (o.art === 'minus') sjekk(o.fasit >= 1 && o.a <= 10, `minus gir minst 1: ${o.tekst}`);
-  if (o.art === 'gange') sjekk(o.a <= 5 && o.b <= 5 && o.fasit === o.a * o.b, `gange opp til 5: ${o.tekst}`);
+  if (o.art === 'gange') sjekk([o.a, o.b].every((x) => x <= 5 || x === 10) && o.fasit === o.a * o.b, `gange opp til 5 (og med 10): ${o.tekst}`);
   if (o.art === 'deling') sjekk(o.a % o.b === 0 && o.fasit <= 5, `deling går opp: ${o.tekst}`);
   const alt = M.alternativer(o);
   sjekk(alt.length === 3 && new Set(alt).size === 3 && alt.includes(o.fasit) && alt.every((x) => x >= 0), 'tre ulike svaralternativer');
@@ -241,8 +241,26 @@ sjekk(R.fraData({ ...R.tilData(R.nyttSpill({ navn: 'Uten' }, 4)), kister: undefi
   sjekk(R.fangStjerne(sp)[0].type === 'stjerne', 'ny natt, nye stjerner');
 }
 
+// Ganging med 0 på alle nivåer, og med 10 også på de lavere nivåene (men aldri 6–9 der)
+for (const tak of [2, 3, 4, 5, 10]) {
+  const inn = M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak } });
+  let null_ = 0, ti = 0, feilFaktor = 0;
+  for (let n = 0; n < 3000; n++) {
+    const o = M.lagOppgave(inn);
+    if (o.a === 0 || o.b === 0) null_++;
+    if (o.a === 10 || o.b === 10) ti++;
+    if ([o.a, o.b].some((x) => x > tak && x !== 10)) feilFaktor++;
+    sjekk(o.fasit === o.a * o.b, `riktig fasit: ${o.tekst}`);
+  }
+  sjekk(null_ > 150 && null_ < 500, `gange med 0 på nivå ${tak} (${null_} av 3000)`);
+  sjekk(ti > 250, `gange med 10 på nivå ${tak} (${ti} av 3000)`);
+  sjekk(feilFaktor === 0, `ingen faktorer over ${tak} utenom 10 (nivå ${tak})`);
+  const nullSvar = M.alternativer({ fasit: 0 });
+  sjekk(nullSvar.includes(0) && new Set(nullSvar).size === 3 && nullSvar.every((x) => x >= 0), 'svaralternativer når svaret er 0');
+}
+
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));
-sjekk(bareGange.art === 'gange' && bareGange.a <= 2, 'bare ganging når bare ganging er valgt');
+sjekk(bareGange.art === 'gange' && [bareGange.a, bareGange.b].every((x) => x <= 2 || x === 10), 'bare ganging når bare ganging er valgt');
 
 console.log(feil ? `${feil} feil` : 'Alle tester ok');
 process.exitCode = feil ? 1 : 0;

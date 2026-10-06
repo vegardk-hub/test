@@ -24,6 +24,7 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 
 ## Foreldrekontroll (menyen → 🔒 For foreldre, bak et voksent gangestykke)
 - Per spiller: **pluss** og **minus** (tall opp til 5/10/20/50/100), **gange** og **deling** (tabell opp til 2/3/4/5/10).
+- Ganging har av og til **× 0** på alle nivåer (10 %), og **× 10** også på nivåene 2–5 (15 %). Ganging med 6–9 kommer først når man velger 10.
 - Hurtigvalg fra HEX: 4–5 år, 6–8 år og 9–10 år.
 - **Svarmåte**: velg blant tre svar (for de minste) eller skriv svaret på talltastatur.
 - **Telling**: vis tallene, og les dem høyt (norsk stemme på iPad).

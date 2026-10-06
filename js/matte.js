@@ -27,6 +27,10 @@ export const ARTNAVN = { pluss: 'Pluss', minus: 'Minus', gange: 'Gange', deling:
 
 const heltall = (r, min, max) => min + Math.floor(r() * (max - min + 1));
 
+/** Andelen gangestykker med 0, og med 10 når taket er lavere enn 10. */
+export const GANGE_NULL = 0.1;
+export const GANGE_TI = 0.15;
+
 function lag(art, tak, r) {
   if (art === 'pluss') {
     // Bygges fra svaret og ned, så summen aldri går over taket.
@@ -42,7 +46,13 @@ function lag(art, tak, r) {
   }
   const lav = tak >= 3 ? 2 : 1;   // ganging med 1 er for lett når det finnes noe å velge mellom
   if (art === 'gange') {
-    const a = heltall(r, lav, tak), b = heltall(r, lav, tak);
+    // Av og til ganges det med 0 (på alle nivåer) eller med 10 (også når taket er lavere enn 10,
+    // men aldri med 6–9 før foreldrene velger 10).
+    let a = heltall(r, lav, tak), b = heltall(r, lav, tak);
+    const u = r();
+    if (u < GANGE_NULL) a = 0;
+    else if (tak < 10 && u < GANGE_NULL + GANGE_TI) a = 10;
+    if (r() < 0.5) [a, b] = [b, a];
     return { a, b, fasit: a * b };
   }
   // Deling går alltid opp.

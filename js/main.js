@@ -919,6 +919,7 @@ function tegnForeldre() {
       <button class="bryter${f[art].paa ? ' paa' : ''}" data-art="${art}">${f[art].paa ? '✓' : ''} ${M.ARTNAVN[art]} (${M.TEGN[art]})</button>
       <span class="tak">${art === 'pluss' || art === 'minus' ? 'tall opp til' : 'tabell opp til'}</span>
       <span class="valgrad liten">${M.TAK_VALG[art].map((v) => `<button class="${f[art].tak === v ? 'valgt' : ''}" data-art="${art}" data-tak="${v}">${v}</button>`).join('')}</span>
+      ${art === 'gange' ? `<span class="tak">· av og til × 0${f.gange.tak < 10 ? ' og × 10' : ''}</span>` : ''}
     </div>`).join('');
   $('f-svar').innerHTML = [['velg', 'Velg blant tre svar'], ['tastatur', 'Skriv svaret selv']]
     .map(([k, n]) => `<button class="${f.svar === k ? 'valgt' : ''}" data-svar="${k}">${n}</button>`).join('');

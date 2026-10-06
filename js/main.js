@@ -16,6 +16,7 @@ import { PYNT, LIV, tegnBygg, ivrig } from './stil/pynt.js';
 import { poly, fasett } from './stil/lavpoly.js';
 import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER } from './data/ting.js';
 import { settNeon, neonPaa, neonKontekst, glod } from './stil/neon.js';
+import { visVersjon } from './versjon.js';
 import { ikon } from './ikoner.js';
 import { sprut, flytendeTekst, tegnEffekter, harEffekter } from './effekter.js';
 import { blandSeed, lagTilfeldig } from './rng.js';
@@ -1296,6 +1297,7 @@ function sloyfe() {
 // Oppstart
 // ---------------------------------------------------------------------------
 function start() {
+  visVersjon();
   neonKontekst($('lerret').getContext('2d'));
   neonKontekst($('naer-lerret').getContext('2d'));
   t.kamera = new Kamera($('lerret'), { vedTrykk: trykkPaa, vedEndring: () => { t.skitten = true; } });

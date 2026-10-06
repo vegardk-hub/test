@@ -288,3 +288,11 @@ body.liten .oyrad .oynavn small { display: none; }
 body.neon .oyrad { background: #22113d; color: #f6eaff; }
 body.neon .oyrad.her { background: #3a0f4a; }
 body.neon .oyrad .oynavn small, body.neon #sjokart-tekst { color: #b9a6d6; }
+
+/* ---------- Versjonsmerket ---------- */
+.versjon {
+  position: fixed; z-index: 60; right: max(8px, env(safe-area-inset-right)); bottom: max(2px, env(safe-area-inset-bottom));
+  font-size: 11px; color: #9a917b; pointer-events: none; font-variant-numeric: tabular-nums;
+}
+dialog.kort::after { content: var(--versjon, ''); display: block; text-align: right; font-size: 11px; color: #9a917b; margin-top: 10px; }
+body.neon .versjon, body.neon dialog.kort::after { color: #b9a6d6; }

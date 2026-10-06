@@ -11,12 +11,25 @@
     figure { margin: 0; text-align: center; }
     figcaption { font-size: 14px; color: #cfc6ad; margin-top: 4px; }
     a { color: #ffd23f; }
+    .topplinje { position: sticky; top: 0; z-index: 5; display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; background: inherit; }
+    .tilbake, .bytt {
+      display: inline-flex; align-items: center; min-height: 48px; padding: 6px 18px; border-radius: 14px; font-size: 18px; font-weight: 700; text-decoration: none;
+    }
+    .tilbake { background: #ffe58a; color: #2b2a26; border: 2px solid #d9a520; }
+    .bytt { background: #1f2735; color: #faf2db; border: 2px solid #3a4558; }
+    body.neon .tilbake { background: #ff2bd6; color: #fff; border-color: #ff9cf0; box-shadow: 0 0 12px rgba(255, 43, 214, 0.6); }
+    .versjon { position: fixed; right: 8px; bottom: 2px; font-size: 11px; color: #9a917b; pointer-events: none; }
+    body { padding-bottom: 24px; }
     body.neon { background: #07020f; }
     body.neon figcaption { color: #7ff3ff; text-shadow: 0 0 6px #19e3ff; }
   </style>
 </head>
 <body>
-  <h1>Byggekatalog – alle bygg (trykk på et bygg) · <a id="bytt" href="?neon">Vis neon</a></h1>
+  <nav class="topplinje">
+    <a class="tilbake" href="index.html">← Tilbake til spillet</a>
+    <a id="bytt" class="bytt" href="?neon">Vis neon</a>
+  </nav>
+  <h1>Byggekatalog – alle bygg (trykk på et bygg)</h1>
   <div id="galleri" class="galleri"></div>
   <script type="module">
     // Alle byggene, levende: den faste delen tegnes én gang, det som beveger seg hele tiden.
@@ -25,6 +38,8 @@
     import { tegnTomtKort } from './js/stil/ruter.js';
     import { lagTilfeldig } from './js/rng.js';
     import { settNeon, neonKontekst, glod } from './js/stil/neon.js';
+    import { visVersjon } from './js/versjon.js';
+    visVersjon();
     // ?neon viser byggene slik de ser ut på neonøya.
     const neon = new URLSearchParams(location.search).has('neon');
     settNeon(neon);

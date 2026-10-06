@@ -40,8 +40,8 @@ export const VARER = {
   rubin:   { form: 'stein', farge: '#e0353f', navn: 'rubin', pris: 25 },
   diamant: { form: 'stein', farge: '#d8f3ff', navn: 'diamant', pris: 40 },
 };
-export const SKATTER = ['solv', 'gull', 'topas', 'ametyst', 'smaragd', 'safir', 'rubin', 'diamant'];
-export const RAVARER = ['tre', 'stein', 'korn', 'fisk', 'ull', 'jern', 'stov'];
+export const SKATTER = ['stov', 'solv', 'gull', 'topas', 'ametyst', 'smaragd', 'safir', 'rubin', 'diamant'];
+export const RAVARER = ['tre', 'stein', 'korn', 'fisk', 'ull', 'jern'];
 
 /** Hva en ferdig ting gir: liten, middels, stor. */
 export const UTBYTTE = [2, 5, 12];

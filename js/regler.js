@@ -20,6 +20,9 @@ const TYPE_FOR_TERRENG = { skog: 'tre', aas: 'stein', fjell: 'stein', eng: 'korn
 const tomtForrad = () => Object.fromEntries(Object.keys(VARER).map((v) => [v, 0]));
 const tomStat = () => ({ trykk: 0, ting: 0, avdekket: 0, stjerner: 0, bygg: 0, solgt: 0 });
 const tomMattestat = () => ({ lost: 0, forste: 0, feil: 0, perArt: {} });
+/** Ca. hver femte rute man avdekker skjuler en kiste (4–6 ruter mellom hver). Den første kommer fort. */
+export const KISTE_HVER = [4, 6];
+const FORSTE_KISTE = 3;
 
 // ---------------------------------------------------------------------------
 // Ny øy og verden
@@ -50,6 +53,9 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     take: new Map(),          // rute → børstestrøk som gjenstår
     ting: new Map(),          // rute → { igjen, gang, borteTil }
     bygg: new Map(),          // rute → id for bygg man har satt ut
+    kister: new Set(),        // ruter der det har dukket opp en kiste da tåka ble børstet bort
+    kisteTeller: 0,           // avdekkede ruter siden forrige kiste
+    nesteKiste: FORSTE_KISTE,
     forrad: tomtForrad(),
     mynter: 0,
     sanger: {},               // sang → største størrelse fullført (1–3)
@@ -74,6 +80,7 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
 /** Hvilken type ting som kan vokse på ruta, eller null. Bestemt av seeden. */
 export function grunnTing(spill, verden, i) {
   if (i === verden.startIndeks) return null;
+  if (spill.kister.has(i)) return 'kiste';
   const o = verden.overlegg.get(i);
   if (o?.type === 'skatt') return 'kiste';
   if (o?.type === 'malm') return 'jern';
@@ -199,6 +206,24 @@ export function kanBorstes(spill, verden, i) {
   return !spill.avdekket[i] && naboer4(verden, i).some((j) => spill.avdekket[j]);
 }
 
+/** Kan det dukke opp en kiste her? Land uten leir, landsby, dyr eller bygg. */
+function kisteplass(spill, verden, i) {
+  if (i === verden.startIndeks || spill.bygg.has(i)) return false;
+  if (TERRENGNAVN[verden.terreng[i]] === 'vann') return false;
+  const o = verden.overlegg.get(i);
+  return o?.type !== 'landsby' && o?.type !== 'dyr';
+}
+
+/** Ruta er nettopp avdekket: tell, og legg en kiste her når det er på tide. */
+function kanskjeKiste(spill, verden, i) {
+  if (grunnTing(spill, verden, i) === 'kiste') { spill.kisteTeller = 0; return; }
+  spill.kisteTeller++;
+  if (spill.kisteTeller < spill.nesteKiste || !kisteplass(spill, verden, i)) return;
+  spill.kister.add(i);
+  spill.kisteTeller = 0;
+  spill.nesteKiste = lagTilfeldig(blandSeed(spill.seed, 'kiste', spill.kister.size)).heltall(...KISTE_HVER);
+}
+
 /** Ett børstestrøk på tåka over rute i. */
 export function borst(spill, verden, i) {
   if (!kanBorstes(spill, verden, i)) return [];
@@ -212,6 +237,7 @@ export function borst(spill, verden, i) {
     spill.take.delete(i);
     spill.avdekket[i] = 1;
     spill.stat.avdekket++;
+    kanskjeKiste(spill, verden, i);
     h.push({ type: 'avdekket', i, nr, tall: nr + 1, ting: tingVed(spill, verden, i) });
   } else {
     spill.take.set(i, igjen);
@@ -284,7 +310,7 @@ export function byttNivaa(spill, nivaa) {
 export function tilData(spill) {
   const avdekket = [];
   spill.avdekket.forEach((v, i) => { if (v) avdekket.push(i); });
-  return { ...spill, avdekket, take: [...spill.take], ting: [...spill.ting], bygg: [...spill.bygg] };
+  return { ...spill, avdekket, take: [...spill.take], ting: [...spill.ting], bygg: [...spill.bygg], kister: [...spill.kister] };
 }
 
 /** Versjon 1 (T1) hadde frø, nøkler og «skatter» i stedet for sølv, gull og edelsteiner. */
@@ -310,6 +336,9 @@ export function fraData(d) {
     take: new Map(d.take),
     ting: new Map(d.ting),
     bygg: new Map(d.bygg ?? []),
+    kister: new Set(d.kister ?? []),
+    kisteTeller: d.kisteTeller ?? 0,
+    nesteKiste: d.nesteKiste ?? FORSTE_KISTE,
     forrad: { ...tomtForrad(), ...d.forrad },
     mynter: d.mynter ?? 0,
     sanger: d.sanger ?? {},

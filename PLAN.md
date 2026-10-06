@@ -15,8 +15,9 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
    Hvert trykk er **én tone i en barnesang** og **ett tall**, som telles opp til tallet som fjerner tingen.
    Små ting spiller starten av sangen, store spiller hele.
 3. **Skattekister åpnes med mattestykker** – liten kiste 1 stykke, stor 2, kjempekiste 3.
+   **Ca. hver femte rute** man avdekker skjuler en kiste (4–6 ruter mellom hver, aldri i vannet), så det blir mye regning.
    Feil svar koster ingenting (prøv igjen), og hvert riktig svar spiller en bit av «Happy Birthday».
-4. **Skattene**: sølv, gull og edelsteiner (topas, ametyst, smaragd, safir, rubin, diamant).
+4. **Skattene**: stjernestøv (3 mynter), sølv, gull og edelsteiner (topas, ametyst, smaragd, safir, rubin, diamant).
 5. **Butikken** (trykk på leiren eller 🏪): selg skatter og råvarer for mynter. Salgsraden viser regnestykket, for eksempel «4 × 20 = 80».
 6. **Kjøp bygg** og sett dem ut der du vil på øya. Det er 20 bygg fra bålplass (10) til borg (400).
 7. **Sola** er dagens budsjett (50 trykk for 🧒, 70 for 🐣). Om natta kan man fange stjerneskudd (stjernestøv kan selges).

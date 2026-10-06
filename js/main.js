@@ -863,6 +863,7 @@ function startNatt() {
   t.natt = { t0: naa() / 1000, skudd: [], gnister: [], neste: naa() / 1000 + 0.8, slutt: null,
     stjerner: Array.from({ length: 80 }, () => ({ x: Math.random(), y: Math.random() * 0.85, r: 0.6 + Math.random() * 1.4, fase: Math.random() * 6 })) };
   L.solnedgang();
+  $('natt').querySelector('.natt-tekst').textContent = liten() ? '🌙 ✨' : `🌙 Fang stjerneskudd! ✨ = ${VARER.stov.pris} 🪙`;
   $('natt').hidden = false;
   oppdaterHud();
   lagreSnart();

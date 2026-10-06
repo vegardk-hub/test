@@ -111,6 +111,29 @@ for (let n = 0; n < 2000; n++) {
   sjekk(alt.length === 3 && new Set(alt).size === 3 && alt.includes(o.fasit) && alt.every((x) => x >= 0), 'tre ulike svaralternativer');
 }
 sjekk(Object.values(sett).every((n) => n > 300), `alle regnearter brukes: ${JSON.stringify(sett)}`);
+// Kister: ca. hver femte rute man avdekker (målt over mange øyer, utover fra leiren, med uendelig sol)
+let avdekket = 0, kister = 0;
+for (let seed = 1; seed <= 30; seed++) {
+  const sp = R.nyttSpill({ navn: 'K' }, seed);
+  const ve = R.lagVerden(sp);
+  for (let runde = 0; runde < 60; runde++) {
+    const B = ve.bredde, st = ve.startIndeks;
+    const avst = (x) => Math.hypot(x % B - st % B, Math.floor(x / B) - Math.floor(st / B));
+    const kant = [...sp.avdekket.keys()].filter((x) => R.kanBorstes(sp, ve, x)).sort((a, b) => avst(a) - avst(b))[0];
+    if (kant === undefined) break;
+    for (let k = 0; k < TAKE_TRYKK; k++) { sp.sol = 99; R.borst(sp, ve, kant); }
+    avdekket++;
+    if (R.tingVed(sp, ve, kant)?.type === 'kiste') kister++;
+    if (R.TERRENGNAVN[ve.terreng[kant]] === 'vann') sjekk(!sp.kister.has(kant), 'ingen nye kister i vannet');
+  }
+  const igjen = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
+  sjekk(igjen.kister.size === sp.kister.size && igjen.nesteKiste === sp.nesteKiste, 'kistene huskes ved lagring');
+}
+const andel = kister / avdekket;
+console.log(`kister: ${kister} av ${avdekket} avdekkede ruter (1 av ${(1 / andel).toFixed(1)})`);
+sjekk(andel > 0.15 && andel < 0.27, `ca. hver femte rute har kiste (${andel.toFixed(2)})`);
+sjekk(R.fraData({ ...R.tilData(R.nyttSpill({ navn: 'Uten' }, 4)), kister: undefined, nesteKiste: undefined }).kister.size === 0, 'gamle lagringer uten kister virker');
+
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));
 sjekk(bareGange.art === 'gange' && bareGange.a <= 2, 'bare ganging når bare ganging er valgt');
 

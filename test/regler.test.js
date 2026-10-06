@@ -162,13 +162,47 @@ sjekk(R.fraData({ ...R.tilData(R.nyttSpill({ navn: 'Uten' }, 4)), kister: undefi
   const h = R.seil(sp, 4242);
   ve = R.lagVerden(sp);
   sjekk(h[0].type === 'seilt' && sp.oyNr === 2 && ve.stil === 'neon', 'seiler til øy 2 i neonstil');
-  sjekk(sp.bygg.size === 0 && sp.forrad.rubin === 3 && sp.mynter === for_ - 250 && !sp.baat, 'tar med forråd og mynter, ikke bygg');
+  sjekk(sp.bygg.size === 0 && sp.forrad.rubin === 3 && sp.mynter === for_ - 250 && sp.baat, 'tar med forråd, mynter og båt, ikke bygg');
   sjekk(sp.oyer.length === 1 && sp.oyer[0].bygg.length === 22, 'den gamle øya tas vare på');
   const st = ve.startIndeks;
   sjekk(R.TERRENGNAVN[ve.terreng[st]] !== 'vann' && R.vedSjoen(ve, st), 'går i land på en landrute ved sjøen');
   sjekk(sp.avdekket[st] === 1 && sp.sol === SOL.stor, 'leiren er avdekket og sola er full');
   const igjen = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
   sjekk(igjen.oyNr === 2 && R.lagVerden(igjen).startIndeks === st, 'den nye øya huskes ved lagring');
+  // Seile tilbake
+  sjekk(!R.kanSeileNy(sp) && R.kanSeileTilbake(sp), 'på øy 2: ingen havn ennå, men kan seile tilbake');
+  sp.forrad.tre = 7;
+  const stHer = ve.startIndeks, avdHer = sp.avdekket.reduce((a, b) => a + b, 0);
+  const tilbake = R.seilTil(sp, 1);
+  const v1 = R.lagVerden(sp);
+  sjekk(tilbake[0]?.type === 'seilt' && !tilbake[0].ny && sp.oyNr === 1 && v1.stil === 'vanlig', 'seiler tilbake til øy 1');
+  sjekk(sp.bygg.size === 22 && R.havnVed(sp) === kyst[0] && R.pyntVed(sp, kyst[0]) === 'havnbaat', 'byggene og havna med båten står der');
+  sjekk(sp.forrad.tre === 7 && sp.avdekket.every((x) => x === 1), 'forrådet følger med, og øya er som før');
+  sjekk(!R.kanSeileNy(sp), 'havna på øy 1 har allerede funnet en ny øy');
+  sjekk(R.oyListe(sp).map((o) => `${o.nr}${o.navn}${o.her ? '*' : ''}`).join(',') === '1Skatteøya*,2Neonøya', 'sjøkartet viser begge øyene');
+  R.seilTil(sp, 2);
+  sjekk(sp.oyNr === 2 && R.lagVerden(sp).startIndeks === stHer && sp.avdekket.reduce((a, b) => a + b, 0) === avdHer, 'og tilbake til øy 2 igjen');
+  sjekk(R.seilTil(sp, 2).length === 0 && R.seilTil(sp, 9).length === 0, 'kan ikke seile til øya man er på eller en som ikke finnes');
+  // Havn på øy 2 finner øy 3
+  sp.avdekket.fill(1);
+  const ve2 = R.lagVerden(sp);
+  const led2 = [...sp.avdekket.keys()].filter((x) => R.kanPlassere(sp, ve2, x));
+  const inne2 = led2.filter((x) => !R.vedSjoen(ve2, x)), kyst2 = led2.filter((x) => R.vedSjoen(ve2, x));
+  sp.mynter = 5000;
+  BYGG.forEach((b, k) => R.kjopOgPlasser(sp, ve2, inne2[k], b.id));
+  R.kjopOgPlasser(sp, ve2, kyst2[0], 'havn');
+  sjekk(R.kanSeileNy(sp) && R.byggBaat(sp).length === 0, 'båten er med, så havna på øy 2 kan finne en ny øy');
+  R.seil(sp, 999);
+  sjekk(sp.oyNr === 3 && sp.oyFra === 2 && R.oyListe(sp).length === 3, 'øy 3 funnet fra øy 2');
+  const lagret2 = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
+  sjekk(lagret2.oyer.length === 2 && R.oyListe(lagret2).length === 3, 'alle øyene huskes ved lagring');
+  // Gammel lagring (fra før man kunne seile tilbake)
+  const gml = R.tilData(R.nyttSpill({ navn: 'Gml' }, 5));
+  const gmlOy = { ...gml, oyNr: 2, baat: false, oyer: [{ nr: 1, seed: 5, avdekket: [], take: [], ting: [], bygg: [], kister: [] }] };
+  delete gmlOy.oyFra;
+  const flyttet2 = R.fraData(JSON.parse(JSON.stringify(gmlOy)));
+  sjekk(flyttet2.baat && flyttet2.oyFra === 1 && flyttet2.oyer[0].fra === null && R.kanSeileTilbake(flyttet2), 'gamle lagringer får båten og kan seile tilbake');
+
   // Kyststart på mange øyer
   for (let seed = 1; seed <= 40; seed++) {
     const v2 = R.lagVerden({ seed, oyNr: 2 });

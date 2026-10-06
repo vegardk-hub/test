@@ -227,7 +227,9 @@ body.liten .havn-valg button { font-size: 34px; }
   content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0;
   background: linear-gradient(#12002b 0, #5a0b6e 56%, #0a0420 56%, #04010f 100%); animation: tilNeon 2.6s ease-in forwards;
 }
-.seiling.til-vanlig::after { display: none; }
+.seiling.fra-neon { background: linear-gradient(#12002b 0, #5a0b6e 56%, #0a0420 56%, #04010f 100%); }
+.seiling.til-vanlig::after { background: linear-gradient(#7fc0ea 0 56%, #2c6f9e 56% 100%); }
+.seiling.samme::after { display: none; }
 @keyframes tilNeon { 0%, 45% { opacity: 0; } 100% { opacity: 1; } }
 .seiling-tekst {
   position: absolute; z-index: 2; top: 18%; left: 0; right: 0; text-align: center; font-size: 30px; font-weight: 800; color: #fff;
@@ -271,3 +273,18 @@ body.neon .tast-ok, body.neon .svarvalg.riktig { background: #0f4a2c; color: #9d
 body.neon .svarvalg.feil { background: #4a0f1c; color: #ffb3c0; }
 body.neon .matte-melding.riktig { color: #2bff9c; }
 body.neon .matte-melding.feil { color: #ff5c8a; }
+
+/* ---------- Sjøkartet ---------- */
+.oyliste { display: grid; gap: 8px; margin: 6px 0 4px; }
+.oyrad { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 16px; padding: 8px 12px; border: 2px solid transparent; }
+.oyrad.her { border-color: var(--gullkant); background: #fff6d0; }
+.oyrad .oyikon { font-size: 36px; }
+.oyrad .oynavn { flex: 1; display: flex; flex-direction: column; }
+.oyrad .oynavn b { font-size: 19px; }
+.oyrad .oynavn small { color: #6d6656; font-size: 14px; }
+.oyrad .her-merke { font-size: 28px; }
+#sjokart-tekst { color: #6d6656; margin: 0 0 6px; }
+body.liten .oyrad .oynavn small { display: none; }
+body.neon .oyrad { background: #22113d; color: #f6eaff; }
+body.neon .oyrad.her { background: #3a0f4a; }
+body.neon .oyrad .oynavn small, body.neon #sjokart-tekst { color: #b9a6d6; }

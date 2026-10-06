@@ -86,7 +86,7 @@ function visVelg() {
   $('profilliste').innerHTML = liste.length
     ? liste.map((p) => `<button class="profil" data-id="${esc(p.id)}">
         <span class="ava">${esc(p.avatar)}</span><span class="navn">${esc(p.navn)}</span>
-        <span class="info">${NIVAA[p.nivaa]?.ikon ?? ''} Dag ${p.dag}${p.oyNr > 1 ? ` · 🌈 Øy ${p.oyNr}` : ''}</span></button>`).join('')
+        <span class="info">${NIVAA[p.nivaa]?.ikon ?? ''} Dag ${p.dag}${p.oyNr > 1 ? ` · 🌈 Øy ${p.oyNr}` : p.oyer ? ` · 🏝️ ${p.oyer} øyer` : ''}</span></button>`).join('')
     : '<p class="tom">Lag en spiller for å begynne!</p>';
   $('profilliste').querySelectorAll('.profil').forEach((b) => { b.onclick = () => { L.vekk(); startSpill(b.dataset.id); }; });
 }
@@ -359,10 +359,15 @@ function visHavnValg(pynt) {
       ${!kan && !liten() ? `<small>Du har ${s.mynter} mynter og mangler ${BAAT.pris - s.mynter}.</small>` : ''}`;
     $('havn-baat').onclick = byggBaat;
   } else {
-    el.innerHTML = `${liten() ? '' : '<p>Seilbåten er klar! Vil du seile til en ny øy? Øya du har bygget, blir liggende her.</p>'}
-      <div class="havn-knapper"><button id="havn-seil" class="hoved">⛵ ${liten() ? '➡️ 🏝️' : 'Seil til en ny øy!'}</button>
-      <button id="havn-bli">${liten() ? '🏠' : '🏝️ Bli her litt til'}</button></div>`;
-    $('havn-seil').onclick = seilAvsted;
+    const ny = R.kanSeileNy(s), tilbake = R.kanSeileTilbake(s);
+    el.innerHTML = `${liten() ? '' : `<p>${ny ? 'Seilbåten er klar! Vil du seile til en ny øy? Øya du har bygget, blir liggende her, og du kan seile tilbake når du vil.'
+      : 'Seilbåten ligger klar ved brygga. I sjøkartet kan du seile til de andre øyene dine.'}</p>`}
+      <div class="havn-knapper">
+        ${ny ? `<button id="havn-seil" class="hoved">⛵ ${liten() ? '➡️ 🏝️' : 'Seil til en ny øy!'}</button>` : ''}
+        ${tilbake ? `<button id="havn-kart"${ny ? '' : ' class="hoved"'}>🗺️ ${liten() ? '' : 'Sjøkartet'}</button>` : ''}
+        <button id="havn-bli">${liten() ? '🏠' : '🏝️ Bli her litt til'}</button></div>`;
+    $('havn-seil')?.addEventListener('click', () => seilAvsted());
+    $('havn-kart')?.addEventListener('click', () => { lukkNaer(); aapneSjokart(); });
     $('havn-bli').onclick = lukkNaer;
   }
 }
@@ -388,24 +393,51 @@ function byggBaat() {
   t.skitten = true;
 }
 
-function seilAvsted() {
+/** Sjøkartet: alle øyene man har funnet. Man kan seile tilbake til dem når som helst. */
+function aapneSjokart() {
   L.vekk();
+  const s = t.spill;
+  const oyer = R.oyListe(s);
+  $('sjokart-tekst').textContent = liten() ? ''
+    : R.kanSeileNy(s) ? 'Du kan også seile til en helt ny øy fra havna.'
+    : R.havnVed(s) < 0 && !oyer.some((o) => o.fra === s.oyNr) ? `Vil du finne en ny øy? Sett opp alle ${HAVN.krav} byggene og en havn på denne øya.` : '';
+  $('oyliste').innerHTML = oyer.map((o) => `<div class="oyrad${o.her ? ' her' : ''}">
+      <span class="oyikon">${o.ikon}</span>
+      <span class="oynavn"><b>${esc(o.navn)}</b><small>${o.bygg} bygg${o.her ? ' · Du er her' : ''}</small></span>
+      ${o.her ? '<span class="her-merke">📍</span>' : `<button class="hoved" data-oy="${o.nr}">⛵ ${liten() ? '' : 'Seil hit'}</button>`}
+    </div>`).join('');
+  $('oyliste').querySelectorAll('[data-oy]').forEach((b) => { b.onclick = () => seilAvsted(Number(b.dataset.oy)); });
+  $('sjokart').showModal();
+}
+
+/** Seil til en ny øy (nr = null) eller tilbake til øy nummer nr. */
+function seilAvsted(nr = null) {
+  L.vekk();
+  const fraStil = t.verden.stil;
+  t.seiler = true;   // ingen natt mens man er på havet
+  if (t.naer) t.naer.kveld = false;
   lukkNaer();
-  const h = R.seil(t.spill);
-  if (h[0]?.type !== 'seilt') return;
+  if ($('sjokart').open) $('sjokart').close();
+  avbrytPlassering();
+  const h = nr === null ? R.seil(t.spill) : R.seilTil(t.spill, nr);
+  if (h[0]?.type !== 'seilt') { t.seiler = false; return; }
   Lagring.lagre(t.id, t.spill);
-  const neon = h[0].stil === 'neon';
+  const { ny, stil } = h[0];
+  const navn = R.oyListe(t.spill).find((o) => o.her).navn;
   const el = $('seiling');
-  el.classList.toggle('til-vanlig', !neon);
+  el.classList.toggle('fra-neon', fraStil === 'neon');
+  el.classList.toggle('til-vanlig', stil !== 'neon');
+  el.classList.toggle('samme', fraStil === stil);
   el.classList.remove('ferdig');
-  $('seiling-tekst').textContent = liten() ? '⛵ ✨' : 'Seiler til en ny øy …';
+  $('seiling-tekst').textContent = liten() ? '⛵ ✨' : ny ? 'Seiler til en ny øy …' : `Seiler til ${navn} …`;
   el.hidden = false;
   L.fanfare(3);
-  setTimeout(() => { startSpill(t.id); el.classList.add('ferdig'); }, 2700);
+  setTimeout(() => { t.seiler = false; startSpill(t.id); el.classList.add('ferdig'); }, 2700);
   setTimeout(() => {
     el.hidden = true;
     el.classList.remove('ferdig');
-    melding(liten() ? '🌈🏝️' : neon ? 'Velkommen til Neonøya! Her lyser alt.' : 'Velkommen til en ny øy!', { ikon: liten() ? '' : '🏝️✨' });
+    const tekst = !ny ? `Velkommen tilbake til ${navn}!` : stil === 'neon' ? `Velkommen til ${navn}! Her lyser alt.` : 'Velkommen til en ny øy!';
+    melding(liten() ? `${R.oyListe(t.spill).find((o) => o.her).ikon}✨` : tekst, { ikon: liten() ? '' : '⛵✨' });
   }, 3400);
 }
 
@@ -930,6 +962,7 @@ function oppdaterHud() {
   $('meny-knapp').textContent = s.avatar;
   $('dag').textContent = liten() ? '' : `Dag ${s.dag}`;
   $('sol-tall').textContent = liten() ? '' : `☀️ ${s.sol}`;
+  $('seil-knapp').hidden = !R.kanSeileTilbake(s);
 }
 
 function blandRgb(a, b, u) {
@@ -1035,7 +1068,7 @@ function tegnNeonHimmel(ctx, W, H, f, tsek) {
 // Natta: stjerneskudd man kan fange, så ny dag
 // ---------------------------------------------------------------------------
 function startNatt() {
-  if (t.natt || !t.spill) return;
+  if (t.natt || !t.spill || t.seiler) return;
   if (t.naer) { t.naer.kveld = false; lukkNaer(); }
   avbrytPlassering();
   t.spill.sol = 0;
@@ -1283,6 +1316,8 @@ function start() {
   $('meny-knapp').onclick = aapneMeny;
   $('sangbok-knapp').onclick = aapneSangbok;
   $('butikk-knapp').onclick = () => aapneButikk();
+  $('seil-knapp').onclick = aapneSjokart;
+  $('sjokart-lukk').onclick = () => $('sjokart').close();
   $('fane-selg').onclick = () => { fane = 'selg'; tegnButikk(); };
   $('fane-kjop').onclick = () => { fane = 'kjop'; tegnButikk(); };
   $('butikk-lukk').onclick = () => $('butikk').close();

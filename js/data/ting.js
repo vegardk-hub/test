@@ -104,6 +104,8 @@ export const BYGG_ETTER_ID = Object.fromEntries([...BYGG, HAVN, BAAT].map((b) =>
 
 /** Stilen på øy nummer 1, 2, 3 … (den siste brukes videre). */
 export const OY_STIL = ['vanlig', 'neon'];
+export const OY_NAVN = { vanlig: 'Skatteøya', neon: 'Neonøya' };
+export const OY_IKON = { vanlig: '🏝️', neon: '🌈' };
 
 /** Sjansen for liten, middels og stor utgave. */
 export const STR_SJANSE = [0.55, 0.3, 0.15];

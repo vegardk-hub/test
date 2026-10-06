@@ -8,7 +8,7 @@
 import { genererVerden } from './kartgen.js';
 import { T } from './data/terreng.js';
 import {
-  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, KRYSS, GRAV_TRYKK, MAKS_STJERNER,
+  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER,
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
 import { medStandard } from './matte.js';
@@ -100,9 +100,10 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     take: new Map(),          // rute → børstestrøk som gjenstår
     ting: new Map(),          // rute → { igjen, gang, borteTil }
     bygg: new Map(),          // rute → id for bygg man har satt ut
-    oyNr: 1,                  // øy nummer 1, 2, 3 … (man seiler videre med båt fra havna)
-    oyer: [],                 // øyene man har seilt fra
-    baat: false,              // er seilbåten bygget ved havna?
+    oyNr: 1,                  // øya man er på (1, 2, 3 …)
+    oyFra: null,              // øya man fant denne fra (havna der man seilte ut)
+    oyer: [],                 // de andre øyene man har vært på (pakket som data)
+    baat: false,              // har man en seilbåt? (den følger med fra øy til øy)
     kister: new Set(),        // ruter der det har dukket opp en kiste da tåka ble børstet bort
     kryss: new Map(),         // skattekryss: rute → gravetrykk som gjenstår
     gravd: new Set(),         // ruter med en kiste man har gravd fram (blir tomme igjen når den er åpnet)
@@ -422,34 +423,83 @@ export function byggBaat(spill) {
   return [{ type: 'baatBygget' }];
 }
 
-/**
- * Seil til en ny øy. Den gamle øya tas vare på (i spill.oyer), og man tar med seg
- * forrådet og myntene. Den nye øya lages fra en ny seed, og man går i land ved sjøen.
- */
-export function seil(spill, seed = Math.floor(Math.random() * 2 ** 31)) {
-  if (!spill.baat) return [];
+// ---------------------------------------------------------------------------
+// Øyene: seil til en ny øy, eller tilbake til en man har vært på
+// ---------------------------------------------------------------------------
+/** Øya man står på, pakket som enkel data (så den kan legges i spill.oyer). */
+function pakkOy(spill) {
   const avdekket = [];
   spill.avdekket.forEach((v, i) => { if (v) avdekket.push(i); });
-  spill.oyer = [...(spill.oyer ?? []), {
-    nr: spill.oyNr, seed: spill.seed, forlot: spill.dag, avdekket,
+  return {
+    nr: spill.oyNr, fra: spill.oyFra ?? null, seed: spill.seed, forlot: spill.dag, avdekket,
     take: [...spill.take], ting: [...spill.ting], bygg: [...spill.bygg], kister: [...spill.kister],
-    kryss: [...spill.kryss], gravd: [...spill.gravd],
-  }];
-  spill.oyNr++;
-  spill.seed = seed;
+    kryss: [...spill.kryss], gravd: [...spill.gravd], kisteTeller: spill.kisteTeller, nesteKiste: spill.nesteKiste,
+  };
+}
+
+/** Pakker ut en øy og gjør den til den man står på. */
+function pakkUt(spill, d) {
+  spill.oyNr = d.nr;
+  spill.oyFra = d.fra ?? null;
+  spill.seed = d.seed;
   spill.avdekket = new Uint8Array(OY.bredde * OY.hoyde);
-  spill.take = new Map();
-  spill.ting = new Map();
-  spill.bygg = new Map();
-  spill.kister = new Set();
-  spill.kryss = new Map();
-  spill.gravd = new Set();
-  spill.kisteTeller = 0;
-  spill.nesteKiste = FORSTE_KISTE;
-  spill.baat = false;
+  for (const i of d.avdekket) spill.avdekket[i] = 1;
+  spill.take = new Map(d.take);
+  spill.ting = new Map(d.ting);
+  spill.bygg = new Map(d.bygg);
+  spill.kister = new Set(d.kister ?? []);
+  spill.kryss = new Map(d.kryss ?? []);
+  spill.gravd = new Set(d.gravd ?? []);
+  spill.kisteTeller = d.kisteTeller ?? 0;
+  spill.nesteKiste = d.nesteKiste ?? FORSTE_KISTE;
+}
+
+const stilFor = (nr) => OY_STIL[Math.min(nr, OY_STIL.length) - 1];
+
+/** Alle øyene man har funnet, med navn og stil, sortert etter nummer. her = øya man står på. */
+export function oyListe(spill) {
+  const alle = [{ nr: spill.oyNr, fra: spill.oyFra ?? null, bygg: spill.bygg.size, her: true },
+    ...(spill.oyer ?? []).map((o) => ({ nr: o.nr, fra: o.fra ?? null, bygg: o.bygg.length, her: false, forlot: o.forlot }))];
+  const antallMedStil = {};
+  return alle.sort((a, b) => a.nr - b.nr).map((o) => {
+    const stil = stilFor(o.nr);
+    antallMedStil[stil] = (antallMedStil[stil] ?? 0) + 1;
+    const n = antallMedStil[stil];
+    return { ...o, stil, navn: `${OY_NAVN[stil]}${n > 1 ? ` ${n}` : ''}`, ikon: OY_IKON[stil] };
+  });
+}
+
+/** Er det en havn med båt her, som ikke har funnet en ny øy ennå? (Hver havn finner én ny øy.) */
+export function kanSeileNy(spill) {
+  if (!spill.baat || havnVed(spill) < 0) return false;
+  return !(spill.oyer ?? []).some((o) => o.fra === spill.oyNr);
+}
+
+/** Kan man seile tilbake til en øy man har vært på? */
+export const kanSeileTilbake = (spill) => spill.baat && (spill.oyer ?? []).length > 0;
+
+/**
+ * Seil til en ny øy. Øya man står på legges i spill.oyer, og man tar med seg
+ * forrådet, myntene og båten. Den nye øya lages fra en ny seed, og man går i land ved sjøen.
+ */
+export function seil(spill, seed = Math.floor(Math.random() * 2 ** 31)) {
+  if (!kanSeileNy(spill)) return [];
+  const fra = spill.oyNr;
+  const nr = Math.max(spill.oyNr, ...(spill.oyer ?? []).map((o) => o.nr)) + 1;
+  spill.oyer = [...(spill.oyer ?? []), pakkOy(spill)];
+  pakkUt(spill, { nr, fra, seed, avdekket: [], take: [], ting: [], bygg: [] });
   spill.sol = SOL[spill.nivaa];
   avdekkStart(spill);
-  return [{ type: 'seilt', oyNr: spill.oyNr, stil: lagVerden(spill).stil }];
+  return [{ type: 'seilt', ny: true, oyNr: nr, stil: lagVerden(spill).stil }];
+}
+
+/** Seil tilbake til en øy man har vært på. Alt der er som man forlot det (og ting har vokst fram igjen). */
+export function seilTil(spill, nr) {
+  const maal = (spill.oyer ?? []).find((o) => o.nr === nr);
+  if (!spill.baat || !maal || nr === spill.oyNr) return [];
+  spill.oyer = [...spill.oyer.filter((o) => o !== maal), pakkOy(spill)];
+  pakkUt(spill, maal);
+  return [{ type: 'seilt', ny: false, oyNr: nr, stil: lagVerden(spill).stil }];
 }
 
 // ---------------------------------------------------------------------------
@@ -520,8 +570,10 @@ export function fraData(d) {
     ting: new Map(d.ting),
     bygg: new Map(d.bygg ?? []),
     oyNr: d.oyNr ?? 1,
-    oyer: d.oyer ?? [],
-    baat: d.baat ?? false,
+    // Fra før man kunne seile tilbake: øy nr. n ble funnet fra øy n − 1, og den som har seilt, har en båt.
+    oyFra: d.oyFra ?? ((d.oyNr ?? 1) > 1 ? d.oyNr - 1 : null),
+    oyer: (d.oyer ?? []).map((o) => ({ ...o, fra: o.fra !== undefined ? o.fra : (o.nr > 1 ? o.nr - 1 : null) })),
+    baat: d.baat || (d.oyer ?? []).length > 0,
     kister: new Set(d.kister ?? []),
     kryss: new Map(d.kryss ?? []),
     gravd: new Set(d.gravd ?? []),

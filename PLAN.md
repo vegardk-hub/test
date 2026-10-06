@@ -66,9 +66,12 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - Teknikk (`js/stil/neon.js`): tegnekoden er den samme. Canvas-konteksten lappes, så hver farge byttes til en neonfarge når den settes,
   ut fra hvilket lag som tegnes (bakke, kant eller figur, satt i `ruter.js`). Gløden lages av et nedskalert bilde som legges oppå med «lighter».
 - Byggekatalogen kan vise neonutgaven: `katalog.html?neon`.
+- **Seile tilbake** (2026-10-06): båten følger med fra øy til øy. Knappen ⛵ i toppen (og havna) åpner **sjøkartet** med alle øyene man har funnet.
+  Derfra kan man seile tilbake når som helst, og alt er som man forlot det. Ting har vokst fram igjen mens man var borte, og man tar med seg forrådet og myntene.
+  Hver havn kan finne **én** ny øy, så for å finne øy 3 må man sette opp alle 20 byggene og en havn på øy 2. Seiling til en kjent øy fyller ikke opp sola.
 
 ## Mulige neste steg
-- Reise tilbake til de gamle øyene, og flere stiler for øy 3, 4 … (for eksempel is, godteri eller verdensrommet)
+- Flere stiler for øy 3, 4 … (for eksempel is, godteri eller verdensrommet). Nå blir øy 3 og videre også neon.
 - Flytte eller rive bygg man har satt ut, og «Mine bygg» i butikken
 - Telling også i butikken (mynter som telles opp én og én for de minste)
 - Flere regnearter for de eldste (tallforståelse, klokka, penger)

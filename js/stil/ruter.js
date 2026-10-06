@@ -111,7 +111,7 @@ function snoGran(ctx, tilf, x, y, h) {
   }
 }
 
-function palme(ctx, tilf, x, y, h) {
+export function palme(ctx, tilf, x, y, h) {
   skygge(ctx, x + h * 0.12, y, h * 0.28, h * 0.08);
   const boy = (tilf.tall() - 0.5) * h * 0.3;
   ctx.strokeStyle = '#8a6a44';

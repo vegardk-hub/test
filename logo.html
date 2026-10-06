@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="nb">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skatteøya – logo</title>
+  <link rel="icon" type="image/png" sizes="64x64" href="ikon/favicon-64.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="ikon/favicon-32.png">
+  <link rel="apple-touch-icon" href="ikon/ikon-180.png">
+  <style>
+    html, body { margin: 0; background: #0b0f14; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="logo"></canvas>
+  <script type="module">
+    // Applogoen, tegnet med den samme low-poly-koden som spillet: en øy med palme
+    // og en åpen skattekiste som lyser, foran en stor solnedgang.
+    // ?s=1024 gir størrelsen. Ikonfilene i ikon/ er laget fra en 1024-utgave (favicon får avrundede hjørner).
+    import { poly, fasett, klump } from './js/stil/lavpoly.js';
+    import { palme } from './js/stil/ruter.js';
+    import { tegnFigur } from './js/figurer.js';
+    import { lagTilfeldig } from './js/rng.js';
+
+    const q = new URLSearchParams(location.search);
+    const S = Number(q.get('s')) || 512;
+    const c = document.getElementById('logo');
+    c.width = c.height = S;
+    const ctx = c.getContext('2d');
+
+    // Himmel: dyp blå øverst, varm solnedgang ved horisonten
+    const HORISONT = S * 0.6;
+    const himmel = ctx.createLinearGradient(0, 0, 0, HORISONT);
+    himmel.addColorStop(0, '#1f4f9e');
+    himmel.addColorStop(0.55, '#6f8fd8');
+    himmel.addColorStop(0.85, '#f4a76b');
+    himmel.addColorStop(1, '#ffd98a');
+    ctx.fillStyle = himmel;
+    ctx.fillRect(0, 0, S, HORISONT + 2);
+
+    // Sola med low-poly-stråler
+    const sx = S * 0.56, sy = HORISONT - S * 0.02, sr = S * 0.2;
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    for (let i = 0; i < 16; i++) {
+      const v = (i / 16) * Math.PI * 2 + 0.1;
+      poly(ctx, [[sx + Math.cos(v - 0.09) * sr * 1.1, sy + Math.sin(v - 0.09) * sr * 1.1],
+        [sx + Math.cos(v) * sr * 2.1, sy + Math.sin(v) * sr * 2.1],
+        [sx + Math.cos(v + 0.09) * sr * 1.1, sy + Math.sin(v + 0.09) * sr * 1.1]], i % 2 ? '#ffd56b' : '#fff0a8');
+    }
+    ctx.restore();
+    const skive = [];
+    for (let i = 0; i < 14; i++) { const v = (i / 14) * Math.PI * 2; skive.push([sx + Math.cos(v) * sr, sy + Math.sin(v) * sr]); }
+    fasett(ctx, skive, '#ffc93c', { styrke: 0.7 });
+
+    // Fugler
+    ctx.strokeStyle = '#2a3560';
+    ctx.lineWidth = S * 0.008;
+    ctx.lineCap = 'round';
+    for (const [x, y, b] of [[0.2, 0.17, 0.035], [0.29, 0.12, 0.025], [0.8, 0.2, 0.03]]) {
+      ctx.beginPath();
+      ctx.moveTo(S * (x - b), S * (y - b * 0.4));
+      ctx.quadraticCurveTo(S * (x - b * 0.4), S * (y - b * 0.8), S * x, S * y);
+      ctx.quadraticCurveTo(S * (x + b * 0.4), S * (y - b * 0.8), S * (x + b), S * (y - b * 0.4));
+      ctx.stroke();
+    }
+
+    // Havet
+    const hav = ctx.createLinearGradient(0, HORISONT, 0, S);
+    hav.addColorStop(0, '#3fa7c9');
+    hav.addColorStop(1, '#174a7c');
+    ctx.fillStyle = hav;
+    ctx.fillRect(0, HORISONT, S, S - HORISONT);
+    // Sola speiler seg i vannet
+    ctx.globalAlpha = 0.55;
+    for (let k = 0; k < 6; k++) {
+      const y = HORISONT + S * (0.025 + k * 0.03), b = S * (0.16 - k * 0.018);
+      poly(ctx, [[sx - b, y], [sx + b, y], [sx + b * 0.8, y + S * 0.01], [sx - b * 0.8, y + S * 0.01]], '#ffe39a');
+    }
+    ctx.globalAlpha = 1;
+    // Bølger
+    ctx.strokeStyle = 'rgba(220, 240, 255, 0.55)';
+    ctx.lineWidth = S * 0.007;
+    for (const [x, y] of [[0.12, 0.84], [0.3, 0.93], [0.78, 0.86], [0.9, 0.95], [0.55, 0.97]]) {
+      ctx.beginPath();
+      ctx.moveTo(S * (x - 0.05), S * y);
+      ctx.quadraticCurveTo(S * x, S * (y - 0.02), S * (x + 0.05), S * y);
+      ctx.stroke();
+    }
+
+    // Øya: sand og gress, fasettert
+    const r = lagTilfeldig(11);
+    const OY_Y = S * 0.74;
+    ctx.fillStyle = 'rgba(20, 40, 70, 0.35)';
+    ctx.beginPath(); ctx.ellipse(S * 0.5, OY_Y + S * 0.035, S * 0.42, S * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+    fasett(ctx, [[S * 0.08, OY_Y + S * 0.02], [S * 0.2, OY_Y - S * 0.07], [S * 0.42, OY_Y - S * 0.11], [S * 0.66, OY_Y - S * 0.1],
+      [S * 0.86, OY_Y - S * 0.05], [S * 0.93, OY_Y + S * 0.025], [S * 0.6, OY_Y + S * 0.05], [S * 0.3, OY_Y + S * 0.05]], '#ecd59a', { styrke: 1.2 });
+    fasett(ctx, [[S * 0.2, OY_Y - S * 0.065], [S * 0.36, OY_Y - S * 0.115], [S * 0.6, OY_Y - S * 0.12], [S * 0.8, OY_Y - S * 0.07],
+      [S * 0.62, OY_Y - S * 0.06], [S * 0.38, OY_Y - S * 0.055]], '#7fb24f', { styrke: 1 });
+    for (let k = 0; k < 5; k++) {
+      poly(ctx, klump(r, S * (0.15 + k * 0.17), OY_Y + S * 0.01, S * 0.018, S * 0.008, 5, 0.3), '#cdb985');
+    }
+
+    // Palme til venstre
+    palme(ctx, lagTilfeldig(3), S * 0.27, OY_Y - S * 0.08, S * 0.5);
+
+    // Skattekista, åpen og lysende (samme figur som i spillet)
+    const K = S * 0.64;
+    ctx.save();
+    ctx.translate(S * 0.6 - K * 0.5, OY_Y - S * 0.035 - K * 0.86);
+    tegnFigur(ctx, K, { type: 'kiste', str: 1, seed: 5 }, { p: 1, ferdigT: 0.25, t: 0 });
+    ctx.restore();
+
+    // Glitter rundt kista
+    const stjerne = (x, y, g) => poly(ctx, [[x, y - g], [x + g * 0.22, y - g * 0.22], [x + g, y], [x + g * 0.22, y + g * 0.22], [x, y + g],
+      [x - g * 0.22, y + g * 0.22], [x - g, y], [x - g * 0.22, y - g * 0.22]], '#fffbe0');
+    for (const [x, y, g] of [[0.48, 0.36, 0.04], [0.77, 0.4, 0.03], [0.68, 0.28, 0.022], [0.86, 0.55, 0.02], [0.4, 0.5, 0.018]]) stjerne(S * x, S * y, S * g);
+
+    document.title = 'klar';
+  </script>
+</body>
+</html>

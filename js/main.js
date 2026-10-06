@@ -14,7 +14,8 @@ import { tegnFigur } from './figurer.js';
 import { tegnTomtKort } from './stil/ruter.js';
 import { PYNT, LIV, tegnBygg, ivrig } from './stil/pynt.js';
 import { poly, fasett } from './stil/lavpoly.js';
-import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID } from './data/ting.js';
+import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT } from './data/ting.js';
+import { settNeon, neonPaa, neonKontekst, glod } from './stil/neon.js';
 import { ikon } from './ikoner.js';
 import { sprut, flytendeTekst, tegnEffekter, harEffekter } from './effekter.js';
 import { blandSeed, lagTilfeldig } from './rng.js';
@@ -77,13 +78,15 @@ function visVelg() {
   t.id = null;
   t.spill = null;
   avbrytPlassering();
+  settNeon(false);
+  document.body.classList.remove('neon');
   $('spill').hidden = true;
   $('velg').hidden = false;
   const liste = Lagring.profiler();
   $('profilliste').innerHTML = liste.length
     ? liste.map((p) => `<button class="profil" data-id="${esc(p.id)}">
         <span class="ava">${esc(p.avatar)}</span><span class="navn">${esc(p.navn)}</span>
-        <span class="info">${NIVAA[p.nivaa]?.ikon ?? ''} Dag ${p.dag}</span></button>`).join('')
+        <span class="info">${NIVAA[p.nivaa]?.ikon ?? ''} Dag ${p.dag}${p.oyNr > 1 ? ` · 🌈 Øy ${p.oyNr}` : ''}</span></button>`).join('')
     : '<p class="tom">Lag en spiller for å begynne!</p>';
   $('profilliste').querySelectorAll('.profil').forEach((b) => { b.onclick = () => { L.vekk(); startSpill(b.dataset.id); }; });
 }
@@ -122,6 +125,8 @@ function startSpill(id) {
   t.id = id;
   t.spill = spill;
   t.verden = R.lagVerden(spill);
+  settNeon(t.verden.stil === 'neon');
+  document.body.classList.toggle('neon', neonPaa());
   t.brett = new Brett(t.verden);
   t.avdekkAnim.clear();
   t.borstAnim.clear();
@@ -169,7 +174,7 @@ function trykkPaa(kx, ky) {
     return;
   }
   if (i === v.startIndeks) { aapneButikk(); return; }
-  if (s.bygg.has(i)) { aapneNaer(i, { pynt: s.bygg.get(i) }); return; }
+  if (s.bygg.has(i)) { aapneNaer(i, { pynt: R.pyntVed(s, i) }); return; }
   if (R.tingVed(s, v, i)) { aapneNaer(i); return; }
   const d = R.venterPaa(s, v, i);
   if (d > 0) melding(d === Infinity ? 'Kista er tom.' : `Her vokser det noe nytt om ${d} ${d === 1 ? 'dag' : 'dager'}.`, { ikon: d === Infinity ? '📭' : '🌱' });
@@ -219,9 +224,10 @@ function aapneNaer(i, { pynt = null } = {}) {
   const liggende = innerWidth > innerHeight * 1.15;
   // Ved kister trengs det plass til regnestykket: ved siden av (liggende) eller under (stående).
   const panel = innst().svar === 'velg' ? 230 : 430;
+  const vedHavn = pynt === HAVN.id || pynt === BAAT.id;
   const S = Math.floor(kiste
     ? Math.max(130, Math.min(liggende ? innerWidth * 0.42 : innerWidth * 0.8, liggende ? innerHeight - 170 : innerHeight - panel - 130, 380))
-    : Math.min(innerWidth * 0.86, (innerHeight - 150) * 0.86, 440));
+    : Math.min(innerWidth * 0.86, (innerHeight - (vedHavn ? 300 : 150)) * 0.86, 440));
   const H = S + (pynt ? 0 : kiste ? 40 : 56);
   const c = $('naer-lerret');
   const dpr = window.devicePixelRatio || 1;
@@ -244,6 +250,7 @@ function aapneNaer(i, { pynt = null } = {}) {
   }
   $('matte').hidden = !kiste;
   if (kiste) nyttStykke();
+  visHavnValg(pynt);
   boks.hidden = false;
 }
 
@@ -307,6 +314,71 @@ function sprutNaer(n, x, y, antall, kraft, farger = null) {
     n.partikler.push({ x, y, vx: Math.cos(v) * fart, vy: Math.sin(v) * fart, t0, liv: 0.6 + Math.random() * 0.5,
       r: (2 + Math.random() * 3.5) * (n.S / 230), farge: f[Math.floor(Math.random() * f.length)], spinn: Math.random() * 6 });
   }
+}
+
+// ---------------------------------------------------------------------------
+// Havna: bygg en seilbåt, og seil til en ny øy (eller bli der du er)
+// ---------------------------------------------------------------------------
+function visHavnValg(pynt) {
+  const el = $('havn-valg');
+  el.hidden = pynt !== HAVN.id && pynt !== BAAT.id;
+  if (el.hidden) return;
+  const s = t.spill;
+  if (pynt === HAVN.id) {
+    const kan = s.mynter >= BAAT.pris;
+    el.innerHTML = `${liten() ? '' : '<p>Bygg en seilbåt, så kan du seile til en ny øy!</p>'}
+      <button id="havn-baat" class="hoved${kan ? '' : ' dyr'}">⛵ ${liten() ? '' : 'Bygg seilbåt – '}${BAAT.pris} 🪙</button>
+      ${!kan && !liten() ? `<small>Du har ${s.mynter} mynter og mangler ${BAAT.pris - s.mynter}.</small>` : ''}`;
+    $('havn-baat').onclick = byggBaat;
+  } else {
+    el.innerHTML = `${liten() ? '' : '<p>Seilbåten er klar! Vil du seile til en ny øy? Øya du har bygget, blir liggende her.</p>'}
+      <div class="havn-knapper"><button id="havn-seil" class="hoved">⛵ ${liten() ? '➡️ 🏝️' : 'Seil til en ny øy!'}</button>
+      <button id="havn-bli">${liten() ? '🏠' : '🏝️ Bli her litt til'}</button></div>`;
+    $('havn-seil').onclick = seilAvsted;
+    $('havn-bli').onclick = lukkNaer;
+  }
+}
+
+function byggBaat() {
+  L.vekk();
+  const h = R.byggBaat(t.spill);
+  if (h[0]?.type !== 'baatBygget') {
+    rist($('havn-valg'));
+    L.tomt();
+    if (h[0]?.type === 'forLiteMynter' && !liten()) melding(`Seilbåten koster ${BAAT.pris} mynter. Du mangler ${h[0].mangler}.`, { ikon: '🪙' });
+    return;
+  }
+  trekkVist('mynter', BAAT.pris);
+  const n = t.naer;
+  n.pynt = BAAT.id;
+  n.tTrykk = naa() / 1000;
+  sprutNaer(n, n.S * 0.75, n.S * 0.55, 26, 1.3, ['#ffd23f', '#e0393e', '#3a74d8', '#25b86a', '#ffffff']);
+  L.fanfare(3);
+  $('naer-tittel').innerHTML = liten() ? '<span class="stor-ikon">⛵</span>' : esc(BAAT.navn);
+  visHavnValg(BAAT.id);
+  lagreSnart();
+  t.skitten = true;
+}
+
+function seilAvsted() {
+  L.vekk();
+  lukkNaer();
+  const h = R.seil(t.spill);
+  if (h[0]?.type !== 'seilt') return;
+  Lagring.lagre(t.id, t.spill);
+  const neon = h[0].stil === 'neon';
+  const el = $('seiling');
+  el.classList.toggle('til-vanlig', !neon);
+  el.classList.remove('ferdig');
+  $('seiling-tekst').textContent = liten() ? '⛵ ✨' : 'Seiler til en ny øy …';
+  el.hidden = false;
+  L.fanfare(3);
+  setTimeout(() => { startSpill(t.id); el.classList.add('ferdig'); }, 2700);
+  setTimeout(() => {
+    el.hidden = true;
+    el.classList.remove('ferdig');
+    melding(liten() ? '🌈🏝️' : neon ? 'Velkommen til Neonøya! Her lyser alt.' : 'Velkommen til en ny øy!', { ikon: liten() ? '' : '🏝️✨' });
+  }, 3400);
 }
 
 function lukkNaer() {
@@ -600,16 +672,18 @@ let fane = 'selg';
 const bildeLager = new Map();
 
 function byggBilde(id) {
-  if (bildeLager.has(id)) return bildeLager.get(id);
+  const nokkel = `${id}|${neonPaa()}`;
+  if (bildeLager.has(nokkel)) return bildeLager.get(nokkel);
   const S = 120, dpr = Math.min(2, window.devicePixelRatio || 1);
   const c = document.createElement('canvas');
   c.width = c.height = S * dpr;
-  const ctx = c.getContext('2d');
+  const ctx = neonKontekst(c.getContext('2d'));
   ctx.scale(dpr, dpr);
-  tegnTomtKort(ctx, S, lagTilfeldig(blandSeed('butikk', id)), id === 'iglo' || id === 'snomann' ? 'strand' : 'eng',
+  tegnTomtKort(ctx, S, lagTilfeldig(blandSeed('butikk', id)), ['iglo', 'snomann', HAVN.id, BAAT.id].includes(id) ? 'strand' : 'eng',
     () => tegnBygg(ctx, S, id, lagTilfeldig(blandSeed('butikk-pynt', id))));
+  glod(c, 0.5);
   const url = c.toDataURL();
-  bildeLager.set(id, url);
+  bildeLager.set(nokkel, url);
   return url;
 }
 
@@ -653,9 +727,22 @@ function tegnButikk() {
       return `<button class="byggkort${kan ? '' : ' dyr'}" data-bygg="${b.id}">
         <img src="${byggBilde(b.id)}" alt=""><span class="bn">${esc(b.navn)}</span>
         <span class="bp">${b.pris} 🪙</span>${!kan && !liten() ? `<span class="bm">mangler ${mangler}</span>` : ''}</button>`;
-    }).join('');
+    }).join('') + havnKort();
     $('butikk-kjop').querySelectorAll('[data-bygg]').forEach((b) => { b.onclick = () => velgBygg(b.dataset.bygg); });
   }
+}
+
+/** Havna nederst i butikken: låst til alle de 20 ulike byggene står på øya. */
+function havnKort() {
+  const s = t.spill;
+  const har = R.ulikeBygg(s);
+  const laast = !R.havnApen(s), staar = R.havnVed(s) >= 0;
+  const status = staar ? (liten() ? '✔️' : '✔️ Står på øya')
+    : laast ? (liten() ? `🔒 ${har}/${HAVN.krav}` : `🔒 ${har} av ${HAVN.krav} ulike bygg`)
+    : (liten() ? '⚓' : 'Settes ved sjøen');
+  return `<button class="byggkort havn${laast || staar ? ' laast' : ''}${!laast && !staar && s.mynter < HAVN.pris ? ' dyr' : ''}" data-bygg="${HAVN.id}">
+    <img src="${byggBilde(HAVN.id)}" alt=""><span class="bn">⚓ ${esc(HAVN.navn)}</span>
+    <span class="bp">${HAVN.pris} 🪙</span><span class="bl">${status}</span></button>`;
 }
 
 function selgVare(varer, knapp) {
@@ -675,6 +762,16 @@ function selgVare(varer, knapp) {
 
 function velgBygg(id) {
   const b = BYGG_ETTER_ID[id];
+  if (id === HAVN.id && !R.kanKjopeHavn(t.spill)) {
+    rist($('butikk'));
+    L.tomt();
+    const staar = R.havnVed(t.spill) >= 0;
+    if (!liten()) {
+      melding(staar ? 'Havna står allerede på øya. Trykk på den for å bygge en seilbåt.'
+        : `Havna kan bygges når alle de ${HAVN.krav} ulike byggene står på øya. Du har ${R.ulikeBygg(t.spill)}.`, { ikon: '⚓' });
+    }
+    return;
+  }
   if (t.spill.mynter < b.pris) {
     rist($('butikk'));
     L.tomt();
@@ -683,19 +780,30 @@ function velgBygg(id) {
   }
   $('butikk').close();
   t.plasser = { id };
-  $('plasser-tekst').innerHTML = liten() ? `<img src="${byggBilde(id)}" alt=""> 👇` : `Trykk der du vil sette opp: <b>${esc(b.navn)}</b>`;
+  $('plasser-tekst').innerHTML = liten() ? `<img src="${byggBilde(id)}" alt=""> 👇`
+    : id === HAVN.id ? 'Trykk på en rute ved sjøen for å bygge <b>havna</b>' : `Trykk der du vil sette opp: <b>${esc(b.navn)}</b>`;
   $('plasser').hidden = false;
   t.skitten = true;
 }
 
 function plasserHer(i) {
   const { id } = t.plasser;
+  const for_ = R.ulikeBygg(t.spill);
   const h = R.kjopOgPlasser(t.spill, t.verden, i, id);
   if (h[0]?.type !== 'bygget') {
     L.tomt();
-    melding(h[0]?.type === 'forLiteMynter' ? 'Du har ikke nok mynter.' : 'Her kan du ikke bygge. Velg en ledig rute med ring rundt.', { ikon: '🚫' });
+    melding(h[0]?.type === 'forLiteMynter' ? 'Du har ikke nok mynter.'
+      : id === HAVN.id ? 'Havna må stå på land, rett ved sjøen. Velg en rute med ring rundt.'
+      : 'Her kan du ikke bygge. Velg en ledig rute med ring rundt.', { ikon: '🚫' });
     return;
   }
+  if (for_ < HAVN.krav && R.ulikeBygg(t.spill) >= HAVN.krav) {
+    setTimeout(() => {
+      L.fanfare(3);
+      melding(liten() ? '⚓🎉' : `Alle ${HAVN.krav} byggene står på øya! Nå kan du kjøpe en havn i butikken.`, { ikon: liten() ? '' : '⚓🎉' });
+    }, 2200);
+  }
+  if (id === HAVN.id) setTimeout(() => melding(liten() ? '⛵❓' : 'Trykk på havna for å bygge en seilbåt.', { ikon: '⛵' }), 2200);
   trekkVist('mynter', BYGG_ETTER_ID[id].pris);
   t.byggAnim.set(i, naa());
   const [kx, ky] = midtAv(i);
@@ -812,6 +920,7 @@ function tegnHimmel(tsek) {
   const maal = t.natt ? 1 : 1 - t.spill.sol / SOL[t.spill.nivaa];
   t.solVis += (maal - t.solVis) * 0.12;
   const f = t.solVis;
+  if (neonPaa()) { tegnNeonHimmel(ctx, W, H, f, tsek); return; }
   const Mo = ['#9fc7e8', '#f7c9a9'], D = ['#5fa2d8', '#bfe1f5'], K = ['#4f3f86', '#f08a4b'];
   const [topp, bunn] = f < 0.25 ? [blandRgb(Mo[0], D[0], f / 0.25), blandRgb(Mo[1], D[1], f / 0.25)]
     : f < 0.7 ? [D[0], D[1]] : [blandRgb(D[0], K[0], (f - 0.7) / 0.3), blandRgb(D[1], K[1], (f - 0.7) / 0.3)];
@@ -850,6 +959,48 @@ function tegnHimmel(tsek) {
   ctx.closePath();
   ctx.fillStyle = blandRgb('#4e7d35', '#2d3b52', kveld);
   ctx.fill();
+}
+
+/** Himmelen på neonøya: lilla himmel, en stripete «synthwave»-sol og et lysende rutenett i horisonten. */
+function tegnNeonHimmel(ctx, W, H, f, tsek) {
+  const kveld = klamp((f - 0.6) / 0.4);
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, blandRgb('#2a0a5e', '#0c0224', kveld));
+  g.addColorStop(1, blandRgb('#c2189b', '#3d0b5c', kveld));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  const sx = W * (0.2 + 0.6 * f), sy = H * 0.86 - Math.sin(Math.PI * f) * H * 0.48;
+  const r = H * 0.26;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(sx, sy, r, 0, Math.PI * 2);
+  ctx.clip();
+  const sg = ctx.createLinearGradient(0, sy - r, 0, sy + r);
+  sg.addColorStop(0, '#fff36b');
+  sg.addColorStop(0.55, '#ff8a3d');
+  sg.addColorStop(1, '#ff2bd6');
+  ctx.fillStyle = sg;
+  ctx.fillRect(sx - r, sy - r, r * 2, r * 2);
+  // Striper som glir nedover sola
+  ctx.globalCompositeOperation = 'destination-out';
+  for (let k = 0; k < 5; k++) {
+    const u = (k / 5 + tsek * 0.08) % 1;
+    const y = sy + r * (u * 1.1 - 0.1);
+    if (y > sy) ctx.fillRect(sx - r, y, r * 2, Math.max(1, r * 0.1 * u));
+  }
+  ctx.restore();
+  // Rutenett langs horisonten
+  ctx.save();
+  ctx.shadowColor = '#19e3ff';
+  ctx.shadowBlur = 6;
+  ctx.strokeStyle = '#19e3ff';
+  ctx.lineWidth = 1.5;
+  const hy = H - 8;
+  ctx.beginPath();
+  ctx.moveTo(0, hy); ctx.lineTo(W, hy);
+  for (let x = -((tsek * 12) % 24); x < W + 24; x += 24) { ctx.moveTo(x, hy); ctx.lineTo(W / 2 + (x - W / 2) * 1.6, H); }
+  ctx.stroke();
+  ctx.restore();
 }
 
 // ---------------------------------------------------------------------------
@@ -1017,7 +1168,7 @@ function melding(tekst, { ikon: ik = '' } = {}) {
 // ---------------------------------------------------------------------------
 function hintRuter() {
   const s = t.spill, v = t.verden;
-  if (t.plasser) return [...s.avdekket.keys()].filter((i) => R.kanPlassere(s, v, i));
+  if (t.plasser) return [...s.avdekket.keys()].filter((i) => R.kanPlassere(s, v, i, t.plasser.id));
   if (s.stat.avdekket === 0) return [...s.avdekket.keys()].filter((i) => R.kanBorstes(s, v, i));
   if (s.stat.ting === 0) return [...s.avdekket.keys()].filter((i) => s.avdekket[i] && R.tingVed(s, v, i));
   return null;
@@ -1049,7 +1200,7 @@ function sloyfe() {
     tegnHimmel(ms / 1000);
     if (t.skitten || t.brett.harLiv || t.avdekkAnim.size || t.borstAnim.size || t.byggAnim.size || harEffekter()) tegnBrett(ms);
   }
-  if (t.naer) tegnNaer(ms / 1000);
+  if (t.naer) { tegnNaer(ms / 1000); glod($('naer-lerret'), 0.5); }
   if (t.natt) tegnNatt(ms / 1000);
   requestAnimationFrame(sloyfe);
 }
@@ -1058,6 +1209,8 @@ function sloyfe() {
 // Oppstart
 // ---------------------------------------------------------------------------
 function start() {
+  neonKontekst($('lerret').getContext('2d'));
+  neonKontekst($('naer-lerret').getContext('2d'));
   t.kamera = new Kamera($('lerret'), { vedTrykk: trykkPaa, vedEndring: () => { t.skitten = true; } });
   addEventListener('resize', () => { if (t.spill) { t.kamera.tilpassLerret(); t.skitten = true; } });
   document.addEventListener('visibilitychange', () => { if (document.hidden && t.id && t.spill) Lagring.lagre(t.id, t.spill); });

@@ -9,6 +9,7 @@
 
 import { FIGUR } from './palett.js';
 import { poly, fasett, kasse, hus, iso, skygge, lys, mork, stein } from './lavpoly.js';
+import { settLag } from './neon.js';
 
 // ---------------------------------------------------------------------------
 // Små hjelpere
@@ -126,6 +127,70 @@ const HYTTE_PIPE = (S) => iso(S * 0.5, S * 0.66)(-S * 0.2 * 0.45, -S * 0.15 * 0.
 // ---------------------------------------------------------------------------
 // Det som står stille
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Havna og seilbåten (låses opp når alle de 20 byggene står på øya)
+// ---------------------------------------------------------------------------
+const HAV = ['#4b93bd', '#3f80aa', '#8cc6e4'];   // vann, mørkere vann, skum
+const BRYGGE = ['#b08458', '#7f5a38', '#5b3f27'];
+
+/** Sjøen nederst til høyre på kortet, med skum langs strandkanten. */
+function havkant(ctx, S) {
+  const kyst = [[0, S * 0.66], [S * 0.3, S * 0.6], [S * 0.62, S * 0.5], [S, S * 0.38]];
+  // På neonøya er sjøen mørk bakke med lysende strandkant, som vannrutene.
+  settLag('bakke');
+  poly(ctx, [...kyst, [S, S], [0, S]], HAV[0]);
+  poly(ctx, [[0, S * 0.84], [S * 0.5, S * 0.76], [S, S * 0.66], [S, S], [0, S]], HAV[1]);
+  settLag('kant');
+  strek(ctx, kyst, HAV[2], S * 0.018);
+  settLag('figur');
+}
+
+/** Brygga: planker på stolper, fra land og ut i vannet. */
+function brygge(ctx, S) {
+  const a = [S * 0.3, S * 0.56], b = [S * 0.58, S * 0.84], br = S * 0.07;
+  for (let k = 0; k <= 3; k++) {
+    const u = k / 3, x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
+    for (const side of [-1, 1]) {
+      ctx.fillStyle = BRYGGE[2];
+      ctx.fillRect(x + side * br * 0.8 - S * 0.008, y - side * br * 0.3, S * 0.016, S * 0.07);
+    }
+  }
+  poly(ctx, [[a[0] - br, a[1] + br * 0.4], [a[0] + br, a[1] - br * 0.4], [b[0] + br, b[1] - br * 0.4], [b[0] - br, b[1] + br * 0.4]], BRYGGE[0]);
+  poly(ctx, [[b[0] - br, b[1] + br * 0.4], [b[0] + br, b[1] - br * 0.4], [b[0] + br, b[1] - br * 0.4 + S * 0.02], [b[0] - br, b[1] + br * 0.4 + S * 0.02]], BRYGGE[1]);
+  ctx.strokeStyle = BRYGGE[1];
+  ctx.lineWidth = Math.max(0.6, S * 0.004);
+  for (let k = 1; k < 9; k++) {
+    const u = k / 9, x = a[0] + (b[0] - a[0]) * u, y = a[1] + (b[1] - a[1]) * u;
+    ctx.beginPath(); ctx.moveTo(x - br, y + br * 0.4); ctx.lineTo(x + br, y - br * 0.4); ctx.stroke();
+  }
+  // Pullerter
+  for (const u of [0.45, 0.95]) {
+    const x = a[0] + (b[0] - a[0]) * u + br * 0.75, y = a[1] + (b[1] - a[1]) * u - br * 0.3;
+    poly(ctx, [[x - S * 0.012, y], [x - S * 0.012, y - S * 0.025], [x + S * 0.012, y - S * 0.025], [x + S * 0.012, y]], '#2f3440');
+    sirkel(ctx, x, y - S * 0.025, S * 0.013, '#454b59');
+  }
+}
+
+/** Seilbåten ved brygga. vugg = helning, opp = hvor mye den løftes av bølgene. */
+function seilbaat(ctx, S, vugg = 0, opp = 0) {
+  const x = S * 0.76, y = S * 0.8 - opp;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(vugg);
+  skygge(ctx, 0, S * 0.03, S * 0.17, S * 0.03, 0.18);
+  // Skroget
+  poly(ctx, [[-S * 0.18, -S * 0.05], [S * 0.19, -S * 0.07], [S * 0.13, S * 0.03], [-S * 0.13, S * 0.035]], '#f4f1e8');
+  poly(ctx, [[-S * 0.165, -S * 0.015], [S * 0.17, -S * 0.03], [S * 0.13, S * 0.03], [-S * 0.13, S * 0.035]], '#c0392b');
+  poly(ctx, [[-S * 0.18, -S * 0.05], [S * 0.19, -S * 0.07], [S * 0.17, -S * 0.085], [-S * 0.16, -S * 0.065]], '#9e6d42');
+  // Masta og seilene
+  strek(ctx, [[-S * 0.01, -S * 0.06], [-S * 0.01, -S * 0.5]], '#5b3a24', Math.max(1.2, S * 0.012));
+  poly(ctx, [[-S * 0.005, -S * 0.48], [S * 0.16, -S * 0.1], [-S * 0.005, -S * 0.09]], '#ffffff');
+  poly(ctx, [[-S * 0.005, -S * 0.48], [S * 0.06, -S * 0.1], [-S * 0.005, -S * 0.09]], '#e6e2d6');
+  poly(ctx, [[-S * 0.015, -S * 0.44], [-S * 0.015, -S * 0.11], [-S * 0.15, -S * 0.1]], '#f3d77a');
+  ctx.restore();
+}
+
 export const PYNT = {
   baal(ctx, S, tilf) {
     const x = S * 0.5, y = S * 0.7;
@@ -389,6 +454,20 @@ export const PYNT = {
       const y0 = S * (0.84 - k * 0.08);
       ctx.beginPath(); ctx.moveTo(S * 0.7, y0); ctx.lineTo(S * 0.78, y0 - S * 0.08); ctx.stroke();
     }
+  },
+
+  havn(ctx, S) {
+    havkant(ctx, S);
+    // Naustet på land, med kasser og en tønne ved brygga
+    hus(ctx, S * 0.27, S * 0.44, S * 0.26, S * 0.2, S * 0.13, S * 0.08, { vegg: FIGUR.treVegg, tak: FIGUR.takRod });
+    brygge(ctx, S);
+    const p = iso(S * 0.5, S * 0.5);
+    kasse(ctx, ...p(-S * 0.02, -S * 0.1, 0), S * 0.07, S * 0.07, S * 0.06, { topp: '#d0a06a', venstre: '#b08458', hoyre: '#7f5a38' });
+    kasse(ctx, ...p(-S * 0.02, -S * 0.1, S * 0.06), S * 0.05, S * 0.05, S * 0.045, { topp: '#e2c25a', venstre: '#c9a23f', hoyre: '#9e7c2a' });
+  },
+
+  havnbaat(ctx, S, tilf) {
+    PYNT.havn(ctx, S, tilf);
   },
 
   borg(ctx, S) {
@@ -695,6 +774,31 @@ export const LIV = {
     }
     // Damp ved foten (mye under oppskytingen)
     royk(ctx, x - S * 0.06, S * 0.8, S, t, { antall: f < 4 ? 8 : 3, fart: f < 4 ? 0.9 : 0.25 });
+  },
+
+  havn(ctx, S, t) {
+    // Små bølger på sjøen og et flagg på naustet
+    ctx.strokeStyle = 'rgba(220, 240, 255, 0.7)';
+    ctx.lineWidth = Math.max(1, S * 0.008);
+    ctx.lineCap = 'round';
+    for (let k = 0; k < 5; k++) {
+      const u = (t * 0.25 + k * 0.21) % 1;
+      const x = S * (0.15 + ((k * 0.37) % 0.8)), y = S * (0.9 - ((k * 0.23) % 0.25)) + Math.sin(t * 1.5 + k) * S * 0.01;
+      ctx.globalAlpha = Math.sin(Math.PI * u);
+      ctx.beginPath(); ctx.moveTo(x - S * 0.04, y); ctx.quadraticCurveTo(x, y - S * 0.015, x + S * 0.04, y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    const [fx, fy] = iso(S * 0.27, S * 0.44)(0, 0, S * 0.21);
+    flagg(ctx, fx, fy, S * 0.12, '#3a74d8', t);
+  },
+
+  havnbaat(ctx, S, t, fest) {
+    LIV.havn(ctx, S, t);
+    // Båten vugger på bølgene – mer når noen trykker på den.
+    const ekstra = 1 + 3 * Math.exp(-(fest ?? Infinity) * 0.8);
+    seilbaat(ctx, S, Math.sin(t * 1.4) * 0.035 * ekstra, (1 + Math.sin(t * 1.8)) * S * 0.006 * ekstra);
+    const topp = [S * 0.75, S * 0.8 - S * 0.5];
+    flagg(ctx, topp[0], topp[1] + S * 0.01, S * 0.06, '#e0393e', t);
   },
 
   borg(ctx, S, t) {

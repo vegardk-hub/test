@@ -10,24 +10,34 @@
     .galleri { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
     figure { margin: 0; text-align: center; }
     figcaption { font-size: 14px; color: #cfc6ad; margin-top: 4px; }
+    a { color: #ffd23f; }
+    body.neon { background: #07020f; }
+    body.neon figcaption { color: #7ff3ff; text-shadow: 0 0 6px #19e3ff; }
   </style>
 </head>
 <body>
-  <h1>Byggekatalog – alle 20 bygg (trykk på et bygg)</h1>
+  <h1>Byggekatalog – alle bygg (trykk på et bygg) · <a id="bytt" href="?neon">Vis neon</a></h1>
   <div id="galleri" class="galleri"></div>
   <script type="module">
     // Alle byggene, levende: den faste delen tegnes én gang, det som beveger seg hele tiden.
-    import { BYGG } from './js/data/ting.js';
+    import { BYGG, HAVN, BAAT } from './js/data/ting.js';
     import { PYNT, LIV } from './js/stil/pynt.js';
     import { tegnTomtKort } from './js/stil/ruter.js';
     import { lagTilfeldig } from './js/rng.js';
+    import { settNeon, neonKontekst, glod } from './js/stil/neon.js';
+    // ?neon viser byggene slik de ser ut på neonøya.
+    const neon = new URLSearchParams(location.search).has('neon');
+    settNeon(neon);
+    if (neon) document.body.classList.add('neon');
+    document.getElementById('bytt').href = neon ? '?' : '?neon';
+    document.getElementById('bytt').textContent = neon ? 'Vis vanlig' : 'Vis neon';
     const S = 180, dpr = devicePixelRatio || 1;
-    const kort = BYGG.map((b, k) => {
+    const kort = [...BYGG, HAVN, BAAT].map((b, k) => {
       const fast = document.createElement('canvas');
       fast.width = fast.height = S * dpr;
-      const fctx = fast.getContext('2d');
+      const fctx = neonKontekst(fast.getContext('2d'));
       fctx.scale(dpr, dpr);
-      tegnTomtKort(fctx, S, lagTilfeldig(k + 1), b.id === 'iglo' || b.id === 'snomann' ? 'strand' : 'eng', () => PYNT[b.id](fctx, S, lagTilfeldig(k + 7)));
+      tegnTomtKort(fctx, S, lagTilfeldig(k + 1), ['iglo', 'snomann', 'havn', 'havnbaat'].includes(b.id) ? 'strand' : 'eng', () => PYNT[b.id](fctx, S, lagTilfeldig(k + 7)));
       const c = document.createElement('canvas');
       c.width = c.height = S * dpr;
       c.style.width = c.style.height = `${S}px`;
@@ -37,7 +47,7 @@
       document.getElementById('galleri').append(f);
       let fest = Infinity;
       c.onclick = () => { fest = 0; };
-      return { b, fast, c, ctx: c.getContext('2d'), fest: () => fest, tikk: (dt) => { fest += dt; } };
+      return { b, fast, c, ctx: neonKontekst(c.getContext('2d')), fest: () => fest, tikk: (dt) => { fest += dt; } };
     });
     let sist = performance.now();
     function tegn(ms) {
@@ -49,6 +59,7 @@
         k.ctx.drawImage(k.fast, 0, 0);
         k.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         LIV[k.b.id]?.(k.ctx, S, ms / 1000, k.fest());
+        glod(k.c);
       }
       requestAnimationFrame(tegn);
     }

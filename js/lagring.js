@@ -25,7 +25,7 @@ export const profiler = () => les(PROFILER, []);
 export function lagre(id, spill) {
   skriv(SPILL(id), tilData(spill));
   const liste = profiler().filter((p) => p.id !== id);
-  liste.unshift({ id, navn: spill.navn, avatar: spill.avatar, nivaa: spill.nivaa, dag: spill.dag });
+  liste.unshift({ id, navn: spill.navn, avatar: spill.avatar, nivaa: spill.nivaa, dag: spill.dag, oyNr: spill.oyNr ?? 1 });
   skriv(PROFILER, liste);
 }
 

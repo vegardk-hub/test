@@ -8,7 +8,7 @@
 import { genererVerden } from './kartgen.js';
 import { T } from './data/terreng.js';
 import {
-  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID,
+  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL,
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
 import { medStandard } from './matte.js';
@@ -29,14 +29,61 @@ const FORSTE_KISTE = 3;
 // ---------------------------------------------------------------------------
 const verdenLager = new Map();
 
-/** Verdenen (terreng og overlegg) for et spill. Lages fra seeden og huskes. */
+/**
+ * Verdenen (terreng og overlegg) for et spill. Lages fra seeden og huskes.
+ * På øy nummer 2 og videre kommer man med båt og går i land ved sjøen.
+ */
 export function lagVerden(spill) {
-  if (!verdenLager.has(spill.seed)) {
-    const v = genererVerden(spill.seed, OY);
+  const nr = spill.oyNr ?? 1;
+  const nokkel = `${spill.seed}|${nr}`;
+  if (!verdenLager.has(nokkel)) {
+    const v = { ...genererVerden(spill.seed, OY) };
+    if (nr > 1) v.start = kyststart(v, spill.seed);
     v.startIndeks = v.start.y * v.bredde + v.start.x;
-    verdenLager.set(spill.seed, v);
+    v.oyNr = nr;
+    v.stil = OY_STIL[Math.min(nr, OY_STIL.length) - 1];
+    verdenLager.set(nokkel, v);
   }
-  return verdenLager.get(spill.seed);
+  return verdenLager.get(nokkel);
+}
+
+/** Vann som henger sammen med kanten av kartet (havet, ikke et tjern). */
+function havet(v) {
+  const { bredde: B, hoyde: H } = v;
+  const hav = new Uint8Array(B * H);
+  const ko = [];
+  for (let i = 0; i < B * H; i++) {
+    const x = i % B, y = Math.floor(i / B);
+    if ((x === 0 || y === 0 || x === B - 1 || y === H - 1) && TERRENGNAVN[v.terreng[i]] === 'vann') { hav[i] = 1; ko.push(i); }
+  }
+  while (ko.length) {
+    const i = ko.pop();
+    for (const j of naboer4(v, i)) if (!hav[j] && TERRENGNAVN[v.terreng[j]] === 'vann') { hav[j] = 1; ko.push(j); }
+  }
+  return hav;
+}
+
+/** Landruta der båten legger til: ved havet, helst på stranda, med mye land rundt seg. */
+function kyststart(v, seed) {
+  const { bredde: B, hoyde: H } = v;
+  const hav = havet(v);
+  const r = lagTilfeldig(blandSeed(seed, 'kyst'));
+  let best = null;
+  for (let i = 0; i < B * H; i++) {
+    const terr = TERRENGNAVN[v.terreng[i]];
+    if (terr === 'vann' || v.overlegg.has(i) || !naboer4(v, i).some((j) => hav[j])) continue;
+    const x = i % B, y = Math.floor(i / B);
+    let land = 0;
+    for (let dy = -3; dy <= 3; dy++) {
+      for (let dx = -3; dx <= 3; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx >= 0 && yy >= 0 && xx < B && yy < H && TERRENGNAVN[v.terreng[yy * B + xx]] !== 'vann') land++;
+      }
+    }
+    const poeng = land + (terr === 'strand' ? 8 : 0) + r.tall() * 6;
+    if (!best || poeng > best.poeng) best = { x, y, poeng };
+  }
+  return best ? { x: best.x, y: best.y } : v.start;
 }
 
 /** Foreldreinnstillinger som passer nivået, til foreldrene endrer dem. */
@@ -53,6 +100,9 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     take: new Map(),          // rute → børstestrøk som gjenstår
     ting: new Map(),          // rute → { igjen, gang, borteTil }
     bygg: new Map(),          // rute → id for bygg man har satt ut
+    oyNr: 1,                  // øy nummer 1, 2, 3 … (man seiler videre med båt fra havna)
+    oyer: [],                 // øyene man har seilt fra
+    baat: false,              // er seilbåten bygget ved havna?
     kister: new Set(),        // ruter der det har dukket opp en kiste da tåka ble børstet bort
     kisteTeller: 0,           // avdekkede ruter siden forrige kiste
     nesteKiste: FORSTE_KISTE,
@@ -63,6 +113,12 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     mattestat: tomMattestat(),
     stat: tomStat(),
   };
+  avdekkStart(spill);
+  return spill;
+}
+
+/** Leiren og rutene rett rundt den er kjent fra starten. */
+function avdekkStart(spill) {
   const verden = lagVerden(spill);
   const { x: sx, y: sy } = verden.start;
   for (let y = sy - 2; y <= sy + 2; y++) {
@@ -71,7 +127,6 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
       if (Math.abs(x - sx) + Math.abs(y - sy) <= 3) spill.avdekket[y * verden.bredde + x] = 1;
     }
   }
-  return spill;
 }
 
 // ---------------------------------------------------------------------------
@@ -260,23 +315,88 @@ export function selg(spill, vare, antall = spill.forrad[vare] ?? 0) {
   return [{ type: 'solgt', vare, antall: n, pris: VARER[vare].pris, sum }];
 }
 
-/** Kan et bygg settes på rute i? Avdekket land, ikke leiren, og ingen ting eller bygg der. */
-export function kanPlassere(spill, verden, i) {
+/** Kan et bygg settes på rute i? Avdekket land, ikke leiren, og ingen ting eller bygg der. Havna må stå ved sjøen. */
+export function kanPlassere(spill, verden, i, id = null) {
   if (!spill.avdekket[i] || i === verden.startIndeks || spill.bygg.has(i)) return false;
   const terr = TERRENGNAVN[verden.terreng[i]];
   if (terr === 'vann' || verden.overlegg.get(i)?.type === 'landsby') return false;
+  if (id === HAVN.id && !vedSjoen(verden, i)) return false;
   return !tingVed(spill, verden, i);
+}
+
+/** Ligger ruta inntil vannet? */
+export function vedSjoen(verden, i) {
+  return naboer4(verden, i).some((j) => TERRENGNAVN[verden.terreng[j]] === 'vann');
+}
+
+/** Hvor mange av de 20 ulike byggene står på øya? */
+export function ulikeBygg(spill) {
+  const ider = new Set(BYGG.map((b) => b.id));
+  return new Set([...spill.bygg.values()].filter((id) => ider.has(id))).size;
+}
+
+/** Ruta der havna står (eller -1). */
+export function havnVed(spill) {
+  for (const [i, id] of spill.bygg) if (id === HAVN.id) return i;
+  return -1;
+}
+
+/** Havna kan kjøpes når alle de ulike byggene står på øya, og det ikke står en havn der fra før. */
+export const havnApen = (spill) => ulikeBygg(spill) >= HAVN.krav;
+export const kanKjopeHavn = (spill) => havnApen(spill) && havnVed(spill) < 0;
+
+/** Det som skal tegnes på en byggerute (havna får en båt ved brygga når den er bygget). */
+export function pyntVed(spill, i) {
+  const id = spill.bygg.get(i);
+  return id === HAVN.id && spill.baat ? BAAT.id : id;
 }
 
 export function kjopOgPlasser(spill, verden, i, id) {
   const b = BYGG_ETTER_ID[id];
-  if (!b) return [];
+  if (!b || id === BAAT.id) return [];
+  if (id === HAVN.id && !kanKjopeHavn(spill)) return [{ type: 'laast' }];
   if (spill.mynter < b.pris) return [{ type: 'forLiteMynter', mangler: b.pris - spill.mynter }];
-  if (!kanPlassere(spill, verden, i)) return [{ type: 'ikkeHer' }];
+  if (!kanPlassere(spill, verden, i, id)) return [{ type: 'ikkeHer' }];
   spill.mynter -= b.pris;
   spill.bygg.set(i, id);
   spill.stat.bygg++;
   return [{ type: 'bygget', i, id }];
+}
+
+/** Seilbåten bygges ved havna. */
+export function byggBaat(spill) {
+  if (havnVed(spill) < 0 || spill.baat) return [];
+  if (spill.mynter < BAAT.pris) return [{ type: 'forLiteMynter', mangler: BAAT.pris - spill.mynter }];
+  spill.mynter -= BAAT.pris;
+  spill.baat = true;
+  return [{ type: 'baatBygget' }];
+}
+
+/**
+ * Seil til en ny øy. Den gamle øya tas vare på (i spill.oyer), og man tar med seg
+ * forrådet og myntene. Den nye øya lages fra en ny seed, og man går i land ved sjøen.
+ */
+export function seil(spill, seed = Math.floor(Math.random() * 2 ** 31)) {
+  if (!spill.baat) return [];
+  const avdekket = [];
+  spill.avdekket.forEach((v, i) => { if (v) avdekket.push(i); });
+  spill.oyer = [...(spill.oyer ?? []), {
+    nr: spill.oyNr, seed: spill.seed, forlot: spill.dag, avdekket,
+    take: [...spill.take], ting: [...spill.ting], bygg: [...spill.bygg], kister: [...spill.kister],
+  }];
+  spill.oyNr++;
+  spill.seed = seed;
+  spill.avdekket = new Uint8Array(OY.bredde * OY.hoyde);
+  spill.take = new Map();
+  spill.ting = new Map();
+  spill.bygg = new Map();
+  spill.kister = new Set();
+  spill.kisteTeller = 0;
+  spill.nesteKiste = FORSTE_KISTE;
+  spill.baat = false;
+  spill.sol = SOL[spill.nivaa];
+  avdekkStart(spill);
+  return [{ type: 'seilt', oyNr: spill.oyNr, stil: lagVerden(spill).stil }];
 }
 
 // ---------------------------------------------------------------------------
@@ -336,6 +456,9 @@ export function fraData(d) {
     take: new Map(d.take),
     ting: new Map(d.ting),
     bygg: new Map(d.bygg ?? []),
+    oyNr: d.oyNr ?? 1,
+    oyer: d.oyer ?? [],
+    baat: d.baat ?? false,
     kister: new Set(d.kister ?? []),
     kisteTeller: d.kisteTeller ?? 0,
     nesteKiste: d.nesteKiste ?? FORSTE_KISTE,

@@ -7,6 +7,7 @@ import {
   bland, lys, mork, poly, skygge, fasett, klump, kasse, hus, gran, lovtre, stein, topp, tust, iso,
 } from './lavpoly.js';
 import { tegnVei, tegnBane, lagUnngaa, HALVBREDDE } from './veier.js';
+import { settLag } from './neon.js';
 
 // ---------------------------------------------------------------------------
 // Bunn
@@ -23,6 +24,7 @@ function rundRekt(ctx, x, y, w, h, r) {
 
 /** Grunnflate: midtfarge, mørkere mot kantene (målt i forbildet), flak og tuster. */
 function bunn(ctx, S, b, tilf, { flak = 10, tuster = 6 } = {}) {
+  settLag('bakke');
   rundRekt(ctx, 0, 0, S, S, S * 0.025);
   ctx.clip();
   ctx.fillStyle = b.midt;
@@ -40,10 +42,12 @@ function bunn(ctx, S, b, tilf, { flak = 10, tuster = 6 } = {}) {
       tust(ctx, S * (0.1 + tilf.tall() * 0.8), S * (0.15 + tilf.tall() * 0.78), S * 0.05, b.tust);
     }
   }
+  settLag('figur');
 }
 
 /** Mørkere kant innover («vignett») – legges på etter figurene så hele kortet får den. */
 function kantskygge(ctx, S, b) {
+  settLag('kant');
   const g = ctx.createRadialGradient(S / 2, S / 2, S * 0.42, S / 2, S / 2, S * 0.74);
   g.addColorStop(0, 'rgba(0,0,0,0)');
   g.addColorStop(1, b.kant + '99');
@@ -60,6 +64,7 @@ function kantskygge(ctx, S, b) {
     ctx.fillStyle = lg;
     ctx.fillRect(rx, ry, rw, rh);
   }
+  settLag('figur');
 }
 
 // ---------------------------------------------------------------------------

@@ -134,6 +134,48 @@ console.log(`kister: ${kister} av ${avdekket} avdekkede ruter (1 av ${(1 / andel
 sjekk(andel > 0.15 && andel < 0.27, `ca. hver femte rute har kiste (${andel.toFixed(2)})`);
 sjekk(R.fraData({ ...R.tilData(R.nyttSpill({ navn: 'Uten' }, 4)), kister: undefined, nesteKiste: undefined }).kister.size === 0, 'gamle lagringer uten kister virker');
 
+// Havn, båt og seiling til en ny øy
+{
+  const sp = R.nyttSpill({ navn: 'Seiler' }, 11);
+  let ve = R.lagVerden(sp);
+  sp.mynter = 5000;
+  sp.forrad.rubin = 3;
+  // Avdekk hele øya, så det finnes plass ved sjøen
+  sp.avdekket.fill(1);
+  const ledige = [...sp.avdekket.keys()].filter((x) => R.kanPlassere(sp, ve, x));
+  const kyst = ledige.filter((x) => R.vedSjoen(ve, x));
+  const inne = ledige.filter((x) => !R.vedSjoen(ve, x));
+  sjekk(R.kjopOgPlasser(sp, ve, kyst[0], 'havn')[0].type === 'laast', 'havna er låst før alle byggene står');
+  // 19 ulike bygg (og noen like) er ikke nok
+  BYGG.slice(0, 19).forEach((b, k) => R.kjopOgPlasser(sp, ve, inne[k], b.id));
+  R.kjopOgPlasser(sp, ve, inne[19], 'baal');
+  sjekk(R.ulikeBygg(sp) === 19 && !R.havnApen(sp), 'to like bygg teller som ett');
+  R.kjopOgPlasser(sp, ve, inne[20], BYGG[19].id);
+  sjekk(R.ulikeBygg(sp) === 20 && R.havnApen(sp), 'havna åpnes med 20 ulike bygg');
+  sjekk(R.kjopOgPlasser(sp, ve, inne[21], 'havn')[0].type === 'ikkeHer', 'havna må stå ved sjøen');
+  sjekk(R.kjopOgPlasser(sp, ve, kyst[0], 'havn')[0].type === 'bygget', 'havna bygges ved sjøen');
+  sjekk(!R.kanKjopeHavn(sp), 'bare én havn per øy');
+  sjekk(R.seil(sp).length === 0, 'kan ikke seile uten båt');
+  const for_ = sp.mynter;
+  sjekk(R.byggBaat(sp)[0].type === 'baatBygget' && sp.mynter === for_ - 250, 'båten bygges ved havna');
+  sjekk(R.pyntVed(sp, kyst[0]) === 'havnbaat', 'havna tegnes med båt');
+  const h = R.seil(sp, 4242);
+  ve = R.lagVerden(sp);
+  sjekk(h[0].type === 'seilt' && sp.oyNr === 2 && ve.stil === 'neon', 'seiler til øy 2 i neonstil');
+  sjekk(sp.bygg.size === 0 && sp.forrad.rubin === 3 && sp.mynter === for_ - 250 && !sp.baat, 'tar med forråd og mynter, ikke bygg');
+  sjekk(sp.oyer.length === 1 && sp.oyer[0].bygg.length === 22, 'den gamle øya tas vare på');
+  const st = ve.startIndeks;
+  sjekk(R.TERRENGNAVN[ve.terreng[st]] !== 'vann' && R.vedSjoen(ve, st), 'går i land på en landrute ved sjøen');
+  sjekk(sp.avdekket[st] === 1 && sp.sol === SOL.stor, 'leiren er avdekket og sola er full');
+  const igjen = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
+  sjekk(igjen.oyNr === 2 && R.lagVerden(igjen).startIndeks === st, 'den nye øya huskes ved lagring');
+  // Kyststart på mange øyer
+  for (let seed = 1; seed <= 40; seed++) {
+    const v2 = R.lagVerden({ seed, oyNr: 2 });
+    sjekk(R.TERRENGNAVN[v2.terreng[v2.startIndeks]] !== 'vann' && R.vedSjoen(v2, v2.startIndeks), `kyststart på øy ${seed}`);
+  }
+}
+
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));
 sjekk(bareGange.art === 'gange' && bareGange.a <= 2, 'bare ganging når bare ganging er valgt');
 

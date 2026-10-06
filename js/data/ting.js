@@ -91,7 +91,19 @@ export const BYGG = [
   { id: 'rakett',      navn: 'Rakett',      pris: 300 },
   { id: 'borg',        navn: 'Borg',        pris: 400 },
 ];
-export const BYGG_ETTER_ID = Object.fromEntries(BYGG.map((b) => [b.id, b]));
+
+/**
+ * Havna låses opp når man har satt opp alle de 20 ulike byggene på øya. Den må stå
+ * ved sjøen. Ved havna kan man bygge en seilbåt, og med båten kan man seile til en
+ * ny øy (i neonstil) – eller bli der man er.
+ */
+export const HAVN = { id: 'havn', navn: 'Havn', pris: 150, krav: BYGG.length };
+export const BAAT = { id: 'havnbaat', navn: 'Havn med seilbåt', pris: 250 };
+
+export const BYGG_ETTER_ID = Object.fromEntries([...BYGG, HAVN, BAAT].map((b) => [b.id, b]));
+
+/** Stilen på øy nummer 1, 2, 3 … (den siste brukes videre). */
+export const OY_STIL = ['vanlig', 'neon'];
 
 /** Sjansen for liten, middels og stor utgave. */
 export const STR_SJANSE = [0.55, 0.3, 0.15];

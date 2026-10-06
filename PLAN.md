@@ -49,7 +49,20 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Dyrene lever**: sauene beiter, puster, logrer og blunker. Hjorten løfter hodet og vipper med halen, og fiskene spreller.
 - Teknikk: kortet med det som står stille lagres som før, og bare det som beveger seg tegnes på nytt hver gang skjermen tegnes, og bare for ruter man ser.
 
+## Havn og Neonøya (2026-10-06)
+- Når **alle de 20 ulike byggene** står på øya, låses **havna** opp i butikken (150 mynter). Butikken viser hvor mange man har, for eksempel «🔒 19 av 20».
+  Havna må stå på land rett ved sjøen.
+- Trykk på havna for å **bygge en seilbåt** (250 mynter). Deretter kan man velge mellom **«Seil til en ny øy!»** og **«Bli her litt til»**. Seilturen er frivillig.
+- Seilturen er en liten animasjon. Den nye øya lages med samme generator og ny seed, og **man går i land på en landrute ved havet**.
+  Man tar med seg forrådet og myntene. Den gamle øya lagres i `spill.oyer`, men man kan ikke reise tilbake ennå.
+- **Øy 2 er Neonøya** (`OY_STIL` i `ting.js`): mørk bakke, kort med lysende kanter, alle ting og bygg i sterke neonfarger med glød,
+  lilla himmel med en stripete sol, og menyer og knapper i neon.
+- Teknikk (`js/stil/neon.js`): tegnekoden er den samme. Canvas-konteksten lappes, så hver farge byttes til en neonfarge når den settes,
+  ut fra hvilket lag som tegnes (bakke, kant eller figur, satt i `ruter.js`). Gløden lages av et nedskalert bilde som legges oppå med «lighter».
+- Byggekatalogen kan vise neonutgaven: `katalog.html?neon`.
+
 ## Mulige neste steg
+- Reise tilbake til de gamle øyene, og flere stiler for øy 3, 4 … (for eksempel is, godteri eller verdensrommet)
 - Flytte eller rive bygg man har satt ut, og «Mine bygg» i butikken
 - Telling også i butikken (mynter som telles opp én og én for de minste)
 - Flere regnearter for de eldste (tallforståelse, klokka, penger)

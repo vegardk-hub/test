@@ -205,3 +205,68 @@ dialog.kort.bred { width: min(94vw, 720px); max-height: 90vh; }
 .valgrad.liten button { min-width: 48px; min-height: 40px; padding: 2px 10px; }
 .eksempel { margin: 8px 0 0; color: #6d6656; font-variant-numeric: tabular-nums; }
 .statistikk { margin: 0; line-height: 1.5; }
+
+/* ---------- Havna og seilturen ---------- */
+.havn-valg {
+  background: var(--panel); color: var(--tekst); border: 3px solid var(--kant); border-radius: 20px;
+  padding: 10px 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: min(92vw, 460px); text-align: center;
+}
+.havn-valg p { margin: 0; font-size: 18px; }
+.havn-valg small { color: #a33; }
+.havn-valg .hoved { font-size: 20px; min-height: 56px; }
+.havn-valg .dyr { opacity: 0.55; }
+.havn-knapper { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+body.liten .havn-valg button { font-size: 34px; }
+.byggkort.havn { border-color: #2c5f86; background: #e8f4fb; }
+.byggkort.laast img { filter: grayscale(0.85); opacity: 0.6; }
+.byggkort .bl { font-size: 12px; color: #2c5f86; font-weight: 700; }
+
+.seiling { position: fixed; inset: 0; z-index: 50; overflow: hidden; background: linear-gradient(#7fc0ea 0 56%, #2c6f9e 56% 100%); animation: inn 0.4s ease-out; }
+.seiling::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: linear-gradient(#12002b 0, #5a0b6e 56%, #0a0420 56%, #04010f 100%); animation: tilNeon 2.6s ease-in forwards;
+}
+.seiling.til-vanlig::after { display: none; }
+@keyframes tilNeon { 0%, 45% { opacity: 0; } 100% { opacity: 1; } }
+.seiling-tekst {
+  position: absolute; z-index: 2; top: 18%; left: 0; right: 0; text-align: center; font-size: 30px; font-weight: 800; color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.seiling-baat { position: absolute; z-index: 2; top: 36%; left: -30%; font-size: 130px; animation: seil 2.8s ease-in-out forwards; }
+@keyframes seil {
+  0% { left: -30%; transform: rotate(-5deg); } 25% { transform: rotate(5deg); } 50% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); } 100% { left: 110%; transform: rotate(0); }
+}
+.seiling-bolger {
+  position: absolute; z-index: 2; left: -10%; right: -10%; top: 56%; height: 40px;
+  background: radial-gradient(circle at 20px -6px, transparent 22px, rgba(255, 255, 255, 0.6) 23px 26px, transparent 27px) 0 0 / 40px 40px repeat-x;
+  animation: bolger 1.2s linear infinite;
+}
+@keyframes bolger { to { transform: translateX(40px); } }
+.seiling.ferdig { animation: ut 0.7s ease-in forwards; }
+@keyframes ut { to { opacity: 0; } }
+
+/* ---------- Neonøya ---------- */
+body.neon {
+  --bunn: #05020d; --panel: #150a2a; --kant: #b02cff; --tekst: #f6eaff; --krem: #f6eaff; --dempet: #b9a6d6; --gullkant: #ff2bd6;
+}
+body.neon button { background: #22113d; color: #f6eaff; border-color: #6c3bd1; }
+body.neon button.hoved, body.neon .stor-knapp, body.neon .faner button.valgt, body.neon .valgrad button.valgt {
+  background: #ff2bd6; color: #fff; border-color: #ff9cf0; box-shadow: 0 0 12px rgba(255, 43, 214, 0.6);
+}
+body.neon .topp { border-bottom-color: #19e3ff; box-shadow: 0 0 16px rgba(25, 227, 255, 0.45); }
+body.neon .forrad { border-top-color: #19e3ff; box-shadow: 0 0 16px rgba(25, 227, 255, 0.45); }
+body.neon .himmel { border-color: #ff2bd6; box-shadow: 0 0 10px rgba(255, 43, 214, 0.6); }
+body.neon #dag, body.neon #sol-tall { color: #fff; text-shadow: 0 0 6px #ff2bd6, 0 0 2px #000; }
+body.neon .vare { background: #22113d; color: #f6eaff; }
+body.neon .vare.mynter { background: #3a2400; color: #ffe58a; border-color: #ffd23f; }
+body.neon dialog.kort { box-shadow: 0 0 30px rgba(176, 44, 255, 0.55); }
+body.neon .selgrad, body.neon .sang-rad, body.neon .artrad, body.neon .byggkort, body.neon .matte-svar { background: #22113d; color: #f6eaff; }
+body.neon .byggkort .bp { color: #ffe58a; }
+body.neon .byggkort.havn { background: #0b2a3d; border-color: #19e3ff; }
+body.neon .selgrad .vn small, body.neon .tom-tekst, body.neon .eksempel, body.neon #sangbok-tekst, body.neon .artrad .tak { color: #b9a6d6; }
+body.neon .melding { box-shadow: 0 0 18px rgba(255, 43, 214, 0.6); }
+body.neon .tast-ok, body.neon .svarvalg.riktig { background: #0f4a2c; color: #9dffc9; border-color: #2bff9c; }
+body.neon .svarvalg.feil { background: #4a0f1c; color: #ffb3c0; }
+body.neon .matte-melding.riktig { color: #2bff9c; }
+body.neon .matte-melding.feil { color: #ff5c8a; }

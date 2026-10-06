@@ -9,7 +9,8 @@ import { blandSeed, lagTilfeldig } from './rng.js';
 import { tegnFigur, tegnHjort } from './figurer.js';
 import { PYNT, LIV } from './stil/pynt.js';
 import { TAKE_TRYKK } from './data/ting.js';
-import { TERRENGNAVN, tingVed, kanBorstes } from './regler.js';
+import { TERRENGNAVN, tingVed, kanBorstes, pyntVed } from './regler.js';
+import { neonKontekst, neonPaa, glod } from './stil/neon.js';
 
 export const RUTE = 100;     // verdensenheter per rute
 export const FUGE = 1.5;     // ca. 1,5 % av ruta (målt i forbildet)
@@ -19,7 +20,7 @@ export const KORT = RUTE - FUGE;
 function avdekketInnhold(spill, verden, i) {
   const terreng = TERRENGNAVN[verden.terreng[i]];
   if (i === verden.startIndeks) return { terreng, bygg: 'leir' };
-  const pynt = spill.bygg.get(i);
+  const pynt = pyntVed(spill, i);
   if (pynt) return { terreng: terreng === 'skog' ? 'eng' : terreng, pynt };
   const o = verden.overlegg.get(i);
   if (o?.type === 'landsby') return { terreng, bygg: 'landsby', nivaa: 2 };
@@ -64,6 +65,7 @@ export class Brett {
     const lerret = document.createElement('canvas');
     lerret.width = lerret.height = str;
     const ctx = lerret.getContext('2d');
+    if (neonPaa()) neonKontekst(ctx);
     const tilf = lagTilfeldig(blandSeed(this.verden.seed, this.verden.forsok, 'kort', i));
     if (innhold.ukjent) tegnUkjent(ctx, str, tilf);
     else if (innhold.pynt) {
@@ -74,6 +76,7 @@ export class Brett {
     } else if (innhold.overlegg === 'hjort') {
       tegnKort(ctx, str, tilf, { terreng: innhold.terreng, lysning: true });
     } else tegnKort(ctx, str, tilf, innhold);
+    glod(lerret, 0.5);   // bare på neonøya
     const k = { sig: signatur(innhold), str, lerret };
     this.kort.set(nokkel, k);
     return k;

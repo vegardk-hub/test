@@ -14,7 +14,9 @@ import { tegnMenneske, tegnFigur } from './figurer.js';
 import { tegnTomtKort } from './stil/ruter.js';
 import { PYNT, LIV, tegnBygg, ivrig } from './stil/pynt.js';
 import { poly, fasett } from './stil/lavpoly.js';
-import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER } from './data/ting.js';
+import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER, LAERER } from './data/ting.js';
+import { EMNER } from './data/kunnskap.js';
+import * as Stemme from './stemme.js';
 import { settNeon, neonPaa, neonKontekst, glod } from './stil/neon.js';
 import { visVersjon } from './versjon.js';
 import { TAKFARGER, STANDARD_TAKFARGE, spillerfarge, settSpillerfarge } from './stil/spillerfarge.js';
@@ -35,6 +37,7 @@ const t = {
   vist: {},           // det forrådet viser (tingene teller først når de har fløyet ned)
   lukketVed: -Infinity, lukketNokkel: null,   // når og hvem sin snakkeboble som sist ble lukket
   tur: null,          // hjelpernes tur ut og hjem om morgenen
+  laerer: null,       // læreren på skolen, som leser opp kunnskapstekster
   gutt: null,         // barnet på skolen (samme navn som spilleren), som går rundt og finner på ting
   velkomst: null,     // en ny hjelper som kommer ut og vinker
   forrigeStykke: '',
@@ -50,13 +53,7 @@ try { L.settLyd(localStorage.getItem('oya-lyd') !== 'av'); } catch { /* ignorer 
 // ---------------------------------------------------------------------------
 function siTall(n) {
   if (!t.spill || !innst().lesOpp || !window.speechSynthesis) return;
-  try {
-    const u = new SpeechSynthesisUtterance(String(n));
-    u.lang = 'nb-NO';
-    u.rate = 1.15;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-  } catch { /* opplesing er pynt */ }
+  try { Stemme.si(n); } catch { /* opplesing er pynt */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -1554,11 +1551,16 @@ function tegnHjelpere(ctx, ms) {
     tegn.push({ x: g.x, y: g.y - hopp, alfa: Math.min(1, (ms - g.inn) / 500), ide, hvem: { type: 'gutt' },
       o: { farge: OPPFINNER.farge, nr: 2, t: tsek, gaar: g.gaar, mot: g.mot, briller: true, vink: ide && !g.gaar ? 1 : 0 } });
   }
+  const lr = oppdaterLaerer(ms);
+  if (lr) {
+    tegn.push({ x: lr.x, y: lr.y, alfa: Math.min(1, (ms - lr.inn) / 500), stor: true, hvem: { type: 'laerer' },
+      o: { farge: LAERER.farge, nr: 4, t: tsek * 0.8, gaar: lr.gaar, mot: lr.mot, type: 'bok' } });
+  }
   tegn.sort((a, b) => a.y - b.y);
   t.personer = tegn;
   for (const d of tegn) {
     ctx.globalAlpha = d.alfa;
-    tegnMenneske(ctx, d.x, d.y, HJELPER_H, d.o);
+    tegnMenneske(ctx, d.x, d.y, HJELPER_H * (d.stor ? 1.2 : 1), d.o);
     if (d.ide) tegnLyspaere(ctx, d.x, d.y - HJELPER_H * 1.3, tsek);
   }
   ctx.globalAlpha = 1;
@@ -1566,19 +1568,29 @@ function tegnHjelpere(ctx, ms) {
 
 /** Barnet på skolen går rundt i nærheten, stopper og tenker, og går videre. */
 function oppdaterGutt(ms) {
+  return vandre('gutt', ms, { radius: 2, fart: 1600, pause: [1500, 5000], dor: [-0.14, 0.3] });
+}
+
+/** Læreren går rolig rundt rett ved skolen. */
+function oppdaterLaerer(ms) {
+  return vandre('laerer', ms, { radius: 1, fart: 2300, pause: [3000, 8000], dor: [0.12, 0.32] });
+}
+
+/** En som går rundt i nærheten av skolen: velger et sted, går dit, står en stund, og går videre. */
+function vandre(navn, ms, { radius, fart, pause, dor: [ox, oy] }) {
   const s = t.spill, v = t.verden, skole = R.skoleVed(s);
-  if (skole < 0) { t.gutt = null; return null; }
+  if (skole < 0) { t[navn] = null; return null; }
   const [sx, sy] = midtAv(skole);
-  let g = t.gutt;
+  let g = t[navn];
   if (!g || g.skole !== skole) {
-    const dorPos = [sx - RUTE * 0.14, sy + RUTE * 0.3];
-    g = t.gutt = { skole, x: dorPos[0], y: dorPos[1], fra: dorPos, til: dorPos, t0: ms, varighet: 0, pause: 900, mot: 1, gaar: 0, inn: ms, hopp: -9999 };
+    const dorPos = [sx + RUTE * ox, sy + RUTE * oy];
+    g = t[navn] = { skole, x: dorPos[0], y: dorPos[1], fra: dorPos, til: dorPos, t0: ms, varighet: 0, pause: 900, mot: 1, gaar: 0, inn: ms, hopp: -9999 };
   }
   if (ms - g.t0 >= g.varighet + g.pause) {
     const B = v.bredde, kx = skole % B, ky = Math.floor(skole / B);
     const mulige = [];
-    for (let dy = -2; dy <= 2; dy++) {
-      for (let dx = -2; dx <= 2; dx++) {
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
         const x = kx + dx, y = ky + dy;
         if (x < 0 || y < 0 || x >= B || y >= v.hoyde) continue;
         const i = y * B + x;
@@ -1591,8 +1603,8 @@ function oppdaterGutt(ms) {
     g.fra = [g.x, g.y];
     g.til = til;
     g.t0 = ms;
-    g.varighet = 500 + (Math.hypot(til[0] - g.x, til[1] - g.y) / RUTE) * 1600;
-    g.pause = 1500 + Math.random() * 3500;
+    g.varighet = 500 + (Math.hypot(til[0] - g.x, til[1] - g.y) / RUTE) * fart;
+    g.pause = pause[0] + Math.random() * (pause[1] - pause[0]);
     g.mot = til[0] >= g.x ? 1 : -1;
   }
   const u = Math.min(1, (ms - g.t0) / (g.varighet || 1));
@@ -1638,7 +1650,7 @@ function finnPerson(kx, ky) {
   return best;
 }
 
-const personNokkel = (hvem) => (hvem.type === 'gutt' ? 'gutt' : hvem.type === 'ny' ? `ny${hvem.nr}` : `h${hvem.l.h}`);
+const personNokkel = (hvem) => (hvem.type === 'gutt' || hvem.type === 'laerer' ? hvem.type : hvem.type === 'ny' ? `ny${hvem.nr}` : `h${hvem.l.h}`);
 
 /** Et trykk hvor som helst lukker snakkeboblen (det trykket gjør ikke noe annet på brettet). */
 function lukkSnakk() {
@@ -1659,6 +1671,7 @@ function snakk(nokkel, tekst, ikon, ikonLiten) {
 
 function snakkMed(hvem) {
   if (hvem.type === 'gutt') { snakkMedGutt(); return; }
+  if (hvem.type === 'laerer') { aapneLaerer(); return; }
   if (hvem.type === 'ny') {
     const hj = t.spill.hjelpere[hvem.nr];
     snakk(`ny${hvem.nr}`, `${hj.navn}: «Hei! Jeg heter ${hj.navn}. Hver morgen går jeg ut og samler inn noe for deg.»`, '👋', '🧑‍🌾👋');
@@ -1688,9 +1701,54 @@ function snakkMedGutt() {
   const siste = OPPFINNELSER.find((o) => o.id === s.oppfinnelser.at(-1));
   if (liten()) { melding('', { ikon: s.ideDag === s.dag ? '🤓💡🎉' : '🤓🤔💡', fast: 'gutt' }); return; }
   const tekst = s.ideDag === s.dag && siste ? `«Jeg har funnet på ${siste.tekst}! Se i butikken.»`
-    : !tenker ? '«Jeg har funnet på alt jeg kan. Nå leser jeg bøker!»'
+    : !tenker ? '«Nå har jeg ikke flere ting å finne opp.»'
     : '«Hmm … jeg tenker på noe nytt!»';
   melding(`${oppfinner()}: ${tekst}`, { ikon: '🤓', fast: 'gutt' });
+}
+
+// ---------------------------------------------------------------------------
+// Læreren leser opp kunnskapstekster (fra Lesestjerna)
+// ---------------------------------------------------------------------------
+const EMNE_IKON = { krefter: '🚀', liv: '🦔', folk: '🧠', oppfinnelser: '💡', rekorder: '🏆' };
+let laererEmne = null, laererTekst = null;
+
+function aapneLaerer() {
+  L.vekk();
+  $('laerer-tittel').textContent = liten() ? '📚' : `📚 Lærer ${LAERER.navn} forteller`;
+  tegnEmner();
+  $('laerer-merk').hidden = !!window.speechSynthesis;
+  $('laerer-merk').textContent = 'Denne nettleseren kan ikke lese opp, men teksten står her.';
+  if (!$('laerer').open) $('laerer').showModal();
+  nyFortelling();
+}
+
+function tegnEmner() {
+  $('laerer-emner').innerHTML = [{ id: '', navn: 'Litt av alt' }, ...EMNER].map((e) =>
+    `<button class="${(laererEmne ?? '') === e.id ? 'valgt' : ''}" data-emne="${e.id}">${EMNE_IKON[e.id] ?? '🎲'}${liten() ? '' : ` ${esc(e.navn)}`}</button>`).join('');
+  $('laerer-emner').querySelectorAll('[data-emne]').forEach((b) => {
+    b.onclick = () => { laererEmne = b.dataset.emne || null; tegnEmner(); nyFortelling(); };
+  });
+}
+
+function nyFortelling() {
+  laererTekst = R.velgTekst(t.spill, laererEmne);
+  lagreSnart();
+  const setninger = Stemme.delISetninger(laererTekst.tekst);
+  $('laerer-tekst').innerHTML = `<div class="lt-tittel"><span class="emoji">${laererTekst.emoji}</span>${esc(laererTekst.tittel)}</div>
+    <p>${setninger.map((x, k) => `<span data-k="${k}">${esc(x)}</span>`).join(' ')}</p>`;
+  lesFortelling();
+}
+
+/** Leser teksten høyt; setningen som leses, lyser opp. */
+function lesFortelling() {
+  if (!laererTekst) return;
+  const merk = (k) => $('laerer-tekst').querySelectorAll('span[data-k]').forEach((el) => el.classList.toggle('les', Number(el.dataset.k) === k));
+  Stemme.lesOpp(laererTekst.tekst, { vedSetning: merk }).then((helt) => { if (helt) merk(-1); });
+}
+
+function lukkLaerer() {
+  Stemme.stille();
+  if ($('laerer').open) $('laerer').close();
 }
 
 /** En eller flere nye hjelpere har kommet: de kommer ut av leiren og vinker. */
@@ -1738,6 +1796,7 @@ function sloyfe() {
 // ---------------------------------------------------------------------------
 function start() {
   visVersjon();
+  Stemme.forbered();
   document.addEventListener('pointerdown', lukkSnakk, true);
   neonKontekst($('lerret').getContext('2d'));
   neonKontekst($('naer-lerret').getContext('2d'));
@@ -1761,6 +1820,10 @@ function start() {
   $('sangbok-knapp').onclick = aapneSangbok;
   $('butikk-knapp').onclick = () => aapneButikk();
   $('seil-knapp').onclick = aapneSjokart;
+  $('laerer-igjen').onclick = () => { L.vekk(); lesFortelling(); };
+  $('laerer-ny').onclick = () => { L.vekk(); nyFortelling(); };
+  $('laerer-lukk').onclick = lukkLaerer;
+  $('laerer').addEventListener('close', () => Stemme.stille());
   $('sjokart-lukk').onclick = () => $('sjokart').close();
   $('fane-selg').onclick = () => { fane = 'selg'; tegnButikk(); };
   $('fane-kjop').onclick = () => { fane = 'kjop'; tegnButikk(); };

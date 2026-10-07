@@ -479,6 +479,10 @@ function verktoy(ctx, type, h) {
   } else if (type === 'ull') {   // saks
     ctx.strokeStyle = '#b8c3cf'; ctx.lineWidth = h * 0.04;
     ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(h * 0.04, -h * 0.2); ctx.moveTo(0, 0); ctx.lineTo(-h * 0.04, -h * 0.2); ctx.stroke();
+  } else if (type === 'bok') {   // en bok
+    poly(ctx, [[-h * 0.1, -h * 0.02], [h * 0.1, -h * 0.02], [h * 0.1, -h * 0.2], [-h * 0.1, -h * 0.2]], '#c0392b');
+    poly(ctx, [[-h * 0.08, -h * 0.04], [h * 0.08, -h * 0.04], [h * 0.08, -h * 0.18], [-h * 0.08, -h * 0.18]], '#f3e7cf');
+    poly(ctx, [[-h * 0.006, -h * 0.02], [h * 0.006, -h * 0.02], [h * 0.006, -h * 0.2], [-h * 0.006, -h * 0.2]], '#8e2a20');
   } else {                       // kurv
     poly(ctx, [[-h * 0.1, 0], [h * 0.1, 0], [h * 0.08, h * 0.1], [-h * 0.08, h * 0.1]], '#c9a26b');
   }

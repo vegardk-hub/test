@@ -108,6 +108,9 @@ export const BAAT = { id: 'havnbaat', navn: 'Havn med seilbåt', pris: 250 };
 export const SKOLE = { id: 'skole', navn: 'Skole', pris: 500, dager: [5, 7] };
 export const OPPFINNER = { farge: '#ffd23f' };   // navnet er spillerens eget
 
+/** Læreren på skolen leser opp kunnskapstekster (de samme som i Lesestjerna). */
+export const LAERER = { navn: 'Frida', farge: '#25b86a' };
+
 /** Oppfinnelsene fra skolen. Prisen følger hvor avansert tingen er. */
 export const OPPFINNELSER = [
   { id: 'drage',            navn: 'Drage',              pris: 20,  tekst: 'en drage som flyr høyt over øya' },

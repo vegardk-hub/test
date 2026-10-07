@@ -12,6 +12,7 @@ import {
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
 import { medStandard } from './matte.js';
+import { TEKSTER } from './data/kunnskap.js';
 import { blandSeed, lagTilfeldig } from './rng.js';
 
 export const VERSJON = 2;
@@ -109,6 +110,7 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     oppfinnelser: [],         // det Theo på skolen har funnet på (kan kjøpes i butikken)
     skoleTeller: 0,           // dager med skole siden forrige idé
     ideDag: null,             // dagen Theo sist fikk en idé (lyspæra vises den dagen)
+    hort: [],                 // kunnskapstekstene læreren har lest (så de ikke kommer igjen for tidlig)
     oyNr: 1,                  // øya man er på (1, 2, 3 …)
     oyFra: null,              // øya man fant denne fra (havna der man seilte ut)
     oyer: [],                 // de andre øyene man har vært på (pakket som data)
@@ -385,6 +387,26 @@ function nyIde(spill) {
   spill.oppfinnelser.push(o.id);
   spill.ideDag = spill.dag;
   return o;
+}
+
+/**
+ * Neste kunnskapstekst læreren skal lese (innen et emne, eller fra alle). Tekster man ikke
+ * har hørt kommer først, de letteste først; når alle er hørt, begynner emnet på nytt.
+ * 🐣 Liten får nivå 1–2, 🧒 Stor alle nivåer.
+ */
+export function velgTekst(spill, emne = null, r = Math.random) {
+  const maks = spill.nivaa === 'liten' ? 2 : 3;
+  const utvalg = TEKSTER.filter((x) => x.niva <= maks && (!emne || x.emne === emne));
+  let nye = utvalg.filter((x) => !spill.hort.includes(x.id));
+  if (!nye.length) {
+    spill.hort = spill.hort.filter((id) => !utvalg.some((x) => x.id === id));
+    nye = utvalg;
+  }
+  const lettest = Math.min(...nye.map((x) => x.niva));
+  const kandidater = nye.filter((x) => x.niva === lettest);
+  const tekst = kandidater[Math.floor(r() * kandidater.length)];
+  spill.hort.push(tekst.id);
+  return tekst;
 }
 
 /** Det som skal tegnes på en byggerute (havna får en båt ved brygga når den er bygget). */
@@ -701,6 +723,7 @@ export function fraData(d) {
     oppfinnelser: d.oppfinnelser ?? [],
     skoleTeller: d.skoleTeller ?? 0,
     ideDag: d.ideDag ?? null,
+    hort: d.hort ?? [],
     oppdrag: d.oppdrag ?? [],
     kryss: new Map(d.kryss ?? []),
     gravd: new Set(d.gravd ?? []),

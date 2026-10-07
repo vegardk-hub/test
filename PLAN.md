@@ -41,6 +41,17 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
   vannsklie (110), karusell (130), regnbuemaskin (150), danserobot (175) og flygende tallerken som henter en ku (200).
   Rekkefølgen er tilfeldig, og hver oppfinnelse kommer bare én gang.
 
+## Læreren leser kunnskapstekster (2026-10-07)
+- Ut av skolen kommer også **lærer Frida** (grønn genser, grått hår, rød bok), som går rolig rundt rett ved skolen.
+  Trykker man på henne, åpnes «📚 Lærer Frida forteller»: hun leser en kunnskapstekst høyt, og setningen hun leser, lyser opp.
+- Tekstene er hentet fra **Lesestjerna** (`js/data/kunnskap.js`, 199 sanne tekster i fem emner, uten vitsene).
+  Man kan velge emne (🚀 krefter og rommet, 🦔 alt som lever, 🧠 mennesker, 💡 oppfinnelser, 🏆 rekorder, eller 🎲 litt av alt),
+  høre den samme teksten igjen eller få en ny. Ingen tekst kommer igjen før alle i emnet er hørt, og de letteste kommer først. 🐣 Liten får nivå 1–2.
+- **Stemmen** (`js/stemme.js`) velges som i Lesestjerna: «Microsoft Finn Online (Natural)» i Edge på PC, ellers en forbedret («Enhanced»/«Premium») stemme,
+  så en norsk nettstemme, så hvilken som helst norsk stemme. På iPad bruker alle nettlesere (også Edge) Apples talemotor, altså Nora
+  (last ned den forbedrede Nora-stemmen under Innstillinger → Tilgjengelighet → Opplest innhold → Stemmer → Norsk for best lyd). Tallene i tellingen bruker samme stemme.
+- Barnet på skolen sier bare «Nå har jeg ikke flere ting å finne opp.» når alle tolv er funnet.
+
 ## Personene snakker når man trykker på dem (2026-10-07)
 - Det kommer ingen automatiske meldinger om hjelperne eller barnet på skolen. Trykker man på en person, kommer en snakkeboble som blir stående til man trykker hvor som helst (det trykket gjør ikke noe annet på brettet, men en annen person åpner sin egen boble).
   - Hjelper på vei ut: «Jeg skal slå korn!». Mens den jobber: «Nå slår jeg korn …». På vei hjem: «Jeg fikk 2 korn! Nå går jeg hjem.»

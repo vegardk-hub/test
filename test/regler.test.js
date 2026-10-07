@@ -341,6 +341,22 @@ for (const tak of [2, 3, 4, 5, 10]) {
   sjekk(lagret.oppfinnelser.length === 12, 'oppfinnelsene huskes ved lagring');
 }
 
+// Læreren: kunnskapstekster uten gjentakelse, de letteste først
+{
+  const { TEKSTER } = await import('../js/data/kunnskap.js');
+  const sp = R.nyttSpill({ navn: 'Lytter', nivaa: 'stor' }, 3);
+  const liv = TEKSTER.filter((x) => x.emne === 'liv');
+  const sett = [];
+  for (let n = 0; n < liv.length; n++) sett.push(R.velgTekst(sp, 'liv'));
+  sjekk(new Set(sett.map((x) => x.id)).size === liv.length && sett.every((x) => x.emne === 'liv'), 'alle tekstene i et emne før noen kommer igjen');
+  sjekk(sett.map((x) => x.niva).every((n, k, a) => k === 0 || n >= a[k - 1]), 'de letteste først');
+  const igjen = R.velgTekst(sp, 'liv');
+  sjekk(igjen.emne === 'liv' && sp.hort.filter((id) => id.startsWith(igjen.id)).length >= 1, 'emnet begynner på nytt når alt er hørt');
+  const liten = R.nyttSpill({ navn: 'Små', nivaa: 'liten' }, 3);
+  for (let n = 0; n < 100; n++) sjekk(R.velgTekst(liten).niva <= 2, 'Liten får nivå 1–2');
+  sjekk(TEKSTER.length > 150 && !TEKSTER.some((x) => x.emne === 'vitser'), `kunnskapstekster uten vitser (${TEKSTER.length})`);
+}
+
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));
 sjekk(bareGange.art === 'gange' && [bareGange.a, bareGange.b].every((x) => x <= 2 || x === 10), 'bare ganging når bare ganging er valgt');
 

@@ -91,6 +91,11 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Dyrene lever**: sauene beiter, puster, logrer og blunker. Hjorten løfter hodet og vipper med halen, og fiskene spreller.
 - Teknikk: kortet med det som står stille lagres som før, og bare det som beveger seg tegnes på nytt hver gang skjermen tegnes, og bare for ruter man ser.
 
+## Tak på kryss og ressurser (2026-10-07)
+- Høyst **10 skattekryss** ute samtidig (`KRYSS.maks`). Nye kryss kommer bare når det er plass.
+- Høyst **3 klikkbare ting av hver type** (tre, stein, jern, korn, sau, fisk) samtidig (`MAKS_PER_TYPE`, `fyllOpp` i `regler.js`).
+  De som er ute, blir stående til de er høstet. Når det blir plass, kommer den nærmeste ledige av typen fram (ting man har begynt på, først). Kister regnes ikke med.
+
 ## Skattekryss og stjernegrense (2026-10-06)
 - **Annenhver natt** (før dag 3, 5, 7 …) dukker det opp **3 røde skattekryss** på avdekkede, tomme landruter.
 - Trykk **4 ganger** på et kryss for å grave (det telles 1, 2, 3, 4, hullet blir større), og så **spretter en kiste fram**. Den åpnes med mattestykker som de andre.

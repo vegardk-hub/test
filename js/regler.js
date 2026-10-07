@@ -8,7 +8,7 @@
 import { genererVerden } from './kartgen.js';
 import { T } from './data/terreng.js';
 import {
-  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, HJELPER, HJELPERE, SKOLE, OPPFINNELSER,
+  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, MAKS_PER_TYPE, HJELPER, HJELPERE, SKOLE, OPPFINNELSER,
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
 import { medStandard } from './matte.js';
@@ -130,6 +130,7 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     stat: tomStat(),
   };
   avdekkStart(spill);
+  fyllOpp(spill, lagVerden(spill));
   return spill;
 }
 
@@ -174,6 +175,7 @@ export function tingVed(spill, verden, i) {
   if (!type) return null;
   const s = spill.ting.get(i) ?? {};
   if (s.borteTil === -1 || (s.borteTil && spill.dag < s.borteTil)) return null;
+  if (type !== 'kiste' && !s.aktiv) return null;   // høyst MAKS_PER_TYPE av hver type er ute samtidig
   const gang = s.gang ?? 0;
   const u = lagTilfeldig(blandSeed(spill.seed, 'str', i, gang)).tall();
   const str = u < STR_SJANSE[0] ? 0 : u < STR_SJANSE[0] + STR_SJANSE[1] ? 1 : 2;
@@ -183,6 +185,33 @@ export function tingVed(spill, verden, i) {
     i, type, str, seed: blandSeed(spill.seed, 'figur', i, gang),
     antall, igjen: Math.min(s.igjen ?? antall, antall), toner,
   };
+}
+
+/**
+ * Høyst MAKS_PER_TYPE klikkbare ting av hver type på øya samtidig. De som er ute, blir
+ * stående til de er høstet (ingenting forsvinner mens man ser på det); når det er plass,
+ * slippes den neste ledige av typen fram – den som er nærmest leiren først (og ting man
+ * har begynt å trykke på, før alt annet). Kister regnes ikke med.
+ */
+export function fyllOpp(spill, verden) {
+  const B = verden.bredde, st = verden.startIndeks;
+  const avst = (i) => Math.hypot(i % B - st % B, Math.floor(i / B) - Math.floor(st / B));
+  const ute = {}, kandidater = [];
+  spill.avdekket.forEach((v, i) => {
+    if (!v || i === st || spill.bygg.has(i)) return;
+    const type = grunnTing(spill, verden, i);
+    if (!type || type === 'kiste') return;
+    const s = spill.ting.get(i);
+    if (s?.borteTil === -1 || (s?.borteTil && spill.dag < s.borteTil)) return;
+    if (s?.aktiv) ute[type] = (ute[type] ?? 0) + 1;
+    else kandidater.push({ i, type, paabegynt: s?.igjen !== undefined ? 0 : 1, d: avst(i) });
+  });
+  kandidater.sort((a, b) => a.paabegynt - b.paabegynt || a.d - b.d || a.i - b.i);
+  for (const k of kandidater) {
+    if ((ute[k.type] ?? 0) >= MAKS_PER_TYPE) continue;
+    ute[k.type] = (ute[k.type] ?? 0) + 1;
+    spill.ting.set(k.i, { ...(spill.ting.get(k.i) ?? {}), aktiv: true });
+  }
 }
 
 /** Er ruta høstet og venter på at noe nytt skal vokse? Gir antall dager igjen (Infinity for kister). */
@@ -206,6 +235,7 @@ function fullfor(spill, i, ting, s) {
   s.gang = (s.gang ?? 0) + 1;
   delete s.igjen;
   s.borteTil = ting.type === 'kiste' ? -1 : spill.dag + GJENVEKST;
+  delete s.aktiv;
   spill.gravd.delete(i);   // en framgravd kiste etterlater en vanlig, tom rute
   const sang = TING[ting.type].sang;
   const for_ = spill.sanger[sang] ?? 0;
@@ -227,7 +257,7 @@ export function trykkTing(spill, verden, i) {
   spill.sol--;
   spill.stat.trykk++;
   const h = [{ type: 'tone', ting, nr, tall: nr + 1, frekvens: ting.toner[nr], igjen: s.igjen }];
-  if (s.igjen <= 0) h.push(fullfor(spill, i, ting, s));
+  if (s.igjen <= 0) { h.push(fullfor(spill, i, ting, s)); fyllOpp(spill, verden); }
   if (spill.sol <= 0) h.push({ type: 'kveld' });
   return h;
 }
@@ -256,7 +286,7 @@ export function svarKiste(spill, verden, i, { riktig, forsteForsok, art }) {
   spill.sol--;
   spill.stat.trykk++;
   const h = [{ type: 'riktigSvar', ting, nr: ting.antall - ting.igjen, igjen: s.igjen }];
-  if (s.igjen <= 0) h.push(fullfor(spill, i, ting, s));
+  if (s.igjen <= 0) { h.push(fullfor(spill, i, ting, s)); fyllOpp(spill, verden); }
   if (spill.sol <= 0) h.push({ type: 'kveld' });
   return h;
 }
@@ -310,6 +340,7 @@ export function borst(spill, verden, i) {
     spill.avdekket[i] = 1;
     spill.stat.avdekket++;
     kanskjeKiste(spill, verden, i);
+    fyllOpp(spill, verden);
     h.push({ type: 'avdekket', i, nr, tall: nr + 1, ting: tingVed(spill, verden, i) });
   } else {
     spill.take.set(i, igjen);
@@ -509,7 +540,9 @@ export function hjelperFerdig(spill, verden, h) {
   s.gang = (s.gang ?? 0) + 1;
   delete s.igjen;
   s.borteTil = spill.dag + GJENVEKST;
+  delete s.aktiv;
   spill.ting.set(o.i, s);
+  fyllOpp(spill, verden);
   spill.stat.hjulpet = (spill.stat.hjulpet ?? 0) + 1;
   return [{ type: 'hjelperHostet', h, i: o.i, ting, gave }];
 }
@@ -526,6 +559,7 @@ function kryssplass(spill, verden, i) {
 
 /** Legger ut nye skattekryss (seedet etter dagen). Gir rutene. */
 export function leggKryss(spill, verden, antall = KRYSS.perGang) {
+  antall = Math.min(antall, KRYSS.maks - spill.kryss.size);   // høyst KRYSS.maks kryss ute samtidig
   const r = lagTilfeldig(blandSeed(spill.seed, 'kryss', spill.dag));
   const ledige = [...spill.avdekket.keys()].filter((i) => kryssplass(spill, verden, i));
   const ut = [];
@@ -637,6 +671,7 @@ export function seil(spill, seed = Math.floor(Math.random() * 2 ** 31)) {
   pakkUt(spill, { nr, fra, seed, avdekket: [], take: [], ting: [], bygg: [] });
   spill.sol = SOL[spill.nivaa];
   avdekkStart(spill);
+  fyllOpp(spill, lagVerden(spill));
   return [{ type: 'seilt', ny: true, oyNr: nr, stil: lagVerden(spill).stil }];
 }
 
@@ -647,6 +682,7 @@ export function seilTil(spill, nr) {
   spill.oyer = [...spill.oyer.filter((o) => o !== maal), pakkOy(spill)];
   spill.oppdrag = [];
   pakkUt(spill, maal);
+  fyllOpp(spill, lagVerden(spill));
   return [{ type: 'seilt', ny: false, oyNr: nr, stil: lagVerden(spill).stil }];
 }
 
@@ -660,6 +696,7 @@ export function nyDag(spill, verden) {
   spill.dag++;
   spill.sol = SOL[spill.nivaa];
   spill.nattFangst = 0;
+  fyllOpp(spill, verden);
   const vokst = [...for_].filter((i) => tingVed(spill, verden, i));
   // Annenhver natt (før dag 3, 5, 7 …) dukker det opp nye skattekryss.
   const kryss = (spill.dag - 1) % KRYSS.hverNatt === 0 ? leggKryss(spill, verden) : [];

@@ -373,6 +373,37 @@ for (const tak of [2, 3, 4, 5, 10]) {
   sjekk(R.fraData(JSON.parse(JSON.stringify(R.tilData({ ...sp, kreativ: true })))).kreativ === true, 'kreativmodus huskes');
 }
 
+// Tak: høyst 3 klikkbare ting av hver type, og høyst 10 skattekryss samtidig
+{
+  const sp = R.nyttSpill({ navn: 'Tak' }, 33);
+  const ve = R.lagVerden(sp);
+  sp.avdekket.fill(1);
+  R.fyllOpp(sp, ve);
+  const perType = () => {
+    const n = {};
+    sp.avdekket.forEach((_, i) => { const x = R.tingVed(sp, ve, i); if (x && x.type !== 'kiste') n[x.type] = (n[x.type] ?? 0) + 1; });
+    return n;
+  };
+  const for_ = perType();
+  sjekk(Object.values(for_).every((n) => n <= 3) && Object.keys(for_).length >= 5, `høyst 3 av hver type (${JSON.stringify(for_)})`);
+  const tre = [...sp.avdekket.keys()].filter((i) => R.tingVed(sp, ve, i)?.type === 'tre');
+  // Høst ett tre: et nytt kommer fram, og de to andre står der fortsatt
+  const forste = R.tingVed(sp, ve, tre[0]);
+  for (let k = 0; k < forste.antall; k++) { sp.sol = 50; R.trykkTing(sp, ve, tre[0]); }
+  const etter = [...sp.avdekket.keys()].filter((i) => R.tingVed(sp, ve, i)?.type === 'tre');
+  sjekk(etter.length === 3 && !etter.includes(tre[0]) && etter.includes(tre[1]) && etter.includes(tre[2]), 'et høstet tre erstattes av et nytt, de andre blir stående');
+  // Kryss: aldri mer enn 10 ute samtidig
+  for (let d = 0; d < 20; d++) R.nyDag(sp, ve);
+  sjekk(sp.kryss.size === 10, `høyst 10 kryss samtidig (${sp.kryss.size})`);
+  sjekk(Object.values(perType()).every((n) => n <= 3), 'fortsatt høyst 3 av hver type etter mange dager');
+  // Gamle lagringer uten «aktiv»: fyllOpp slipper fram tre av hver type
+  const gml = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
+  for (const [, st] of gml.ting) delete st.aktiv;
+  R.fyllOpp(gml, ve);
+  let n = 0; gml.avdekket.forEach((_, i) => { if (R.tingVed(gml, ve, i)?.type === 'stein') n++; });
+  sjekk(n === 3, `gamle lagringer får tre av hver type (${n} stein)`);
+}
+
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));
 sjekk(bareGange.art === 'gange' && [bareGange.a, bareGange.b].every((x) => x <= 2 || x === 10), 'bare ganging når bare ganging er valgt');
 

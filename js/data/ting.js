@@ -147,7 +147,10 @@ export const GJENVEKST = 2;
  * Skattekryss: annenhver natt dukker det opp nye kryss på avdekkede, tomme ruter.
  * Man graver (trykker) GRAV_TRYKK ganger på krysset, så kommer det fram en kiste.
  */
-export const KRYSS = { perGang: 3, hverNatt: 2 };
+export const KRYSS = { perGang: 3, hverNatt: 2, maks: 10 };   // høyst 10 kryss ute samtidig
+
+/** Høyst så mange klikkbare ting av hver type (tre, stein, jern, korn, sau, fisk) samtidig. */
+export const MAKS_PER_TYPE = 3;
 export const GRAV_TRYKK = 4;
 
 /**

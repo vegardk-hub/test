@@ -129,6 +129,7 @@ function startSpill(id) {
   t.id = id;
   t.spill = spill;
   t.verden = R.lagVerden(spill);
+  R.fyllOpp(spill, t.verden);   // lagringer fra før taket på tre av hver type
   settSpillerfarge(spill.takfarge);
   settNeon(t.verden.stil === 'neon');
   document.body.classList.toggle('neon', neonPaa());

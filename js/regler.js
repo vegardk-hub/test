@@ -110,6 +110,7 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     oppfinnelser: [],         // det Theo på skolen har funnet på (kan kjøpes i butikken)
     skoleTeller: 0,           // dager med skole siden forrige idé
     ideDag: null,             // dagen Theo sist fikk en idé (lyspæra vises den dagen)
+    kreativ: false,           // kreativmodus (foreldrekontroll): alle bygg er gratis
     hort: [],                 // kunnskapstekstene læreren har lest (så de ikke kommer igjen for tidlig)
     oyNr: 1,                  // øya man er på (1, 2, 3 …)
     oyFra: null,              // øya man fant denne fra (havna der man seilte ut)
@@ -362,6 +363,11 @@ export function havnVed(spill) {
 export const havnApen = (spill) => ulikeBygg(spill) >= HAVN.krav;
 export const kanKjopeHavn = (spill) => havnApen(spill) && havnVed(spill) < 0;
 
+/** Prisen på et bygg (eller seilbåten) for denne spilleren: gratis i kreativmodus. */
+export function prisFor(spill, id) {
+  return spill.kreativ ? 0 : BYGG_ETTER_ID[id]?.pris ?? 0;
+}
+
 /** Ruta der skolen står på denne øya (eller −1). */
 export function skoleVed(spill) {
   for (const [i, id] of spill.bygg) if (id === SKOLE.id) return i;
@@ -421,9 +427,10 @@ export function kjopOgPlasser(spill, verden, i, id) {
   if (id === HAVN.id && !kanKjopeHavn(spill)) return [{ type: 'laast' }];
   if (id === SKOLE.id && skoleVed(spill) >= 0) return [{ type: 'laast' }];
   if (OPPFINNELSER.some((o) => o.id === id) && !spill.oppfinnelser.includes(id)) return [{ type: 'laast' }];
-  if (spill.mynter < b.pris) return [{ type: 'forLiteMynter', mangler: b.pris - spill.mynter }];
+  const pris = prisFor(spill, id);
+  if (spill.mynter < pris) return [{ type: 'forLiteMynter', mangler: pris - spill.mynter }];
   if (!kanPlassere(spill, verden, i, id)) return [{ type: 'ikkeHer' }];
-  spill.mynter -= b.pris;
+  spill.mynter -= pris;
   spill.bygg.set(i, id);
   spill.stat.bygg++;
   return [{ type: 'bygget', i, id }, ...nyeHjelpere(spill)];
@@ -550,8 +557,9 @@ export function grav(spill, verden, i) {
 /** Seilbåten bygges ved havna. */
 export function byggBaat(spill) {
   if (havnVed(spill) < 0 || spill.baat) return [];
-  if (spill.mynter < BAAT.pris) return [{ type: 'forLiteMynter', mangler: BAAT.pris - spill.mynter }];
-  spill.mynter -= BAAT.pris;
+  const pris = prisFor(spill, BAAT.id);
+  if (spill.mynter < pris) return [{ type: 'forLiteMynter', mangler: pris - spill.mynter }];
+  spill.mynter -= pris;
   spill.baat = true;
   return [{ type: 'baatBygget' }];
 }
@@ -724,6 +732,7 @@ export function fraData(d) {
     skoleTeller: d.skoleTeller ?? 0,
     ideDag: d.ideDag ?? null,
     hort: d.hort ?? [],
+    kreativ: d.kreativ ?? false,
     oppdrag: d.oppdrag ?? [],
     kryss: new Map(d.kryss ?? []),
     gravd: new Set(d.gravd ?? []),

@@ -357,6 +357,21 @@ for (const tak of [2, 3, 4, 5, 10]) {
   sjekk(TEKSTER.length > 150 && !TEKSTER.some((x) => x.emne === 'vitser'), `kunnskapstekster uten vitser (${TEKSTER.length})`);
 }
 
+// Kreativmodus: alle bygg og seilbåten er gratis
+{
+  const sp = R.nyttSpill({ navn: 'Tester' }, 9);
+  const ve = R.lagVerden(sp);
+  sp.avdekket.fill(1);
+  sp.kreativ = true;
+  const ledig = () => [...sp.avdekket.keys()].find((x) => R.kanPlassere(sp, ve, x));
+  sjekk(R.prisFor(sp, 'borg') === 0 && R.kjopOgPlasser(sp, ve, ledig(), 'borg')[0].type === 'bygget' && sp.mynter === 0, 'borgen er gratis i kreativmodus');
+  sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'skole')[0].type === 'bygget', 'skolen er gratis');
+  sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'drage')[0].type === 'laast', 'oppfinnelser må fortsatt være funnet på');
+  sp.kreativ = false;
+  sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'borg')[0].type === 'forLiteMynter', 'uten kreativmodus koster det igjen');
+  sjekk(R.fraData(JSON.parse(JSON.stringify(R.tilData({ ...sp, kreativ: true })))).kreativ === true, 'kreativmodus huskes');
+}
+
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));
 sjekk(bareGange.art === 'gange' && [bareGange.a, bareGange.b].every((x) => x <= 2 || x === 10), 'bare ganging når bare ganging er valgt');
 

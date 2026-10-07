@@ -370,10 +370,10 @@ function visHavnValg(pynt) {
   if (el.hidden) return;
   const s = t.spill;
   if (pynt === HAVN.id) {
-    const kan = s.mynter >= BAAT.pris;
+    const pris = R.prisFor(s, BAAT.id), kan = s.mynter >= pris;
     el.innerHTML = `${liten() ? '' : '<p>Bygg en seilbåt, så kan du seile til en ny øy!</p>'}
-      <button id="havn-baat" class="hoved${kan ? '' : ' dyr'}">⛵ ${liten() ? '' : 'Bygg seilbåt – '}${BAAT.pris} 🪙</button>
-      ${!kan && !liten() ? `<small>Du har ${s.mynter} mynter og mangler ${BAAT.pris - s.mynter}.</small>` : ''}`;
+      <button id="havn-baat" class="hoved${kan ? '' : ' dyr'}">⛵ ${liten() ? '' : 'Bygg seilbåt – '}${prisTekst(pris)}</button>
+      ${!kan && !liten() ? `<small>Du har ${s.mynter} mynter og mangler ${pris - s.mynter}.</small>` : ''}`;
     $('havn-baat').onclick = byggBaat;
   } else {
     const ny = R.kanSeileNy(s), tilbake = R.kanSeileTilbake(s);
@@ -395,10 +395,10 @@ function byggBaat() {
   if (h[0]?.type !== 'baatBygget') {
     rist($('havn-valg'));
     L.tomt();
-    if (h[0]?.type === 'forLiteMynter' && !liten()) melding(`Seilbåten koster ${BAAT.pris} mynter. Du mangler ${h[0].mangler}.`, { ikon: '🪙' });
+    if (h[0]?.type === 'forLiteMynter' && !liten()) melding(`Seilbåten koster ${R.prisFor(t.spill, BAAT.id)} mynter. Du mangler ${h[0].mangler}.`, { ikon: '🪙' });
     return;
   }
-  trekkVist('mynter', BAAT.pris);
+  trekkVist('mynter', R.prisFor(t.spill, BAAT.id));
   const n = t.naer;
   n.pynt = BAAT.id;
   n.tTrykk = naa() / 1000;
@@ -773,7 +773,7 @@ function aapneButikk(f = fane) {
 
 function oppdaterButikkMynter(alltid = false) {
   if (!alltid && !$('butikk').open) return;
-  $('butikk-mynter').innerHTML = `🪙 <b>${t.vist.mynter ?? 0}</b>${liten() ? '' : ' mynter'}`;
+  $('butikk-mynter').innerHTML = `🪙 <b>${t.vist.mynter ?? 0}</b>${liten() ? '' : ' mynter'}${t.spill?.kreativ ? ' · <span class="kreativ-merke">🎨 Kreativmodus: alle bygg er gratis</span>' : ''}`;
 }
 
 function tegnButikk() {
@@ -804,21 +804,24 @@ function tegnButikk() {
   }
 }
 
+/** Prisen slik den står i butikken (gratis i kreativmodus). */
+const prisTekst = (pris) => (pris ? `${pris} 🪙` : 'Gratis');
+
 /** Et vanlig kort i butikken: bilde, navn, pris og hvor mye man mangler. */
 function kortFor(b) {
   const s = t.spill;
-  const kan = s.mynter >= b.pris;
+  const pris = R.prisFor(s, b.id), kan = s.mynter >= pris;
   return `<button class="byggkort${kan ? '' : ' dyr'}" data-bygg="${b.id}">
     <img src="${byggBilde(b.id)}" alt=""><span class="bn">${esc(b.navn)}</span>
-    <span class="bp">${b.pris} 🪙</span>${!kan && !liten() ? `<span class="bm">mangler ${b.pris - s.mynter}</span>` : ''}</button>`;
+    <span class="bp">${prisTekst(pris)}</span>${!kan && !liten() ? `<span class="bm">mangler ${pris - s.mynter}</span>` : ''}</button>`;
 }
 
 /** Skolen: et spesielt bygg, ett per øy. */
 function skoleKort() {
   const s = t.spill, staar = R.skoleVed(s) >= 0;
-  return `<button class="byggkort skole${staar ? ' laast' : s.mynter < SKOLE.pris ? ' dyr' : ''}" data-bygg="${SKOLE.id}">
+  return `<button class="byggkort skole${staar ? ' laast' : s.mynter < R.prisFor(s, SKOLE.id) ? ' dyr' : ''}" data-bygg="${SKOLE.id}">
     <img src="${byggBilde(SKOLE.id)}" alt=""><span class="bn">🏫 ${esc(SKOLE.navn)}</span>
-    <span class="bp">${SKOLE.pris} 🪙</span><span class="bl">${staar ? (liten() ? '✔️' : '✔️ Står på øya') : (liten() ? '💡' : `${esc(oppfinner())} finner på nye ting`)}</span></button>`;
+    <span class="bp">${prisTekst(R.prisFor(s, SKOLE.id))}</span><span class="bl">${staar ? (liten() ? '✔️' : '✔️ Står på øya') : (liten() ? '💡' : `${esc(oppfinner())} finner på nye ting`)}</span></button>`;
 }
 
 /** Det barnet på skolen har funnet på, og et spørsmålstegn for neste idé. */
@@ -841,9 +844,9 @@ function havnKort() {
   const status = staar ? (liten() ? '✔️' : '✔️ Står på øya')
     : laast ? (liten() ? `🔒 ${har}/${HAVN.krav}` : `🔒 ${har} av ${HAVN.krav} ulike bygg`)
     : (liten() ? '⚓' : 'Settes ved sjøen');
-  return `<button class="byggkort havn${laast || staar ? ' laast' : ''}${!laast && !staar && s.mynter < HAVN.pris ? ' dyr' : ''}" data-bygg="${HAVN.id}">
+  return `<button class="byggkort havn${laast || staar ? ' laast' : ''}${!laast && !staar && s.mynter < R.prisFor(s, HAVN.id) ? ' dyr' : ''}" data-bygg="${HAVN.id}">
     <img src="${byggBilde(HAVN.id)}" alt=""><span class="bn">⚓ ${esc(HAVN.navn)}</span>
-    <span class="bp">${HAVN.pris} 🪙</span><span class="bl">${status}</span></button>`;
+    <span class="bp">${prisTekst(R.prisFor(s, HAVN.id))}</span><span class="bl">${status}</span></button>`;
 }
 
 /** Fargevelgeren nederst i butikken: taket på leiren og alle flaggene. */
@@ -898,10 +901,11 @@ function velgBygg(id) {
     if (!liten()) melding(`Det står allerede en skole på øya. ${oppfinner()} går rundt der og tenker.`, { ikon: '🏫' });
     return;
   }
-  if (t.spill.mynter < b.pris) {
+  const pris = R.prisFor(t.spill, id);
+  if (t.spill.mynter < pris) {
     rist($('butikk'));
     L.tomt();
-    if (!liten()) melding(`Du har ${t.spill.mynter} mynter. ${b.navn} koster ${b.pris}, så du mangler ${b.pris - t.spill.mynter}.`, { ikon: '🪙' });
+    if (!liten()) melding(`Du har ${t.spill.mynter} mynter. ${b.navn} koster ${pris}, så du mangler ${pris - t.spill.mynter}.`, { ikon: '🪙' });
     return;
   }
   $('butikk').close();
@@ -914,6 +918,7 @@ function velgBygg(id) {
 
 function plasserHer(i) {
   const { id } = t.plasser;
+  const pris = R.prisFor(t.spill, id);
   const for_ = R.ulikeBygg(t.spill);
   const h = R.kjopOgPlasser(t.spill, t.verden, i, id);
   if (h[0]?.type !== 'bygget') {
@@ -932,7 +937,7 @@ function plasserHer(i) {
   if (id === HAVN.id) setTimeout(() => melding(liten() ? '⛵❓' : 'Trykk på havna for å bygge en seilbåt.', { ikon: '⛵' }), 2200);
   const nyeHjelpere = h.filter((e) => e.type === 'nyHjelper');
   if (nyeHjelpere.length) setTimeout(() => velkommenHjelper(nyeHjelpere), 2400);
-  trekkVist('mynter', BYGG_ETTER_ID[id].pris);
+  trekkVist('mynter', pris);
   t.byggAnim.set(i, naa());
   const [kx, ky] = midtAv(i);
   sprut(kx, ky, { farger: ['#c8a26b', '#e3cfa1', '#8a6a3c'], antall: 22, fart: 1.6 });
@@ -1115,6 +1120,10 @@ function tegnForeldre() {
   $('f-telling').querySelectorAll('[data-flagg]').forEach((b) => {
     b.onclick = () => endre((ff) => { ff[b.dataset.flagg] = !ff[b.dataset.flagg]; });
   });
+  const k = t.spill.kreativ;
+  $('f-kreativ').innerHTML = `<button class="bryter${k ? ' paa' : ''}" id="kreativ-bryter">${k ? '✓' : ''} 🎨 Kreativmodus</button>
+    <small>Alle bygg (og seilbåten) er gratis – nyttig for å prøve nye ting raskt.</small>`;
+  $('kreativ-bryter').onclick = () => { t.spill.kreativ = !t.spill.kreativ; lagreSnart(); tegnForeldre(); };
 }
 
 // ---------------------------------------------------------------------------

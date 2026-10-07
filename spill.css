@@ -345,3 +345,9 @@ body.liten .emner button { font-size: 26px; }
 body.neon .laerer-tekst { background: #22113d; }
 body.neon .laerer-tekst span.les { background: #5a1f6e; box-shadow: 0 0 0 3px #5a1f6e; }
 body.neon .emner button.valgt { background: #ff2bd6; color: #fff; }
+
+/* ---------- Kreativmodus ---------- */
+.kreativ { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.kreativ small { color: #6d6656; }
+.kreativ-merke { font-size: 15px; font-weight: 700; color: #8e5bd0; }
+body.neon .kreativ small { color: #b9a6d6; }

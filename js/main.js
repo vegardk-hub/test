@@ -180,7 +180,8 @@ function trykkPaa(kx, ky) {
   const i = y * B + x;
   const s = t.spill, v = t.verden;
   if (t.plasser) { plasserHer(i); return; }
-  if (t.gutt && Math.hypot(kx - t.gutt.x, ky - (t.gutt.y - HJELPER_H * 0.5)) < RUTE * 0.3) { snakkMedGutt(); return; }
+  const person = finnPerson(kx, ky);
+  if (person) { snakkMed(person.hvem); return; }
   if (!s.avdekket[i]) {
     behandle(R.borst(s, v, i), i);
     return;
@@ -925,10 +926,6 @@ function plasserHer(i) {
     }, 2200);
   }
   if (id === HAVN.id) setTimeout(() => melding(liten() ? '⛵❓' : 'Trykk på havna for å bygge en seilbåt.', { ikon: '⛵' }), 2200);
-  if (id === SKOLE.id) {
-    setTimeout(() => melding(liten() ? '🏫🤓💡'
-      : `Ut av skolen kommer ${oppfinner()}, som er skikkelig smart. Hver ${SKOLE.hverDag}. dag får ${oppfinner()} en idé til noe du kan kjøpe!`, { ikon: liten() ? '' : '🤓💡' }), 2300);
-  }
   const nyeHjelpere = h.filter((e) => e.type === 'nyHjelper');
   if (nyeHjelpere.length) setTimeout(() => velkommenHjelper(nyeHjelpere), 2400);
   trekkVist('mynter', BYGG_ETTER_ID[id].pris);
@@ -1269,21 +1266,9 @@ function godMorgen() {
     // Det hjelperne ikke rakk i går, ble gjort ferdig i natt: forrådet vises som det er.
     t.vist = { ...t.spill.forrad, mynter: t.spill.mynter };
     tegnForrad();
-    let vent = h.kryss.length ? 4200 : 2600;
-    if (h.ide) {
-      const ide = h.ide;
-      setTimeout(() => {
-        L.fanfare(2);
-        melding(liten() ? '💡🎉' : `💡 ${oppfinner()} har fått en idé: ${ide.tekst}! Se etter «${ide.navn}» i butikken.`, { ikon: liten() ? '' : '🤓' });
-      }, vent + (h.oppdrag.length ? 2600 : 0));
-    }
-    if (h.oppdrag.length) {
-      setTimeout(startTur, 1300);
-      const navn = h.oppdrag.map((o) => t.spill.hjelpere[o.h].navn);
-      const liste = navn.length > 1 ? `${navn.slice(0, -1).join(', ')} og ${navn.at(-1)}` : navn[0];
-      setTimeout(() => melding(liten() ? `${'🧑‍🌾'.repeat(navn.length)}`
-        : `${liste} går ut for å samle inn.`, { ikon: liten() ? '' : '🧑‍🌾' }), h.kryss.length ? 4200 : 2600);
-    }
+    // Det personene gjør, får man vite ved å trykke på dem. Her er det bare lyd og lyspære.
+    if (h.ide) setTimeout(() => L.fanfare(2), 2600);
+    if (h.oppdrag.length) setTimeout(startTur, 1300);
     oppdaterHud();
     lagreSnart();
     t.skitten = true;
@@ -1416,10 +1401,10 @@ function aapneSangbok() {
 }
 
 let meldingTid = 0;
-/** Melding nederst. fast = blir stående til den tas bort (det barnet på skolen sier). */
+/** Melding nederst. fast = hvem som snakker; da blir den stående til man trykker på personen igjen. */
 function melding(tekst, { ikon: ik = '', fast = false } = {}) {
   const el = $('melding');
-  t.snakker = fast;
+  t.snakker = fast || false;
   if (liten()) {
     if (!ik) return;
     el.textContent = ik;
@@ -1451,6 +1436,7 @@ function hintRuter() {
 // Hjelperne: ut av leiren om morgenen, samle inn én ting hver, og hjem igjen
 // ---------------------------------------------------------------------------
 const HJELPER_H = RUTE * 0.4;
+const VELKOMST = 12000;   // så lenge en ny hjelper står ute og vinker (ms)
 
 /** Døra på leiren (der hjelperne kommer ut og går inn). */
 function dor() {
@@ -1482,6 +1468,7 @@ function startTur() {
 
 function hjelperFerdig(l) {
   const [h] = R.hjelperFerdig(t.spill, t.verden, l.h);
+  l.resultat = h?.type === 'hjelperHostet' ? h.gave : null;
   const [kx, ky] = midtAv(l.i);
   if (h?.type === 'hjelperHostet') {
     const def = TING[l.type];
@@ -1531,23 +1518,24 @@ function tegnHjelpere(ctx, ms) {
       }
       // Ute av døra og inn igjen: de blir synlige gradvis
       const ved = Math.min(1, Math.hypot(x - lx, y - ly) / (RUTE * 0.15));
-      tegn.push({ x, y, alfa: ved, o: { farge: hj.farge, nr: l.h, t: tsek + l.h * 0.7, gaar, arbeid, type: l.type, mot } });
+      const fase = tau < l.ut ? 'ut' : tau < l.ut + l.arbeid ? 'arbeid' : 'hjem';
+      tegn.push({ x, y, alfa: ved, o: { farge: hj.farge, nr: l.h, t: tsek + l.h * 0.7, gaar, arbeid, type: l.type, mot }, hvem: { type: 'hjelper', l, fase } });
     }
     if (!igang) { t.tur = null; lagreSnart(); }
   }
   const v = t.velkomst;
   if (v) {
     const tau = ms - v.t0;
-    if (tau > 4200) t.velkomst = null;
+    if (tau > VELKOMST) t.velkomst = null;
     else {
       v.nye.forEach((n, k) => {
         const hj = t.spill.hjelpere[n.nr];
         const maal = [lx + RUTE * (0.3 + 0.18 * k), ly + RUTE * 0.12];
-        const ut = myk(Math.min(1, tau / 900)), inn = myk(Math.max(0, (tau - 3300) / 900));
+        const ut = myk(Math.min(1, tau / 900)), inn = myk(Math.max(0, (tau - (VELKOMST - 900)) / 900));
         const u = ut - inn;
         const x = lx + (maal[0] - lx) * u, y = ly + (maal[1] - ly) * u;
-        const vinker = tau > 900 && tau < 3300;
-        tegn.push({ x, y, alfa: Math.min(1, u * 4), o: { farge: hj.farge, nr: n.nr, t: tsek + k, gaar: vinker ? 0 : 1, vink: vinker ? 1 : 0, mot: tau > 3300 ? -1 : 1 } });
+        const vinker = tau > 900 && tau < VELKOMST - 900;
+        tegn.push({ x, y, alfa: Math.min(1, u * 4), o: { farge: hj.farge, nr: n.nr, t: tsek + k, gaar: vinker ? 0 : 1, vink: vinker ? 1 : 0, mot: tau > VELKOMST - 900 ? -1 : 1 }, hvem: { type: 'ny', nr: n.nr } });
       });
     }
   }
@@ -1556,10 +1544,11 @@ function tegnHjelpere(ctx, ms) {
     const ide = t.spill.ideDag === t.spill.dag;
     const hopp = Math.max(0, 1 - (ms - g.hopp) / 600) * Math.abs(Math.sin((ms - g.hopp) / 90)) * RUTE * 0.06
       + (ide && !g.gaar ? Math.abs(Math.sin(tsek * 4)) * RUTE * 0.025 : 0);
-    tegn.push({ x: g.x, y: g.y - hopp, alfa: Math.min(1, (ms - g.inn) / 500), ide,
+    tegn.push({ x: g.x, y: g.y - hopp, alfa: Math.min(1, (ms - g.inn) / 500), ide, hvem: { type: 'gutt' },
       o: { farge: OPPFINNER.farge, nr: 2, t: tsek, gaar: g.gaar, mot: g.mot, briller: true, vink: ide && !g.gaar ? 1 : 0 } });
   }
   tegn.sort((a, b) => a.y - b.y);
+  t.personer = tegn;
   for (const d of tegn) {
     ctx.globalAlpha = d.alfa;
     tegnMenneske(ctx, d.x, d.y, HJELPER_H, d.o);
@@ -1631,20 +1620,59 @@ function tegnLyspaere(ctx, x, y, tsek) {
   ctx.beginPath(); ctx.moveTo(x - r * 0.35, y + r * 0.2); ctx.lineTo(x - r * 0.15, y - r * 0.2); ctx.lineTo(x, y + r * 0.1); ctx.lineTo(x + r * 0.15, y - r * 0.2); ctx.lineTo(x + r * 0.35, y + r * 0.2); ctx.stroke();
 }
 
+/** Personen nærmest et trykk på brettet (hjelpere, nye hjelpere og barnet på skolen), eller null. */
+function finnPerson(kx, ky) {
+  let best = null, bestAvst = RUTE * 0.32;
+  for (const p of t.personer ?? []) {
+    if (p.alfa < 0.5) continue;
+    const avst = Math.hypot(kx - p.x, ky - (p.y - HJELPER_H * 0.5));
+    if (avst < bestAvst) { best = p; bestAvst = avst; }
+  }
+  return best;
+}
+
+/** Snakkeboblen står til man trykker på den samme personen igjen. */
+function snakk(nokkel, tekst, ikon, ikonLiten) {
+  if (t.snakker === nokkel && !$('melding').hidden) { $('melding').hidden = true; t.snakker = false; return; }
+  L.INSTRUMENT.xylofon(783.99);
+  if (liten()) melding('', { ikon: ikonLiten, fast: nokkel });
+  else melding(tekst, { ikon, fast: nokkel });
+}
+
+function snakkMed(hvem) {
+  if (hvem.type === 'gutt') { snakkMedGutt(); return; }
+  if (hvem.type === 'ny') {
+    const hj = t.spill.hjelpere[hvem.nr];
+    snakk(`ny${hvem.nr}`, `${hj.navn}: «Hei! Jeg heter ${hj.navn}. Hver morgen går jeg ut og samler inn noe for deg.»`, '👋', '🧑‍🌾👋');
+    return;
+  }
+  const { l, fase } = hvem, hj = t.spill.hjelpere[l.h];
+  const ikonTing = TING[l.type].ikon;
+  const SKAL = { tre: 'hogge et tre', stein: 'hakke stein', jern: 'hente jern', korn: 'slå korn', ull: 'klippe ulla på en sau', fisk: 'fiske' };
+  const GJOR = { tre: 'hogger jeg et tre', stein: 'hakker jeg stein', jern: 'henter jeg jern', korn: 'slår jeg korn', ull: 'klipper jeg ulla på sauen', fisk: 'fisker jeg' };
+  let tekst;
+  if (fase === 'ut') tekst = `«Jeg skal ${SKAL[l.type]}!»`;
+  else if (fase === 'arbeid') tekst = `«Nå ${GJOR[l.type]} …»`;
+  else if (l.resultat) {
+    const [vare, n] = Object.entries(l.resultat)[0];
+    tekst = `«Jeg fikk ${n} ${VARER[vare].navn}! Nå går jeg hjem.»`;
+  } else tekst = '«Noen kom før meg, så jeg går hjem igjen.»';
+  snakk(`h${l.h}`, `${hj.navn}: ${tekst}`, '🧑‍🌾', `🧑‍🌾${fase === 'hjem' ? '🏠' : ikonTing}`);
+}
+
 /** Trykk på barnet: det forteller hva det tenker på (står til man trykker igjen). */
 function snakkMedGutt() {
   const s = t.spill, g = t.gutt;
-  // Trykk en gang til: snakkeboblen forsvinner.
-  if (t.snakker && !$('melding').hidden) { $('melding').hidden = true; t.snakker = false; return; }
+  if (t.snakker === 'gutt' && !$('melding').hidden) { $('melding').hidden = true; t.snakker = false; return; }
   g.hopp = naa();
   L.INSTRUMENT.xylofon(783.99);
   const dager = R.dagerTilIde(s);
   const siste = OPPFINNELSER.find((o) => o.id === s.oppfinnelser.at(-1));
-  if (liten()) { melding('', { ikon: s.ideDag === s.dag ? '🤓💡🎉' : '🤓🤔💡', fast: true }); return; }
+  if (liten()) { melding('', { ikon: s.ideDag === s.dag ? '🤓💡🎉' : '🤓🤔💡', fast: 'gutt' }); return; }
   const tekst = s.ideDag === s.dag && siste ? `«Jeg har funnet på ${siste.tekst}! Se i butikken.»`
     : dager === null ? '«Jeg har funnet på alt jeg kan. Nå leser jeg bøker!»'
     : `«Hmm … jeg tenker på noe nytt. Om ${dager} ${dager === 1 ? 'dag' : 'dager'} har jeg en idé!»`;
-  melding(`${oppfinner()}: ${tekst}`, { ikon: '🤓', fast: true });
+  melding(`${oppfinner()}: ${tekst}`, { ikon: '🤓', fast: 'gutt' });
 }
 
 /** En eller flere nye hjelpere har kommet: de kommer ut av leiren og vinker. */
@@ -1652,10 +1680,6 @@ function velkommenHjelper(nye) {
   if (!t.spill) return;
   t.velkomst = { t0: naa(), nye };
   L.fanfare(2);
-  const navn = nye.map((n) => n.hjelper.navn);
-  const liste = navn.length > 1 ? `${navn.slice(0, -1).join(', ')} og ${navn.at(-1)}` : navn[0];
-  melding(liten() ? `${'🧑‍🌾'.repeat(nye.length)} 👋`
-    : `${liste} har kommet til øya! Hver morgen går ${navn.length > 1 ? 'de' : navn[0]} ut og samler inn for deg.`, { ikon: liten() ? '' : '🧑‍🌾👋' });
   t.skitten = true;
 }
 

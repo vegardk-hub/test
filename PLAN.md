@@ -41,6 +41,12 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
   vannsklie (110), karusell (130), regnbuemaskin (150), danserobot (175) og flygende tallerken som henter en ku (200).
   Rekkefølgen er tilfeldig, og hver oppfinnelse kommer bare én gang.
 
+## Personene snakker når man trykker på dem (2026-10-07)
+- Det kommer ingen automatiske meldinger om hjelperne eller barnet på skolen. Trykker man på en person, kommer en snakkeboble som blir stående til man trykker på personen igjen.
+  - Hjelper på vei ut: «Jeg skal slå korn!». Mens den jobber: «Nå slår jeg korn …». På vei hjem: «Jeg fikk 2 korn! Nå går jeg hjem.»
+  - Ny hjelper (står og vinker ved leiren i 12 sekunder): «Hei! Jeg heter Ola …»
+  - Barnet på skolen: hva det tenker på, og hvor mange dager det er til neste idé.
+
 ## Foreldrekontroll (menyen → 🔒 For foreldre, eller «🔒 For foreldre» på startsiden)
 - **Foreldrekode:** første gang løser man et voksent gangestykke og lager en firesifret kode (skrives to ganger). Etter det kreves koden.
   «Glemt koden?» gir et vanskeligere stykke (for eksempel 39 × 6), og så kan man lage en ny kode. Koden gjelder for hele enheten (`oya-foreldrekode`).

@@ -363,6 +363,11 @@ export function havnVed(spill) {
 export const havnApen = (spill) => ulikeBygg(spill) >= HAVN.krav;
 export const kanKjopeHavn = (spill) => havnApen(spill) && havnVed(spill) < 0;
 
+/** Kan oppfinnelsen kjøpes? Når barnet på skolen har funnet den på – eller alltid i kreativmodus. */
+export function harOppfinnelse(spill, id) {
+  return spill.kreativ || spill.oppfinnelser.includes(id);
+}
+
 /** Prisen på et bygg (eller seilbåten) for denne spilleren: gratis i kreativmodus. */
 export function prisFor(spill, id) {
   return spill.kreativ ? 0 : BYGG_ETTER_ID[id]?.pris ?? 0;
@@ -426,7 +431,7 @@ export function kjopOgPlasser(spill, verden, i, id) {
   if (!b || id === BAAT.id) return [];
   if (id === HAVN.id && !kanKjopeHavn(spill)) return [{ type: 'laast' }];
   if (id === SKOLE.id && skoleVed(spill) >= 0) return [{ type: 'laast' }];
-  if (OPPFINNELSER.some((o) => o.id === id) && !spill.oppfinnelser.includes(id)) return [{ type: 'laast' }];
+  if (OPPFINNELSER.some((o) => o.id === id) && !harOppfinnelse(spill, id)) return [{ type: 'laast' }];
   const pris = prisFor(spill, id);
   if (spill.mynter < pris) return [{ type: 'forLiteMynter', mangler: pris - spill.mynter }];
   if (!kanPlassere(spill, verden, i, id)) return [{ type: 'ikkeHer' }];

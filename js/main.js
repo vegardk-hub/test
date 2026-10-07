@@ -827,10 +827,11 @@ function skoleKort() {
 /** Det barnet på skolen har funnet på, og et spørsmålstegn for neste idé. */
 function oppfinnelseKort() {
   const s = t.spill;
-  const funnet = OPPFINNELSER.filter((o) => s.oppfinnelser.includes(o.id));
-  const tenker = R.tenkerPaaIde(s);
+  const funnet = OPPFINNELSER.filter((o) => R.harOppfinnelse(s, o.id));
+  const tenker = R.tenkerPaaIde(s) && !s.kreativ;
   if (!funnet.length && !tenker) return '';
-  return `<div class="butikk-overskrift">💡 ${liten() ? '' : `${esc(eierform(oppfinner()))} oppfinnelser (${funnet.length} av ${OPPFINNELSER.length})`}</div>`
+  const antall = s.kreativ ? 'alle låst opp i kreativmodus' : `${funnet.length} av ${OPPFINNELSER.length}`;
+  return `<div class="butikk-overskrift">💡 ${liten() ? '' : `${esc(eierform(oppfinner()))} oppfinnelser (${antall})`}</div>`
     + funnet.map(kortFor).join('')
     + (tenker ? `<div class="byggkort hemmelig"><span class="sporsmal">💡❓</span>
       <span class="bl">${liten() ? '' : `${esc(oppfinner())} tenker på noe nytt …`}</span></div>` : '');
@@ -1122,7 +1123,7 @@ function tegnForeldre() {
   });
   const k = t.spill.kreativ;
   $('f-kreativ').innerHTML = `<button class="bryter${k ? ' paa' : ''}" id="kreativ-bryter">${k ? '✓' : ''} 🎨 Kreativmodus</button>
-    <small>Alle bygg (og seilbåten) er gratis – nyttig for å prøve nye ting raskt.</small>`;
+    <small>Alle bygg (og seilbåten) er gratis, og alle oppfinnelsene er låst opp – nyttig for å prøve nye ting raskt.</small>`;
   $('kreativ-bryter').onclick = () => { t.spill.kreativ = !t.spill.kreativ; lagreSnart(); tegnForeldre(); };
 }
 

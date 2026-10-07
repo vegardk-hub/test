@@ -61,7 +61,7 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 ## Foreldrekontroll (menyen → 🔒 For foreldre, eller «🔒 For foreldre» på startsiden)
 - **Foreldrekode:** første gang løser man et voksent gangestykke og lager en firesifret kode (skrives to ganger). Etter det kreves koden.
   «Glemt koden?» gir et vanskeligere stykke (for eksempel 39 × 6), og så kan man lage en ny kode. Koden gjelder for hele enheten (`oya-foreldrekode`).
-- **Kreativmodus** (per spiller): alle bygg, havn, skole og seilbåt er gratis. Butikken viser «Gratis» og «🎨 Kreativmodus». Oppfinnelser må fortsatt være funnet på, og havna krever fortsatt 20 ulike bygg.
+- **Kreativmodus** (per spiller): alle bygg, havn, skole og seilbåt er gratis. Butikken viser «Gratis» og «🎨 Kreativmodus». Alle oppfinnelsene er låst opp (uten at barnet «finner dem på», så de låses igjen når modusen slås av). Havna krever fortsatt 20 ulike bygg.
 - **Spillere:** foreldrene kan fjerne spillere (med bekreftelse). «Slett spilleren» er tatt ut av barnas meny. Koden kan endres samme sted.
 - Per spiller: **pluss** og **minus** (tall opp til 5/10/20/50/100), **gange** og **deling** (tabell opp til 2/3/4/5/10).
 - Ganging har av og til **× 0** på alle nivåer (10 %), og **× 10** også på nivåene 2–5 (15 %). Ganging med 6–9 kommer først når man velger 10.

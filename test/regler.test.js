@@ -366,9 +366,10 @@ for (const tak of [2, 3, 4, 5, 10]) {
   const ledig = () => [...sp.avdekket.keys()].find((x) => R.kanPlassere(sp, ve, x));
   sjekk(R.prisFor(sp, 'borg') === 0 && R.kjopOgPlasser(sp, ve, ledig(), 'borg')[0].type === 'bygget' && sp.mynter === 0, 'borgen er gratis i kreativmodus');
   sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'skole')[0].type === 'bygget', 'skolen er gratis');
-  sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'drage')[0].type === 'laast', 'oppfinnelser må fortsatt være funnet på');
+  sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'ufo')[0].type === 'bygget' && sp.oppfinnelser.length === 0, 'alle oppfinnelser er låst opp (uten å bli «funnet på»)');
   sp.kreativ = false;
   sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'borg')[0].type === 'forLiteMynter', 'uten kreativmodus koster det igjen');
+  sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'drage')[0].type === 'laast', 'og oppfinnelsene er låst igjen');
   sjekk(R.fraData(JSON.parse(JSON.stringify(R.tilData({ ...sp, kreativ: true })))).kreativ === true, 'kreativmodus huskes');
 }
 

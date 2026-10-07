@@ -101,7 +101,7 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - Når **alle de 20 ulike byggene** står på øya, låses **havna** opp i butikken (150 mynter). Butikken viser hvor mange man har, for eksempel «🔒 19 av 20».
   Havna må stå på land rett ved sjøen.
 - Trykk på havna for å **bygge en seilbåt** (250 mynter). Deretter kan man velge mellom **«Seil til en ny øy!»** og **«Bli her litt til»**. Seilturen er frivillig.
-- Seilturen er en liten animasjon. Den nye øya lages med samme generator og ny seed, og **man går i land på en landrute ved havet**.
+- **Seilturen** er en tegnet film på 4,2 sekunder (`js/seiltur.js`): båten legger ut fra stranda, ligger i vannet (bølgene foran dekker skroget) og vugger med kjølvann. Øya man forlater glir bakover, og den nye kommer inn. Himmel, sol, hav og øyer går gradvis over mellom vanlig dag og neon (synthwave-sol, stjerner og lysende rutenett), med glitter i overgangen. Den nye øya lages med samme generator og ny seed, og **man går i land på en landrute ved havet**.
   Man tar med seg forrådet og myntene. Den gamle øya lagres i `spill.oyer`, men man kan ikke reise tilbake ennå.
 - **Øy 2 er Neonøya** (`OY_STIL` i `ting.js`): mørk bakke, kort med lysende kanter, alle ting og bygg i sterke neonfarger med glød,
   lilla himmel med en stripete sol, og menyer og knapper i neon.

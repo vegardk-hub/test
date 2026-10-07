@@ -17,6 +17,7 @@ import { poly, fasett } from './stil/lavpoly.js';
 import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER, LAERER } from './data/ting.js';
 import { EMNER } from './data/kunnskap.js';
 import * as Stemme from './stemme.js';
+import { spillSeiltur } from './seiltur.js';
 import { settNeon, neonPaa, neonKontekst, glod } from './stil/neon.js';
 import { visVersjon } from './versjon.js';
 import { TAKFARGER, STANDARD_TAKFARGE, spillerfarge, settSpillerfarge } from './stil/spillerfarge.js';
@@ -442,20 +443,23 @@ function seilAvsted(nr = null) {
   const { ny, stil } = h[0];
   const navn = R.oyListe(t.spill).find((o) => o.her).navn;
   const el = $('seiling');
-  el.classList.toggle('fra-neon', fraStil === 'neon');
-  el.classList.toggle('til-vanlig', stil !== 'neon');
-  el.classList.toggle('samme', fraStil === stil);
   el.classList.remove('ferdig');
   $('seiling-tekst').textContent = liten() ? '⛵ ✨' : ny ? 'Seiler til en ny øy …' : `Seiler til ${navn} …`;
   el.hidden = false;
   L.fanfare(3);
-  setTimeout(() => { t.seiler = false; startSpill(t.id); el.classList.add('ferdig'); }, 2700);
-  setTimeout(() => {
-    el.hidden = true;
-    el.classList.remove('ferdig');
-    const tekst = !ny ? `Velkommen tilbake til ${navn}!` : stil === 'neon' ? `Velkommen til ${navn}! Her lyser alt.` : 'Velkommen til en ny øy!';
-    melding(liten() ? `${R.oyListe(t.spill).find((o) => o.her).ikon}✨` : tekst, { ikon: liten() ? '' : '⛵✨' });
-  }, 3400);
+  // Filmen spilles over hele skjermen. Mot slutten lastes den nye øya inn bak den, og så tones filmen ut.
+  let lastet = false;
+  spillSeiltur($('seiling-lerret'), { fra: fraStil, til: stil }, (p) => {
+    if (!lastet && p > 0.88) { lastet = true; t.seiler = false; startSpill(t.id); }
+  }).then(() => {
+    el.classList.add('ferdig');
+    setTimeout(() => {
+      el.hidden = true;
+      el.classList.remove('ferdig');
+      const tekst = !ny ? `Velkommen tilbake til ${navn}!` : stil === 'neon' ? `Velkommen til ${navn}! Her lyser alt.` : 'Velkommen til en ny øy!';
+      melding(liten() ? `${R.oyListe(t.spill).find((o) => o.her).ikon}✨` : tekst, { ikon: liten() ? '' : '⛵✨' });
+    }, 700);
+  });
 }
 
 function lukkNaer() {

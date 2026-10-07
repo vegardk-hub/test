@@ -33,9 +33,9 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
   Det er reglene (`planleggOppdrag`, `hjelperFerdig`) som bestemmer, og skjermen viser bare turen.
 
 ## Skolen og Theos oppfinnelser (2026-10-06)
-- **Skole** (500 mynter, én per øy) i butikken. Ut kommer **Theo**, en smart gutt med briller som går rundt i nærheten av skolen.
+- **Skole** (500 mynter, én per øy) i butikken. Ut kommer et smart barn med briller som **heter det samme som spilleren**, og som går rundt i nærheten av skolen.
 - **Hver sjette dag** (med skole på øya) får Theo en **lyspære over hodet**, og en ny oppfinnelse dukker opp i butikken under «💡 Theos oppfinnelser».
-  Et «💡❓»-kort viser hvor mange dager det er til neste idé. Trykker man på Theo, sier han hva han tenker på.
+  Et «💡❓»-kort viser hvor mange dager det er til neste idé. Trykker man på barnet, sier det hva det tenker på, og teksten står til man trykker på barnet igjen.
 - **12 oppfinnelser** (`OPPFINNELSER` i `ting.js`, tegnet i `js/stil/oppfinnelser.js`, alle animert):
   drage (20), boblemaskin (25), trampoline (35, salto når man trykker), godterimaskin (45), iskiosk (60), sjokoladefontene (75), hoppeslott (90),
   vannsklie (110), karusell (130), regnbuemaskin (150), danserobot (175) og flygende tallerken som henter en ku (200).

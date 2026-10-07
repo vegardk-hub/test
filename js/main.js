@@ -34,7 +34,7 @@ const t = {
   naer: null, natt: null, plasser: null, skitten: true, solVis: 0,
   vist: {},           // det forrådet viser (tingene teller først når de har fløyet ned)
   tur: null,          // hjelpernes tur ut og hjem om morgenen
-  gutt: null,         // Theo fra skolen, som går rundt og finner på ting
+  gutt: null,         // barnet på skolen (samme navn som spilleren), som går rundt og finner på ting
   velkomst: null,     // en ny hjelper som kommer ut og vinker
   forrigeStykke: '',
 };
@@ -813,16 +813,16 @@ function skoleKort() {
   const s = t.spill, staar = R.skoleVed(s) >= 0;
   return `<button class="byggkort skole${staar ? ' laast' : s.mynter < SKOLE.pris ? ' dyr' : ''}" data-bygg="${SKOLE.id}">
     <img src="${byggBilde(SKOLE.id)}" alt=""><span class="bn">🏫 ${esc(SKOLE.navn)}</span>
-    <span class="bp">${SKOLE.pris} 🪙</span><span class="bl">${staar ? (liten() ? '✔️' : '✔️ Står på øya') : (liten() ? '💡' : `${OPPFINNER.navn} finner på nye ting`)}</span></button>`;
+    <span class="bp">${SKOLE.pris} 🪙</span><span class="bl">${staar ? (liten() ? '✔️' : '✔️ Står på øya') : (liten() ? '💡' : `${esc(oppfinner())} finner på nye ting`)}</span></button>`;
 }
 
-/** Det Theo har funnet på, og et spørsmålstegn for neste idé. */
+/** Det barnet på skolen har funnet på, og et spørsmålstegn for neste idé. */
 function oppfinnelseKort() {
   const s = t.spill;
   const funnet = OPPFINNELSER.filter((o) => s.oppfinnelser.includes(o.id));
   const dager = R.dagerTilIde(s);
   if (!funnet.length && dager === null) return '';
-  return `<div class="butikk-overskrift">💡 ${liten() ? '' : `${OPPFINNER.navn}s oppfinnelser (${funnet.length} av ${OPPFINNELSER.length})`}</div>`
+  return `<div class="butikk-overskrift">💡 ${liten() ? '' : `${esc(eierform(oppfinner()))} oppfinnelser (${funnet.length} av ${OPPFINNELSER.length})`}</div>`
     + funnet.map(kortFor).join('')
     + (dager !== null ? `<div class="byggkort hemmelig"><span class="sporsmal">💡❓</span>
       <span class="bl">${liten() ? '' : `Ny idé om ${dager} ${dager === 1 ? 'dag' : 'dager'}`}</span></div>` : '');
@@ -890,7 +890,7 @@ function velgBygg(id) {
   if (id === SKOLE.id && R.skoleVed(t.spill) >= 0) {
     rist($('butikk'));
     L.tomt();
-    if (!liten()) melding(`Det står allerede en skole på øya. ${OPPFINNER.navn} går rundt der og tenker.`, { ikon: '🏫' });
+    if (!liten()) melding(`Det står allerede en skole på øya. ${oppfinner()} går rundt der og tenker.`, { ikon: '🏫' });
     return;
   }
   if (t.spill.mynter < b.pris) {
@@ -927,7 +927,7 @@ function plasserHer(i) {
   if (id === HAVN.id) setTimeout(() => melding(liten() ? '⛵❓' : 'Trykk på havna for å bygge en seilbåt.', { ikon: '⛵' }), 2200);
   if (id === SKOLE.id) {
     setTimeout(() => melding(liten() ? '🏫🤓💡'
-      : `Ut av skolen kommer ${OPPFINNER.navn}, en smart gutt. Hver ${SKOLE.hverDag}. dag får han en idé til noe du kan kjøpe!`, { ikon: liten() ? '' : '🤓💡' }), 2300);
+      : `Ut av skolen kommer ${oppfinner()}, som er skikkelig smart. Hver ${SKOLE.hverDag}. dag får ${oppfinner()} en idé til noe du kan kjøpe!`, { ikon: liten() ? '' : '🤓💡' }), 2300);
   }
   const nyeHjelpere = h.filter((e) => e.type === 'nyHjelper');
   if (nyeHjelpere.length) setTimeout(() => velkommenHjelper(nyeHjelpere), 2400);
@@ -1274,7 +1274,7 @@ function godMorgen() {
       const ide = h.ide;
       setTimeout(() => {
         L.fanfare(2);
-        melding(liten() ? '💡🎉' : `💡 ${OPPFINNER.navn} har fått en idé: ${ide.tekst}! Se etter «${ide.navn}» i butikken.`, { ikon: liten() ? '' : '🤓' });
+        melding(liten() ? '💡🎉' : `💡 ${oppfinner()} har fått en idé: ${ide.tekst}! Se etter «${ide.navn}» i butikken.`, { ikon: liten() ? '' : '🤓' });
       }, vent + (h.oppdrag.length ? 2600 : 0));
     }
     if (h.oppdrag.length) {
@@ -1416,8 +1416,10 @@ function aapneSangbok() {
 }
 
 let meldingTid = 0;
-function melding(tekst, { ikon: ik = '' } = {}) {
+/** Melding nederst. fast = blir stående til den tas bort (det barnet på skolen sier). */
+function melding(tekst, { ikon: ik = '', fast = false } = {}) {
   const el = $('melding');
+  t.snakker = fast;
   if (liten()) {
     if (!ik) return;
     el.textContent = ik;
@@ -1427,8 +1429,12 @@ function melding(tekst, { ikon: ik = '' } = {}) {
   void el.offsetWidth;
   el.classList.add('vis');
   clearTimeout(meldingTid);
-  meldingTid = setTimeout(() => { el.hidden = true; }, 3000);
+  if (!fast) meldingTid = setTimeout(() => { el.hidden = true; }, 3000);
 }
+
+/** Barnet på skolen heter det samme som spilleren. */
+const oppfinner = () => t.spill?.navn || 'Theo';
+const eierform = (navn) => (/[sxz]$/i.test(navn) ? `${navn}'` : `${navn}s`);
 
 // ---------------------------------------------------------------------------
 // Tegnesløyfe
@@ -1562,7 +1568,7 @@ function tegnHjelpere(ctx, ms) {
   ctx.globalAlpha = 1;
 }
 
-/** Theo går rundt i nærheten av skolen, stopper og tenker, og går videre. */
+/** Barnet på skolen går rundt i nærheten, stopper og tenker, og går videre. */
 function oppdaterGutt(ms) {
   const s = t.spill, v = t.verden, skole = R.skoleVed(s);
   if (skole < 0) { t.gutt = null; return null; }
@@ -1601,7 +1607,7 @@ function oppdaterGutt(ms) {
   return g;
 }
 
-/** Lyspæra over hodet: Theo har fått en idé. */
+/** Lyspæra over hodet: barnet har fått en idé. */
 function tegnLyspaere(ctx, x, y, tsek) {
   const r = RUTE * 0.075 * (1 + Math.sin(tsek * 5) * 0.08);
   const g = ctx.createRadialGradient(x, y, 0, x, y, r * 3.2);
@@ -1625,18 +1631,20 @@ function tegnLyspaere(ctx, x, y, tsek) {
   ctx.beginPath(); ctx.moveTo(x - r * 0.35, y + r * 0.2); ctx.lineTo(x - r * 0.15, y - r * 0.2); ctx.lineTo(x, y + r * 0.1); ctx.lineTo(x + r * 0.15, y - r * 0.2); ctx.lineTo(x + r * 0.35, y + r * 0.2); ctx.stroke();
 }
 
-/** Trykk på Theo: han forteller hva han tenker på. */
+/** Trykk på barnet: det forteller hva det tenker på (står til man trykker igjen). */
 function snakkMedGutt() {
   const s = t.spill, g = t.gutt;
+  // Trykk en gang til: snakkeboblen forsvinner.
+  if (t.snakker && !$('melding').hidden) { $('melding').hidden = true; t.snakker = false; return; }
   g.hopp = naa();
   L.INSTRUMENT.xylofon(783.99);
   const dager = R.dagerTilIde(s);
   const siste = OPPFINNELSER.find((o) => o.id === s.oppfinnelser.at(-1));
-  if (liten()) { melding(s.ideDag === s.dag ? '💡🎉' : '🤓🤔💡'); return; }
+  if (liten()) { melding('', { ikon: s.ideDag === s.dag ? '🤓💡🎉' : '🤓🤔💡', fast: true }); return; }
   const tekst = s.ideDag === s.dag && siste ? `«Jeg har funnet på ${siste.tekst}! Se i butikken.»`
     : dager === null ? '«Jeg har funnet på alt jeg kan. Nå leser jeg bøker!»'
     : `«Hmm … jeg tenker på noe nytt. Om ${dager} ${dager === 1 ? 'dag' : 'dager'} har jeg en idé!»`;
-  melding(`${OPPFINNER.navn}: ${tekst}`, { ikon: '🤓' });
+  melding(`${oppfinner()}: ${tekst}`, { ikon: '🤓', fast: true });
 }
 
 /** En eller flere nye hjelpere har kommet: de kommer ut av leiren og vinker. */

@@ -101,14 +101,14 @@ export const HAVN = { id: 'havn', navn: 'Havn', pris: 150, krav: BYGG.length };
 export const BAAT = { id: 'havnbaat', navn: 'Havn med seilbåt', pris: 250 };
 
 /**
- * Skolen: et spesielt bygg (én per øy). Ut av skolen kommer Theo, en smart gutt som går
+ * Skolen: et spesielt bygg (én per øy). Ut av skolen kommer et smart barn (med samme navn som spilleren) som går
  * rundt på øya. Hver sjette dag får han en lyspære over hodet og finner på noe nytt,
  * som dukker opp i butikken.
  */
 export const SKOLE = { id: 'skole', navn: 'Skole', pris: 500, hverDag: 6 };
-export const OPPFINNER = { navn: 'Theo', farge: '#ffd23f' };
+export const OPPFINNER = { farge: '#ffd23f' };   // navnet er spillerens eget
 
-/** Theos oppfinnelser. Prisen følger hvor avansert tingen er. */
+/** Oppfinnelsene fra skolen. Prisen følger hvor avansert tingen er. */
 export const OPPFINNELSER = [
   { id: 'drage',            navn: 'Drage',              pris: 20,  tekst: 'en drage som flyr høyt over øya' },
   { id: 'boblemaskin',      navn: 'Boblemaskin',        pris: 25,  tekst: 'en maskin som blåser såpebobler' },

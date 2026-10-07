@@ -19,7 +19,10 @@ export const VERSJON = 2;
 export const TERRENGNAVN = { [T.VANN]: 'vann', [T.STRAND]: 'strand', [T.GRESS]: 'eng', [T.SKOG]: 'skog', [T.AAS]: 'aas', [T.FJELL]: 'fjell' };
 const TYPE_FOR_TERRENG = { skog: 'tre', aas: 'stein', fjell: 'stein', eng: 'korn', vann: 'fisk' };
 const tomtForrad = () => Object.fromEntries(Object.keys(VARER).map((v) => [v, 0]));
-const tomStat = () => ({ trykk: 0, ting: 0, avdekket: 0, stjerner: 0, bygg: 0, solgt: 0 });
+const tomStat = () => ({
+  trykk: 0, ting: 0, avdekket: 0, stjerner: 0, bygg: 0, solgt: 0,
+  klikk: 0, sekunder: 0, tjent: 0, kister: 0, gravd: 0, lyttet: 0, hjulpet: 0,
+});
 const tomMattestat = () => ({ lost: 0, forste: 0, feil: 0, perArt: {} });
 /** Ca. hver femte rute man avdekker skjuler en kiste (4–6 ruter mellom hver). Den første kommer fort. */
 export const KISTE_HVER = [4, 6];
@@ -237,6 +240,7 @@ function fullfor(spill, i, ting, s) {
   s.borteTil = ting.type === 'kiste' ? -1 : spill.dag + GJENVEKST;
   delete s.aktiv;
   spill.gravd.delete(i);   // en framgravd kiste etterlater en vanlig, tom rute
+  if (ting.type === 'kiste') spill.stat.kister++;
   const sang = TING[ting.type].sang;
   const for_ = spill.sanger[sang] ?? 0;
   spill.sanger[sang] = Math.max(for_, ting.str + 1);
@@ -360,6 +364,7 @@ export function selg(spill, vare, antall = spill.forrad[vare] ?? 0) {
   spill.forrad[vare] -= n;
   spill.mynter += sum;
   spill.stat.solgt += n;
+  spill.stat.tjent += sum;
   return [{ type: 'solgt', vare, antall: n, pris: VARER[vare].pris, sum }];
 }
 
@@ -448,6 +453,7 @@ export function velgTekst(spill, emne = null, r = Math.random) {
   const kandidater = nye.filter((x) => x.niva === lettest);
   const tekst = kandidater[Math.floor(r() * kandidater.length)];
   spill.hort.push(tekst.id);
+  spill.stat.lyttet++;
   return tekst;
 }
 
@@ -587,6 +593,7 @@ export function grav(spill, verden, i) {
     spill.gravd.add(i);
     const s = spill.ting.get(i) ?? {};
     spill.ting.set(i, { gang: (s.gang ?? 0) + 1 });   // ny størrelse og nytt innhold hver gang
+    spill.stat.gravd++;
     h.push({ type: 'kisteFunnet', i, tall: GRAV_TRYKK, ting: tingVed(spill, verden, i) });
   }
   if (spill.sol <= 0) h.push({ type: 'kveld' });
@@ -769,13 +776,13 @@ export function fraData(d) {
     oyer: (d.oyer ?? []).map((o) => ({ ...o, fra: o.fra !== undefined ? o.fra : (o.nr > 1 ? o.nr - 1 : null) })),
     baat: d.baat || (d.oyer ?? []).length > 0,
     kister: new Set(d.kister ?? []),
-    hjelpere: d.hjelpere ?? [],
+    hjelpere: (d.hjelpere ?? []).slice(0, HJELPER.maks),
     oppfinnelser: d.oppfinnelser ?? [],
     skoleTeller: d.skoleTeller ?? 0,
     ideDag: d.ideDag ?? null,
     hort: d.hort ?? [],
     kreativ: d.kreativ ?? false,
-    oppdrag: d.oppdrag ?? [],
+    oppdrag: (d.oppdrag ?? []).filter((o) => o.h < HJELPER.maks),
     kryss: new Map(d.kryss ?? []),
     gravd: new Set(d.gravd ?? []),
     nattFangst: d.nattFangst ?? 0,

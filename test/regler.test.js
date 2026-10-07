@@ -285,13 +285,13 @@ for (const tak of [2, 3, 4, 5, 10]) {
   const femte = R.kjopOgPlasser(sp, ve, ledig(), 'telt');
   sjekk(femte[1]?.type === 'nyHjelper' && femte[1].hjelper.navn === 'Ola' && sp.hjelpere.length === 1, 'første hjelper kommer ved bygg nr. 5');
   for (let n = 0; n < 40; n++) R.kjopOgPlasser(sp, ve, ledig(), 'baal');
-  sjekk(sp.hjelpere.length === 5, `høyst fem hjelpere (${sp.hjelpere.length})`);
+  sjekk(sp.hjelpere.length === 3, `høyst tre hjelpere (${sp.hjelpere.length})`);
   const for_ = { ...sp.forrad };
   const dag = R.nyDag(sp, ve)[0];
   const typer = dag.oppdrag.map((o) => o.type);
-  sjekk(dag.oppdrag.length === 5, `fem oppdrag (${dag.oppdrag.length})`);
-  sjekk(new Set(typer).size === Math.min(5, new Set(typer).size) && new Set(typer).size >= 4, `forskjellige typer: ${typer}`);
-  sjekk(new Set(dag.oppdrag.map((o) => o.i)).size === 5, 'aldri to hjelpere på samme rute');
+  sjekk(dag.oppdrag.length === 3, `tre oppdrag (${dag.oppdrag.length})`);
+  sjekk(new Set(typer).size === 3, `tre forskjellige typer: ${typer}`);
+  sjekk(new Set(dag.oppdrag.map((o) => o.i)).size === 3, 'aldri to hjelpere på samme rute');
   let hostet = 0;
   for (const o of dag.oppdrag) {
     const ting = R.tingVed(sp, ve, o.i);
@@ -302,15 +302,17 @@ for (const tak of [2, 3, 4, 5, 10]) {
       sjekk(!R.tingVed(sp, ve, o.i) && R.venterPaa(sp, ve, o.i) === 2 && ting.type === o.type, 'tingen er høstet og vokser fram igjen');
     }
   }
-  sjekk(hostet === 5 && sp.oppdrag.length === 0, 'alle fem samlet inn én ting');
+  sjekk(hostet === 3 && sp.oppdrag.length === 0, 'alle tre samlet inn én ting');
   // Dagen etter: nye oppdrag, og det som ikke ble gjort, gjøres ferdig først
   const dag2 = R.nyDag(sp, ve)[0];
-  sjekk(dag2.oppdrag.length === 5, 'nye oppdrag neste dag');
+  sjekk(dag2.oppdrag.length === 3, 'nye oppdrag neste dag');
   const lagret = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
-  sjekk(lagret.hjelpere.length === 5 && lagret.oppdrag.length === 5, 'hjelpere og oppdrag huskes ved lagring');
+  sjekk(lagret.hjelpere.length === 3 && lagret.oppdrag.length === 3, 'hjelpere og oppdrag huskes ved lagring');
   const ubrukt = sp.stat.hjulpet;
   R.nyDag(sp, ve);
-  sjekk(sp.stat.hjulpet === ubrukt + 5, 'oppdrag fra i går gjøres ferdig om morgenen');
+  sjekk(sp.stat.hjulpet === ubrukt + 3, 'oppdrag fra i går gjøres ferdig om morgenen');
+  const fem = R.fraData({ ...JSON.parse(JSON.stringify(R.tilData(sp))), hjelpere: [1, 2, 3, 4, 5].map((n) => ({ navn: `H${n}` })), oppdrag: [{ h: 4, i: 1, type: 'tre' }] });
+  sjekk(fem.hjelpere.length === 3 && fem.oppdrag.length === 0, 'gamle lagringer med fem hjelpere får tre');
 }
 
 // Skolen: Theo finner på noe nytt hver sjette dag

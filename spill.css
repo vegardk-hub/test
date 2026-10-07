@@ -333,3 +333,19 @@ body.neon .emner button.valgt { background: #ff2bd6; color: #fff; }
 .kreativ small { color: #6d6656; }
 .kreativ-merke { font-size: 15px; font-weight: 700; color: #8e5bd0; }
 body.neon .kreativ small { color: #b9a6d6; }
+
+/* ---------- Statistikk ---------- */
+.statistikk { display: grid; gap: 10px; }
+.stat-gruppe h3 { margin: 4px 0 6px; font-size: 16px; }
+.stat-ruter { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+.stat-rute { background: #fff; border-radius: 12px; padding: 6px 10px; display: flex; flex-direction: column; }
+.stat-rute b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.stat-rute small { color: #6d6656; font-size: 13px; line-height: 1.2; }
+.stat-arter { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; background: #fff; border-radius: 12px; overflow: hidden; }
+.stat-arter th, .stat-arter td { padding: 5px 8px; text-align: right; }
+.stat-arter th:first-child, .stat-arter td:first-child { text-align: left; }
+.stat-arter tr + tr td { border-top: 1px solid #eee5cf; }
+.stat-arter th { background: #f1ead7; }
+body.neon .stat-rute, body.neon .stat-arter { background: #22113d; color: #f6eaff; }
+body.neon .stat-arter th { background: #2e1752; }
+body.neon .stat-rute small { color: #b9a6d6; }

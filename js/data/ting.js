@@ -155,10 +155,10 @@ export const GRAV_TRYKK = 4;
 
 /**
  * Hjelpere: for hvert femte bygg man har satt opp (totalt, på alle øyene), kommer det
- * en hjelper – høyst fem. Hver morgen går de ut av leiren og samler inn én ting hver
+ * en hjelper – høyst tre. Hver morgen går de ut av leiren og samler inn én ting hver
  * (hogger et tre, fisker, slår korn …), og helst forskjellige typer.
  */
-export const HJELPER = { perBygg: 5, maks: 5 };
+export const HJELPER = { perBygg: 5, maks: 3 };
 export const HJELPERE = [
   { navn: 'Ola', farge: '#3a74d8' },
   { navn: 'Siri', farge: '#e0393e' },

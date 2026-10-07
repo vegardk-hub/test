@@ -14,7 +14,7 @@ import { tegnMenneske, tegnFigur } from './figurer.js';
 import { tegnTomtKort } from './stil/ruter.js';
 import { PYNT, LIV, tegnBygg, ivrig } from './stil/pynt.js';
 import { poly, fasett } from './stil/lavpoly.js';
-import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER, LAERER } from './data/ting.js';
+import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER, LAERER, HJELPER } from './data/ting.js';
 import { EMNER } from './data/kunnskap.js';
 import * as Stemme from './stemme.js';
 import { spillSeiltur } from './seiltur.js';
@@ -1084,6 +1084,51 @@ function aapneForeldre() {
   $('foreldre').showModal();
 }
 
+/** Statistikkpanelet i foreldrekontrollen: matte, spilling og det som har skjedd på øya. */
+function statistikkHtml(s) {
+  const st = s.stat, ms = s.mattestat;
+  const pst = (a, b) => (b ? `${Math.round((a / b) * 100)} %` : '–');
+  const tall = (n) => Number(n || 0).toLocaleString('nb-NO');
+  const tid = (sek) => {
+    const min = Math.floor((sek || 0) / 60), timer = Math.floor(min / 60);
+    return timer ? `${timer} t ${min % 60} min` : `${min} min`;
+  };
+  const rute = (verdi, tekst) => `<div class="stat-rute"><b>${verdi}</b><small>${tekst}</small></div>`;
+  const svar = ms.lost + ms.feil;
+  const arter = Object.entries(ms.perArt).filter(([, v]) => v.lost);
+  const sanger = Object.values(s.sanger).filter((n) => n >= 3).length;
+  const alleOyer = R.oyListe(s).length;
+  return `
+    <div class="stat-gruppe"><h3>🧮 Matte i kistene</h3><div class="stat-ruter">
+      ${rute(tall(ms.lost), 'regnestykker løst')}
+      ${rute(pst(ms.forste, ms.lost), 'riktig på første forsøk')}
+      ${rute(pst(ms.lost, svar), `riktige av alle svar (${tall(svar)} svar, ${tall(ms.feil)} feil)`)}
+      ${rute(tall(st.kister), 'kister åpnet')}
+    </div>
+    ${arter.length ? `<table class="stat-arter"><tr><th>Regneart</th><th>Løst</th><th>Første forsøk</th><th>Feil svar</th></tr>
+      ${arter.map(([a, v]) => `<tr><td>${M.ARTNAVN[a]} (${M.TEGN[a]})</td><td>${tall(v.lost)}</td><td>${pst(v.forste, v.lost)}</td><td>${tall(v.feil ?? 0)}</td></tr>`).join('')}</table>` : ''}
+    </div>
+    <div class="stat-gruppe"><h3>🎮 Spilling</h3><div class="stat-ruter">
+      ${rute(tall(st.klikk), 'trykk totalt i spillet')}
+      ${rute(tid(st.sekunder), 'tid i spillet')}
+      ${rute(tall(s.dag), s.dag === 1 ? 'dag' : 'dager')}
+      ${rute(tall(st.trykk), 'trykk som brukte sol')}
+    </div></div>
+    <div class="stat-gruppe"><h3>🏝️ På øya</h3><div class="stat-ruter">
+      ${rute(tall(st.avdekket), 'ruter avdekket')}
+      ${rute(tall(st.ting), 'ting samlet inn')}
+      ${rute(tall(st.gravd), 'skattekryss gravd fram')}
+      ${rute(tall(st.stjerner), 'stjerneskudd fanget')}
+      ${rute(tall(st.bygg), 'bygg satt opp')}
+      ${rute(tall(st.tjent), `mynter tjent (${tall(s.mynter)} nå)`)}
+      ${rute(`${s.hjelpere.length} / ${HJELPER.maks}`, `hjelpere (har samlet ${tall(st.hjulpet)} ting)`)}
+      ${rute(`${sanger} / ${Object.keys(TING).length}`, 'sanger lært helt')}
+      ${rute(`${s.oppfinnelser.length} / ${OPPFINNELSER.length}`, 'oppfinnelser fra skolen')}
+      ${rute(tall(st.lyttet), 'tekster læreren har lest')}
+      ${rute(tall(alleOyer), alleOyer === 1 ? 'øy' : 'øyer funnet')}
+    </div></div>`;
+}
+
 function tegnForeldre() {
   const f = innst();
   $('f-hurtig').innerHTML = Object.entries(M.FORHANDSVALG).map(([k, v]) => `<button data-hurtig="${k}">${v.navn}</button>`).join('');
@@ -1099,13 +1144,7 @@ function tegnForeldre() {
   $('f-telling').innerHTML = `
     <button class="bryter${f.visTall ? ' paa' : ''}" data-flagg="visTall">${f.visTall ? '✓' : ''} Vis tallene når man trykker</button>
     <button class="bryter${f.lesOpp ? ' paa' : ''}" data-flagg="lesOpp">${f.lesOpp ? '✓' : ''} Les tallene høyt</button>`;
-  const ms = t.spill.mattestat;
-  const prosent = ms.lost ? Math.round((ms.forste / ms.lost) * 100) : 0;
-  const perArt = Object.entries(ms.perArt).filter(([, v]) => v.lost)
-    .map(([a, v]) => `${M.ARTNAVN[a]}: ${v.lost} (${Math.round((v.forste / v.lost) * 100)} %)`).join(' · ');
-  $('f-stat').innerHTML = ms.lost
-    ? `${ms.lost} regnestykker løst, ${prosent} % riktig på første forsøk.<br><small>${perArt}</small>`
-    : 'Ingen regnestykker løst ennå.';
+  $('f-stat').innerHTML = statistikkHtml(t.spill);
   const prov = M.lagOppgave(f);
   $('f-eksempel').textContent = `Eksempel: ${prov.tekst} = ${prov.fasit}`;
 
@@ -1811,6 +1850,11 @@ function sloyfe() {
 // ---------------------------------------------------------------------------
 function start() {
   visVersjon();
+  // Statistikk: alle trykk mens spillet er åpent, og tiden man har hatt spillet framme.
+  document.addEventListener('pointerdown', () => { if (t.spill && !$('spill').hidden) t.spill.stat.klikk++; }, true);
+  setInterval(() => {
+    if (t.spill && !$('spill').hidden && !document.hidden) t.spill.stat.sekunder += 10;
+  }, 10000);
   Stemme.forbered();
   document.addEventListener('pointerdown', lukkSnakk, true);
   neonKontekst($('lerret').getContext('2d'));

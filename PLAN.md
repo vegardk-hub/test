@@ -25,7 +25,7 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 7. **Sola** er dagens budsjett (50 trykk for 🧒, 70 for 🐣). Om natta kan man fange stjerneskudd (stjernestøv kan selges).
 
 ## Hjelpere (2026-10-06)
-- For hvert **femte bygg** man setter opp (totalt, på alle øyene) kommer det en hjelper: Ola, Siri, Per, Ida og Nils (høyst fem, `HJELPER` i `ting.js`).
+- For hvert **femte bygg** man setter opp (totalt, på alle øyene) kommer det en hjelper: Ola, Siri og Per (høyst tre, `HJELPER` i `ting.js`).
   De kommer ut av leiren og vinker når de kommer.
 - **Hver morgen** går hjelperne ut av døra på leiren, hver til sin type ting (tre, stein, jern, korn, sau, fisk), og helst forskjellige typer.
   De går til den nærmeste av typen og jobber med verktøy (øks, hakke, ljå, fiskestang, saks). Så høstes tingen, det den gir, flyr ned i forrådet, og de går hjem igjen.
@@ -69,7 +69,10 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - Hurtigvalg fra HEX: 4–5 år, 6–8 år og 9–10 år.
 - **Svarmåte**: velg blant tre svar (for de minste) eller skriv svaret på talltastatur.
 - **Telling**: vis tallene, og les dem høyt (norsk stemme på iPad).
-- **Statistikk**: antall løste stykker, andel riktige på første forsøk og fordeling per regneart.
+- **Statistikk** (eget panel):
+  - Matte: stykker løst, riktige på første forsøk, riktige av alle svar (og antall feil), kister åpnet, og en tabell per regneart.
+  - Spilling: alle trykk i spillet, tid i spillet (telles i steg på 10 sekunder mens spillet er framme), dager, og trykk som brukte sol.
+  - På øya: ruter avdekket, ting samlet, skattekryss gravd fram, stjerneskudd, bygg, mynter tjent, hjelpere og hva de har samlet, sanger lært, oppfinnelser, tekster læreren har lest, og øyer.
 
 ## Gjenbrukt fra HEX (`C:\Vegard\Claude\hex-game`)
 - Oppgavegeneratoren i `matte.js` (pluss bygges fra svaret og ned, minus gir aldri svar under 1, ekte minustegn, aldri samme stykke to ganger på rad).

@@ -33,6 +33,7 @@ const t = {
   avdekkAnim: new Map(), borstAnim: new Map(), byggAnim: new Map(),
   naer: null, natt: null, plasser: null, skitten: true, solVis: 0,
   vist: {},           // det forrådet viser (tingene teller først når de har fløyet ned)
+  lukketVed: -Infinity, lukketNokkel: null,   // når og hvem sin snakkeboble som sist ble lukket
   tur: null,          // hjelpernes tur ut og hjem om morgenen
   gutt: null,         // barnet på skolen (samme navn som spilleren), som går rundt og finner på ting
   velkomst: null,     // en ny hjelper som kommer ut og vinker
@@ -181,6 +182,12 @@ function trykkPaa(kx, ky) {
   const s = t.spill, v = t.verden;
   if (t.plasser) { plasserHer(i); return; }
   const person = finnPerson(kx, ky);
+  if (naa() - t.lukketVed < 1000) {
+    // Dette trykket lukket en snakkeboble: det gjør ikke noe mer – med mindre man trykket på en annen person.
+    t.lukketVed = -Infinity;
+    if (person && personNokkel(person.hvem) !== t.lukketNokkel) snakkMed(person.hvem);
+    return;
+  }
   if (person) { snakkMed(person.hvem); return; }
   if (!s.avdekket[i]) {
     behandle(R.borst(s, v, i), i);
@@ -1631,7 +1638,18 @@ function finnPerson(kx, ky) {
   return best;
 }
 
-/** Snakkeboblen står til man trykker på den samme personen igjen. */
+const personNokkel = (hvem) => (hvem.type === 'gutt' ? 'gutt' : hvem.type === 'ny' ? `ny${hvem.nr}` : `h${hvem.l.h}`);
+
+/** Et trykk hvor som helst lukker snakkeboblen (det trykket gjør ikke noe annet på brettet). */
+function lukkSnakk() {
+  if (!t.snakker || $('melding').hidden) return;
+  $('melding').hidden = true;
+  t.lukketNokkel = t.snakker;
+  t.lukketVed = naa();
+  t.snakker = false;
+}
+
+/** Snakkeboblen står til man trykker et sted. */
 function snakk(nokkel, tekst, ikon, ikonLiten) {
   if (t.snakker === nokkel && !$('melding').hidden) { $('melding').hidden = true; t.snakker = false; return; }
   L.INSTRUMENT.xylofon(783.99);
@@ -1720,6 +1738,7 @@ function sloyfe() {
 // ---------------------------------------------------------------------------
 function start() {
   visVersjon();
+  document.addEventListener('pointerdown', lukkSnakk, true);
   neonKontekst($('lerret').getContext('2d'));
   neonKontekst($('naer-lerret').getContext('2d'));
   t.kamera = new Kamera($('lerret'), { vedTrykk: trykkPaa, vedEndring: () => { t.skitten = true; } });

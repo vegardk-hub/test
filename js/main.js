@@ -828,12 +828,12 @@ function skoleKort() {
 function oppfinnelseKort() {
   const s = t.spill;
   const funnet = OPPFINNELSER.filter((o) => s.oppfinnelser.includes(o.id));
-  const dager = R.dagerTilIde(s);
-  if (!funnet.length && dager === null) return '';
+  const tenker = R.tenkerPaaIde(s);
+  if (!funnet.length && !tenker) return '';
   return `<div class="butikk-overskrift">💡 ${liten() ? '' : `${esc(eierform(oppfinner()))} oppfinnelser (${funnet.length} av ${OPPFINNELSER.length})`}</div>`
     + funnet.map(kortFor).join('')
-    + (dager !== null ? `<div class="byggkort hemmelig"><span class="sporsmal">💡❓</span>
-      <span class="bl">${liten() ? '' : `Ny idé om ${dager} ${dager === 1 ? 'dag' : 'dager'}`}</span></div>` : '');
+    + (tenker ? `<div class="byggkort hemmelig"><span class="sporsmal">💡❓</span>
+      <span class="bl">${liten() ? '' : `${esc(oppfinner())} tenker på noe nytt …`}</span></div>` : '');
 }
 
 /** Havna nederst i butikken: låst til alle de 20 ulike byggene står på øya. */
@@ -1684,12 +1684,12 @@ function snakkMedGutt() {
   if (t.snakker === 'gutt' && !$('melding').hidden) { $('melding').hidden = true; t.snakker = false; return; }
   g.hopp = naa();
   L.INSTRUMENT.xylofon(783.99);
-  const dager = R.dagerTilIde(s);
+  const tenker = R.tenkerPaaIde(s);
   const siste = OPPFINNELSER.find((o) => o.id === s.oppfinnelser.at(-1));
   if (liten()) { melding('', { ikon: s.ideDag === s.dag ? '🤓💡🎉' : '🤓🤔💡', fast: 'gutt' }); return; }
   const tekst = s.ideDag === s.dag && siste ? `«Jeg har funnet på ${siste.tekst}! Se i butikken.»`
-    : dager === null ? '«Jeg har funnet på alt jeg kan. Nå leser jeg bøker!»'
-    : `«Hmm … jeg tenker på noe nytt. Om ${dager} ${dager === 1 ? 'dag' : 'dager'} har jeg en idé!»`;
+    : !tenker ? '«Jeg har funnet på alt jeg kan. Nå leser jeg bøker!»'
+    : '«Hmm … jeg tenker på noe nytt!»';
   melding(`${oppfinner()}: ${tekst}`, { ikon: '🤓', fast: 'gutt' });
 }
 

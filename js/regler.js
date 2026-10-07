@@ -366,10 +366,14 @@ export function skoleVed(spill) {
   return -1;
 }
 
-/** Dager til Theo får en ny idé (null hvis det ikke står en skole her, eller han har funnet på alt). */
-export function dagerTilIde(spill) {
-  if (skoleVed(spill) < 0 || spill.oppfinnelser.length >= OPPFINNELSER.length) return null;
-  return SKOLE.hverDag - spill.skoleTeller;
+/** Hvor mange dager det går til neste idé (5–7, seedet). Vises ikke – det skal være en overraskelse. */
+export function ideIntervall(spill) {
+  return lagTilfeldig(blandSeed(spill.seed, 'idedager', spill.oppfinnelser.length)).heltall(...SKOLE.dager);
+}
+
+/** Tenker barnet på noe nytt? (Nei hvis det ikke står en skole her, eller alt er funnet på.) */
+export function tenkerPaaIde(spill) {
+  return skoleVed(spill) >= 0 && spill.oppfinnelser.length < OPPFINNELSER.length;
 }
 
 /** Theo finner på noe nytt: en tilfeldig (seedet) oppfinnelse han ikke har funnet på før. */
@@ -627,11 +631,11 @@ export function nyDag(spill, verden) {
   // Det hjelperne ikke rakk i går, gjøres ferdig før de får nye oppdrag.
   for (const o of [...spill.oppdrag]) hjelperFerdig(spill, verden, o.h);
   const oppdrag = planleggOppdrag(spill, verden);
-  // Theo på skolen får en ny idé hver sjette dag (bare på øya der skolen står).
+  // Barnet på skolen får en ny idé med 5–7 dagers mellomrom (bare på øya der skolen står).
   let ide = null;
   if (skoleVed(spill) >= 0 && spill.oppfinnelser.length < OPPFINNELSER.length) {
     spill.skoleTeller++;
-    if (spill.skoleTeller >= SKOLE.hverDag) { spill.skoleTeller = 0; ide = nyIde(spill); }
+    if (spill.skoleTeller >= ideIntervall(spill)) { spill.skoleTeller = 0; ide = nyIde(spill); }
   }
   return [{ type: 'nyDag', dag: spill.dag, vokst, kryss, oppdrag, ide }];
 }

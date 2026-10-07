@@ -34,7 +34,7 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 
 ## Skolen og Theos oppfinnelser (2026-10-06)
 - **Skole** (500 mynter, én per øy) i butikken. Ut kommer et smart barn med briller som **heter det samme som spilleren**, og som går rundt i nærheten av skolen.
-- **Hver sjette dag** (med skole på øya) får Theo en **lyspære over hodet**, og en ny oppfinnelse dukker opp i butikken under «💡 Theos oppfinnelser».
+- **Med 5–7 dagers mellomrom** (med skole på øya, og det er en overraskelse når) får barnet en **lyspære over hodet**, og en ny oppfinnelse dukker opp i butikken.
   Et «💡❓»-kort viser hvor mange dager det er til neste idé. Trykker man på barnet, sier det hva det tenker på, og teksten står til man trykker på barnet igjen.
 - **12 oppfinnelser** (`OPPFINNELSER` i `ting.js`, tegnet i `js/stil/oppfinnelser.js`, alle animert):
   drage (20), boblemaskin (25), trampoline (35, salto når man trykker), godterimaskin (45), iskiosk (60), sjokoladefontene (75), hoppeslott (90),
@@ -45,7 +45,7 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - Det kommer ingen automatiske meldinger om hjelperne eller barnet på skolen. Trykker man på en person, kommer en snakkeboble som blir stående til man trykker hvor som helst (det trykket gjør ikke noe annet på brettet, men en annen person åpner sin egen boble).
   - Hjelper på vei ut: «Jeg skal slå korn!». Mens den jobber: «Nå slår jeg korn …». På vei hjem: «Jeg fikk 2 korn! Nå går jeg hjem.»
   - Ny hjelper (står og vinker ved leiren i 12 sekunder): «Hei! Jeg heter Ola …»
-  - Barnet på skolen: hva det tenker på, og hvor mange dager det er til neste idé.
+  - Barnet på skolen: «Hmm … jeg tenker på noe nytt!» (ikke når ideen kommer).
 
 ## Foreldrekontroll (menyen → 🔒 For foreldre, eller «🔒 For foreldre» på startsiden)
 - **Foreldrekode:** første gang løser man et voksent gangestykke og lager en firesifret kode (skrives to ganger). Etter det kreves koden.

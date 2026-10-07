@@ -102,10 +102,10 @@ export const BAAT = { id: 'havnbaat', navn: 'Havn med seilbåt', pris: 250 };
 
 /**
  * Skolen: et spesielt bygg (én per øy). Ut av skolen kommer et smart barn (med samme navn som spilleren) som går
- * rundt på øya. Hver sjette dag får han en lyspære over hodet og finner på noe nytt,
- * som dukker opp i butikken.
+ * rundt på øya. Med 5–7 dagers mellomrom (det er en overraskelse når) får barnet en lyspære
+ * over hodet og finner på noe nytt, som dukker opp i butikken.
  */
-export const SKOLE = { id: 'skole', navn: 'Skole', pris: 500, hverDag: 6 };
+export const SKOLE = { id: 'skole', navn: 'Skole', pris: 500, dager: [5, 7] };
 export const OPPFINNER = { farge: '#ffd23f' };   // navnet er spillerens eget
 
 /** Oppfinnelsene fra skolen. Prisen følger hvor avansert tingen er. */

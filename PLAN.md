@@ -181,7 +181,7 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Trykk på museet** for å gå inn i et rom med ni **glassmontre** på sokler (to rekker liggende, tre rekker stående). I hver monter
   svever tingen over en dreieskive og **snurrer sakte** i lyset fra en lampe. Har man mange (3, 10, 25), ligger det flere små på skiva.
   Tomme montre viser en mørk skygge og et spørsmålstegn.
-- **Trykk på en monter** for å se tingen stort, med navn og antall. **Trykk på tingen** der, så snurrer den fort og det spruter gnister.
+- **Trykk på en monter** for å se tingen stort, med navn og antall. **Navnet leses høyt** (for både Liten og Stor, når lyden er på). **Trykk på tingen** der, så snurrer den fort og det spruter gnister.
 - Knappen **📖 Samlingen** viser alt samlet på en fløyelstavle med gullramme: hver ting, navnet og antallet, og summen nederst.
 - 🐣 Liten har også tekst i museet (barnet øver seg på å lese), og navnene på steinene og metallene står med STORE BOKSTAVER.
 - I **kreativmodus** vises alle tingene i montrene (også dem man ikke har solgt), så det er lett å se på dem. Antallet er det ekte.

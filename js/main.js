@@ -2048,7 +2048,14 @@ function trykkMuseum(e) {
   // Fra samlingen: gå til salen der tingen står, så man kommer dit når man går tilbake til rommet.
   if (m.fra === 'samling') m.sal = sisteSal = Museum.salFor(hit.vare);
   L.INSTRUMENT.spilledaase(museumstone(hit.vare) * 2);
+  lesNavn(hit.vare);
   oppdaterMuseumKnapper();
+}
+
+/** Navnet på metallet eller edelsteinen leses høyt (for både 🐣 Liten og 🧒 Stor), hvis lyden er på. */
+function lesNavn(vare) {
+  if (!L.lydPaa() || !window.speechSynthesis) return;
+  try { Stemme.si(VARER[vare].navn, 0.85); } catch { /* opplesing er pynt */ }
 }
 
 /** Neste eller forrige sal (rundt og rundt). */
@@ -2075,6 +2082,7 @@ function museumTilbake() {
   if (!m) return;
   L.vekk();
   if (m.modus === 'rom') { lukkMuseum(); return; }
+  Stemme.stille();
   m.modus = m.modus === 'naer' ? m.fra : 'rom';
   m.fra = 'rom';
   oppdaterMuseumKnapper();

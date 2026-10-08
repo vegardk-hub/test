@@ -435,11 +435,13 @@ function aapneSjokart() {
   $('sjokart-tekst').textContent = liten() ? ''
     : R.kanSeileNy(s) ? 'Du kan også seile til en helt ny øy fra havna.'
     : R.havnVed(s) < 0 && !oyer.some((o) => o.fra === s.oyNr) ? `Vil du finne en ny øy? Sett opp alle ${HAVN.krav} byggene og en havn på denne øya.` : '';
-  $('oyliste').innerHTML = oyer.map((o) => `<div class="oyrad${o.her ? ' her' : ''}">
-      <span class="oyikon">${o.ikon}</span>
+  // Hele raden er en knapp: trykk hvor som helst på den for å seile dit. (Øya man står på, er ikke en knapp.)
+  $('oyliste').innerHTML = oyer.map((o) => {
+    const innhold = `<span class="oyikon">${o.ikon}</span>
       <span class="oynavn"><b>${esc(o.navn)}</b><small>${o.bygg} bygg${o.her ? ' · Du er her' : ''}</small></span>
-      ${o.her ? '<span class="her-merke">📍</span>' : `<button class="hoved" data-oy="${o.nr}">⛵ ${liten() ? '' : 'Seil hit'}</button>`}
-    </div>`).join('');
+      ${o.her ? '<span class="her-merke">📍</span>' : `<span class="seil-merke">⛵${liten() ? '' : ' Seil hit'}</span>`}`;
+    return o.her ? `<div class="oyrad her">${innhold}</div>` : `<button class="oyrad" data-oy="${o.nr}">${innhold}</button>`;
+  }).join('');
   $('oyliste').querySelectorAll('[data-oy]').forEach((b) => { b.onclick = () => seilAvsted(Number(b.dataset.oy)); });
   $('sjokart').showModal();
 }

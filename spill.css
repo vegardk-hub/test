@@ -267,6 +267,10 @@ body.neon .matte-melding.feil { color: #ff5c8a; }
 .oyrad .oynavn b { font-size: 19px; }
 .oyrad .oynavn small { color: #6d6656; font-size: 14px; }
 .oyrad .her-merke { font-size: 28px; }
+button.oyrad { width: 100%; min-height: 64px; text-align: left; border-color: var(--kant); cursor: pointer; }
+button.oyrad:active { transform: scale(0.98); background: #fff6d0; }
+.oyrad .seil-merke { background: #ffe58a; border: 2px solid var(--gullkant); border-radius: 14px; padding: 8px 14px; font-weight: 700; white-space: nowrap; }
+body.neon .oyrad .seil-merke { background: #ff2bd6; border-color: #ff8cf0; color: #fff; }
 #sjokart-tekst { color: #6d6656; margin: 0 0 6px; }
 body.liten .oyrad .oynavn small { display: none; }
 body.neon .oyrad { background: #22113d; color: #f6eaff; }

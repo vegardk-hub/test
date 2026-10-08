@@ -1,7 +1,9 @@
 // Toner og «instrumenter» laget med Web Audio (ingen lydfiler). Hvert trykk på en
-// ting spiller neste tone i en kjent barnesang. Den lille utgaven av en ting spiller
-// starten av sangen, den mellomste litt mer, og den store hele sangen.
+// ting spiller neste tone i en kjent melodi (klassisk musikk og sanger, se data/melodier.js).
+// Den lille utgaven av en ting spiller starten av melodien, den mellomste litt mer, og den store hele.
 // Lyden kan først starte etter at brukeren har trykket på noe (krav i nettleserne).
+
+import { MELODIER } from '../data/melodier.js';
 
 let ac = null;
 let paa = true;
@@ -24,60 +26,45 @@ function kontekst() {
 export function vekk() { kontekst(); }
 
 // ---------------------------------------------------------------------------
-// Noter og sanger. Bare melodiene brukes – alle er gamle og uten opphavsrett.
+// Noter og melodier
 // ---------------------------------------------------------------------------
-const HZ = {
-  G3: 196.0, A3: 220.0, B3: 246.94, C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0,
-  A4: 440.0, B4: 493.88, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.0, C6: 1046.5,
-};
-const noter = (s) => s.trim().split(/\s+/).map((n) => HZ[n]);
+const HALVTONE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
-/** deler = antall toner for liten og middels utgave; den store spiller hele sangen. */
-export const SANG = {
-  ro: {
-    navn: 'Ro, ro, ro din båt', deler: [5, 10],
-    toner: noter(`C4 C4 C4 D4 E4  E4 D4 E4 F4 G4
-      C5 C5 C5 G4 G4 G4 E4 E4 E4 C4 C4 C4  G4 F4 E4 D4 C4`),
-  },
-  baa: {
-    navn: 'Bæ, bæ, lille lam', deler: [7, 14],
-    toner: noter(`C4 C4 G4 G4 A4 A4 G4  F4 F4 E4 E4 D4 D4 C4
-      G4 G4 F4 F4 E4 E4 D4  G4 G4 F4 F4 E4 E4 D4
-      C4 C4 G4 G4 A4 A4 G4  F4 F4 E4 E4 D4 D4 C4`),
-  },
-  jakob: {
-    navn: 'Fader Jakob', deler: [8, 14],
-    toner: noter(`C4 D4 E4 C4 C4 D4 E4 C4  E4 F4 G4 E4 F4 G4
-      G4 A4 G4 F4 E4 C4 G4 A4 G4 F4 E4 C4  C4 G3 C4 C4 G3 C4`),
-  },
-  macdonald: {
-    navn: 'Old MacDonald', deler: [12, 25],
-    toner: noter(`C4 C4 C4 G3 A3 A3 G3  E4 E4 D4 D4 C4
-      G3 C4 C4 C4 G3 A3 A3 G3  E4 E4 D4 D4 C4
-      G3 G3 C4 C4 C4  G3 G3 C4 C4 C4  C4 C4 C4  C4 C4 C4  C4 C4 C4 C4 C4 C4
-      C4 C4 C4 G3 A3 A3 G3  E4 E4 D4 D4 C4`),
-  },
-  petter: {
-    navn: 'Lille Petter Edderkopp', deler: [13, 23],
-    toner: noter(`G3 C4 C4 C4 D4 E4 E4  E4 D4 C4 D4 E4 C4
-      E4 E4 F4 G4  G4 F4 E4 F4 G4 E4
-      C4 C4 D4 E4  E4 D4 C4 D4 E4 C4
-      G3 G3 C4 C4 C4 D4 E4 E4  E4 D4 C4 D4 E4 C4`),
-  },
-  mary: {
-    navn: 'Mary Had a Little Lamb', deler: [7, 13],
-    toner: noter(`E4 D4 C4 D4 E4 E4 E4  D4 D4 D4  E4 G4 G4
-      E4 D4 C4 D4 E4 E4 E4  E4 D4 D4 E4 D4 C4`),
-  },
-  bursdag: {
-    navn: 'Happy Birthday', deler: [6, 12],
-    toner: noter(`G4 G4 A4 G4 C5 B4  G4 G4 A4 G4 D5 C5
-      G4 G4 G5 E5 C5 B4 A4  F5 F5 E5 C5 D5 C5`),
-  },
-  take: { navn: '', deler: [3, 3], toner: noter('C5 E5 G5') },
-};
+/** Frekvensen til en tone, f.eks. «C4» (261,63 Hz), «F#4» eller «Bb3». */
+export function hertz(navn) {
+  const m = /^([A-G])([#b]?)(\d)$/.exec(navn);
+  if (!m) throw new Error(`Ukjent tone: ${navn}`);
+  const midi = 12 * (Number(m[3]) + 1) + HALVTONE[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+  return Math.round(440 * 2 ** ((midi - 69) / 12) * 100) / 100;
+}
 
-/** Tonene for en sang i en gitt størrelse (0 = liten, 1 = middels, 2 = stor). */
+/** Tolker en melodi (se skrivemåten i data/melodier.js) til [{ f, v }]: frekvens (null = pause) og lengde i slag. */
+export function tolk(tekst) {
+  return tekst.replace(/\|/g, ' ').trim().split(/\s+/).map((ord) => {
+    const m = /^(r|[A-G][#b]?\d)([-.,;]*)$/.exec(ord);
+    if (!m) throw new Error(`Kan ikke tolke «${ord}»`);
+    let v = m[2].includes(';') ? 0.25 : m[2].includes(',') ? 0.5 : 1;
+    v += (m[2].match(/-/g) ?? []).length;
+    if (m[2].includes('.')) v *= 1.5;
+    return { f: m[1] === 'r' ? null : hertz(m[1]), v };
+  });
+}
+
+/**
+ * Alle melodiene: { navn, av, gruppe, tempo, deler, noter: [{ f, v }], toner: [frekvens …] }.
+ * deler = antall toner for liten og middels utgave; den store spiller hele melodien.
+ */
+export const SANG = {};
+for (const [id, m] of Object.entries(MELODIER)) {
+  const noter = tolk(m.noter);
+  SANG[id] = { ...m, noter, toner: noter.filter((n) => n.f).map((n) => n.f) };
+}
+/** Melodiene i den rekkefølgen de står i sangboka. */
+export const SANGER = Object.keys(MELODIER);
+// Tåka har sine egne tre toner (ikke i sangboka).
+SANG.take = { navn: '', deler: [3, 3], noter: tolk('C5 E5 G5'), toner: tolk('C5 E5 G5').map((n) => n.f) };
+
+/** Tonene for en melodi i en gitt størrelse (0 = liten, 1 = middels, 2 = stor). */
 export function tonerFor(sang, str) {
   const s = SANG[sang];
   return str >= 2 ? s.toner : s.toner.slice(0, s.deler[str]);
@@ -232,4 +219,75 @@ export function vend() {
 
 export function tomt() {
   tone(220, { lengde: 0.15, volum: 0.06, type: 'triangle', tilF: 180 });
+}
+
+// ---------------------------------------------------------------------------
+// Avspilling av en hel melodi (sangboka i stavkirka): orgeltoner i riktig rytme
+// ---------------------------------------------------------------------------
+let avspilling = null;
+
+/** Én orgeltone: grunntone med et par overtoner og en dyp undertone. */
+function orgel(a, ut, noder, f, start, lengde) {
+  const g = a.createGain();
+  const hold = Math.max(0.12, lengde * 0.92);
+  g.gain.setValueAtTime(0.0001, start);
+  g.gain.exponentialRampToValueAtTime(0.15, start + 0.025);
+  g.gain.setValueAtTime(0.15, start + Math.max(0.03, hold - 0.06));
+  g.gain.exponentialRampToValueAtTime(0.0001, start + hold + 0.12);
+  g.connect(ut);
+  for (const [gang, volum, type] of [[1, 1, 'sine'], [2, 0.45, 'sine'], [3, 0.18, 'sine'], [0.5, 0.3, 'triangle']]) {
+    const o = a.createOscillator(), og = a.createGain();
+    o.type = type;
+    o.frequency.value = f * gang;
+    og.gain.value = volum;
+    o.connect(og).connect(g);
+    o.start(start);
+    o.stop(start + hold + 0.2);
+    noder.push(o);
+  }
+}
+
+export function stoppMelodi() {
+  if (!avspilling) return;
+  const { a, ut, noder, tider } = avspilling;
+  avspilling = null;
+  tider.forEach(clearTimeout);
+  try {
+    ut.gain.setValueAtTime(ut.gain.value, a.currentTime);
+    ut.gain.linearRampToValueAtTime(0.0001, a.currentTime + 0.08);
+  } catch { /* ignorer */ }
+  setTimeout(() => {
+    for (const o of noder) { try { o.stop(); } catch { /* allerede stoppet */ } }
+    try { ut.disconnect(); } catch { /* ignorer */ }
+  }, 160);
+}
+
+/**
+ * Spiller de første `antall` tonene av en melodi (hele hvis ikke annet er sagt), med riktig rytme.
+ * vedTone(k) kalles når tone nr. k begynner, vedSlutt(helt) når melodien er ferdig. Gir lengden i sekunder.
+ */
+export function spillMelodi(sang, antall = Infinity, { vedTone = null, vedSlutt = null } = {}) {
+  stoppMelodi();
+  const a = kontekst(), s = SANG[sang];
+  if (!a || !paa || !s) { vedSlutt?.(false); return 0; }
+  const slag = 60 / s.tempo;
+  const ut = a.createGain();
+  ut.gain.value = 1;
+  ut.connect(a.destination);
+  const noder = [], tider = [];
+  let t = 0.08, nr = 0;
+  for (const n of s.noter) {
+    const lengde = n.v * slag;
+    if (n.f) {
+      if (nr >= antall) break;
+      orgel(a, ut, noder, n.f, a.currentTime + t, lengde);
+      const k = nr++;
+      tider.push(setTimeout(() => vedTone?.(k), t * 1000));
+    }
+    t += lengde;
+  }
+  const denne = { a, ut, noder, tider };
+  tider.push(setTimeout(() => { if (avspilling === denne) { avspilling = null; vedSlutt?.(true); } }, (t + 0.4) * 1000));
+  avspilling = denne;
+  return t;
 }

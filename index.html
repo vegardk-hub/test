@@ -87,6 +87,17 @@
     </div>
   </div>
 
+  <!-- Stavkirka: sangboka med alle melodiene man har funnet -->
+  <div id="kirke" hidden>
+    <button id="kirke-tilbake" class="museum-knapp venstre">← Tilbake til øya</button>
+    <h2>🎵 Sangboka</h2>
+    <div class="kirke-bok">
+      <p id="kirke-tall"></p>
+      <p id="kirke-hint"></p>
+      <div id="kirke-liste"></div>
+    </div>
+  </div>
+
   <!-- Natta -->
   <div id="natt" class="natt" hidden>
     <canvas id="natt-lerret"></canvas>
@@ -106,13 +117,6 @@
       <button id="meny-ny-oy">🏝️ Ny øy</button>
       <button id="meny-lukk" class="hoved">Tilbake til øya</button>
     </div>
-  </dialog>
-
-  <dialog id="sangbok" class="kort">
-    <h2>🎵 Sangboka</h2>
-    <p id="sangbok-tekst"></p>
-    <div id="sangliste" class="sangliste"></div>
-    <button id="sangbok-lukk" class="hoved">Lukk</button>
   </dialog>
 
   <dialog id="laerer" class="kort bred">

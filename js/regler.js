@@ -10,7 +10,7 @@ import { T } from './data/terreng.js';
 import {
   TING, VARER, UTBYTTE, KISTE, NYFUNN, trekkvekt, METALLER, EDELSTEINER, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, MAKS_PER_TYPE, MAKS_KISTER, SPAWN, HJELPER, HJELPERE, SKOLE, MUSEUM, SKATTER, OPPFINNELSER,
 } from './data/ting.js';
-import { tonerFor } from './trykk/toner.js';
+import { tonerFor, SANGER } from './trykk/toner.js';
 import { medStandard, lagOppgave, alternativer, TEGN } from './matte.js';
 import { TEKSTER } from './data/kunnskap.js';
 import { blandSeed, lagTilfeldig } from './rng.js';
@@ -191,10 +191,13 @@ export function tingVed(spill, verden, i) {
   const gang = s.gang ?? 0;
   const u = lagTilfeldig(blandSeed(spill.seed, 'str', i, gang)).tall();
   const str = u < STR_SJANSE[0] ? 0 : u < STR_SJANSE[0] + STR_SJANSE[1] ? 1 : 2;
-  const toner = tonerFor(TING[type].sang, str);
+  // Hver ting har sin egen, tilfeldige melodi (ny for hver gang noe vokser fram). Kistene har sin faste.
+  const sang = type === 'kiste' ? TING.kiste.sang
+    : SANGER[Math.floor(lagTilfeldig(blandSeed(spill.seed, 'sang', i, gang)).tall() * SANGER.length)];
+  const toner = tonerFor(sang, str);
   const antall = type === 'kiste' ? STYKKER[str] : toner.length;
   return {
-    i, type, str, seed: blandSeed(spill.seed, 'figur', i, gang),
+    i, type, str, sang, seed: blandSeed(spill.seed, 'figur', i, gang),
     antall, igjen: Math.min(s.igjen ?? antall, antall), toner,
   };
 }
@@ -405,11 +408,11 @@ function fullfor(spill, i, ting, s) {
   delete s.aktiv;
   spill.gravd.delete(i);   // en framgravd kiste etterlater en vanlig, tom rute
   if (ting.type === 'kiste') spill.stat.kister++;
-  const sang = TING[ting.type].sang;
+  const sang = ting.sang;
   const for_ = spill.sanger[sang] ?? 0;
   spill.sanger[sang] = Math.max(for_, ting.str + 1);
   spill.stat.ting++;
-  return { type: 'ferdig', ting, gave, ny: kiste?.ny ?? null, sang, nySang: ting.str === 2 && for_ < 3 };
+  return { type: 'ferdig', ting, gave, ny: kiste?.ny ?? null, sang, nySang: for_ === 0, helSang: ting.str === 2 && for_ < 3 };
 }
 
 /** Ett trykk på tingen på rute i (ikke kister – de åpnes med mattestykker). */

@@ -85,6 +85,7 @@ function visVelg() {
   t.spill = null;
   avbrytPlassering();
   lukkMuseum();
+  lukkSangbok();
   sisteSal = 0;
   settNeon(false);
   document.body.classList.remove('neon');
@@ -199,6 +200,7 @@ function trykkPaa(kx, ky) {
   if (s.kryss.has(i)) { behandleGrav(R.grav(s, v, i), i); return; }
   if (i === v.startIndeks) { aapneButikk(); return; }
   if (s.bygg.get(i) === MUSEUM.id) { aapneMuseum(); return; }
+  if (s.bygg.get(i) === 'stavkirke') { aapneSangbok(); return; }   // sangboka ligger i stavkirka
   if (s.bygg.has(i)) { aapneNaer(i, { pynt: R.pyntVed(s, i) }); return; }
   if (R.tingVed(s, v, i)) { aapneNaer(i); return; }
   const d = R.venterPaa(s, v, i);
@@ -300,7 +302,7 @@ function aapneNaer(i, { pynt = null } = {}) {
   } else {
     const def = TING[ting.type];
     $('naer-tittel').innerHTML = liten() ? `<span class="stor-ikon">${def.ikon}</span>`
-      : `${def.navn[ting.str]} <span class="sang">${kiste ? 'Løs stykket for å åpne!' : `♪ ${L.SANG[def.sang].navn}`}</span>`;
+      : `${def.navn[ting.str]} <span class="sang">${kiste ? 'Løs stykket for å åpne!' : `♪ ${L.SANG[ting.sang].navn}`}</span>`;
   }
   $('matte').hidden = !kiste;
   if (kiste) nyttStykke();
@@ -353,7 +355,9 @@ function ferdigNaer(n, h, r) {
   setTimeout(() => L.fanfare(n.ting.str + 1), 180);
   sprutNaer(n, n.S / 2, n.S * 0.55, 12 + n.ting.str * 8, 1.4);
   setTimeout(() => flyTil(h.gave, { x: r.left + r.width / 2, y: r.top + n.S / 2 }), 550);
-  if (h.nySang) setTimeout(() => melding(`Ny sang i sangboka: ${L.SANG[h.sang].navn}!`, { ikon: '🎵✨' }), 1300);
+  // Melodiene samles i sangboka (i stavkirka): en ny melodi, eller hele melodien når en stor ting er ferdig.
+  if (h.helSang) setTimeout(() => melding(`Nå kan du hele «${L.SANG[h.sang].navn}»! Den ligger i sangboka.`, { ikon: '🎵🌟' }), 1300);
+  else if (h.nySang) setTimeout(() => melding(`Ny melodi i sangboka: ${L.SANG[h.sang].navn}!`, { ikon: '🎵✨' }), 1300);
   if (n.ting.type === 'kiste') {
     const verdi = Object.entries(h.gave).reduce((a, [v, k]) => a + VARER[v].pris * k, 0);
     if (h.ny) {
@@ -846,7 +850,7 @@ function kortFor(b) {
   const pris = R.prisFor(s, b.id), kan = s.mynter >= pris;
   return `<button class="byggkort${kan ? '' : ' dyr'}" data-bygg="${b.id}">
     <img src="${byggBilde(b.id)}" alt=""><span class="bn">${esc(b.navn)}</span>
-    <span class="bp">${prisTekst(pris)}</span>${!kan && !liten() ? `<span class="bm">mangler ${pris - s.mynter}</span>` : ''}</button>`;
+    <span class="bp">${prisTekst(pris)}</span>${!kan && !liten() ? `<span class="bm">mangler ${pris - s.mynter}</span>` : ''}${b.id === 'stavkirke' ? `<span class="bl">🎵${liten() ? '' : ' Her ligger sangboka'}</span>` : ''}</button>`;
 }
 
 /** Museet: gratis, ett per øy. Det står først i butikken og ser ut som de andre byggene. */
@@ -1146,7 +1150,7 @@ function statistikkHtml(s) {
   const rute = (verdi, tekst) => `<div class="stat-rute"><b>${verdi}</b><small>${tekst}</small></div>`;
   const svar = ms.lost + ms.feil;
   const arter = Object.entries(ms.perArt).filter(([, v]) => v.lost);
-  const sanger = Object.values(s.sanger).filter((n) => n >= 3).length;
+  const sanger = L.SANGER.filter((id) => (s.sanger[id] ?? 0) >= 3).length, funnet = L.SANGER.filter((id) => (s.sanger[id] ?? 0) > 0).length;
   const alleOyer = R.oyListe(s).length;
   return `
     <div class="stat-gruppe"><h3>🧮 Matte i kistene</h3><div class="stat-ruter">
@@ -1173,7 +1177,7 @@ function statistikkHtml(s) {
       ${rute(tall(st.bygg), 'bygg satt opp')}
       ${rute(tall(st.tjent), `mynter tjent (${tall(s.mynter)} nå)`)}
       ${rute(`${s.hjelpere.length} / ${HJELPER.maks}`, `hjelpere (har samlet ${tall(st.hjulpet)} ting)`)}
-      ${rute(`${sanger} / ${Object.keys(TING).length}`, 'sanger lært helt')}
+      ${rute(`${funnet} / ${L.SANGER.length}`, `melodier funnet (${sanger} lært helt)`)}
       ${rute(`${s.oppfinnelser.length} / ${OPPFINNELSER.length}`, 'oppfinnelser fra skolen')}
       ${rute(tall(st.lyttet), 'tekster læreren har lest')}
       ${rute(tall(R.iMuseet(s)), `skatter i museet (${R.slagIMuseet(s)} av ${SKATTER.length} slag)`)}
@@ -1536,18 +1540,68 @@ function aapneMeny() {
   $('meny').showModal();
 }
 
+/** Sangboka (i stavkirka): alle melodiene. De man har funnet, kan spilles – hele raden er en knapp. */
 function aapneSangbok() {
   L.vekk();
+  $('kirke').hidden = false;
+  tegnSangbok();
+}
+
+function tegnSangbok() {
   const s = t.spill;
-  const hele = Object.values(TING).filter((d) => (s.sanger[d.sang] ?? 0) >= 3).length;
-  $('sangbok-tekst').textContent = liten() ? '' : `Du kan ${hele} av ${Object.keys(TING).length} sanger helt. Trykk ferdig en stor ting for å lære hele sangen!`;
-  $('sangliste').innerHTML = Object.values(TING).map((d) => {
-    const n = s.sanger[d.sang] ?? 0;
-    const noter = [1, 2, 3].map((k) => `<span class="note ${n >= k ? 'har' : ''}">${'♪'.repeat(k)}</span>`).join('');
-    return `<div class="sang-rad ${n >= 3 ? 'hel' : ''}"><span class="ikon">${d.ikon}</span>
-      <span class="sangnavn">${n ? L.SANG[d.sang].navn : '???'}</span><span class="noter">${noter}</span></div>`;
-  }).join('');
-  $('sangbok').showModal();
+  const har = (id) => s.sanger[id] ?? 0;
+  const funnet = L.SANGER.filter((id) => har(id) > 0).length, hele = L.SANGER.filter((id) => har(id) >= 3).length;
+  $('kirke-tall').textContent = `${funnet} av ${L.SANGER.length} melodier funnet · ${hele} kan du helt`;
+  $('kirke-hint').textContent = !L.lydPaa() ? '🔇 Lyden er skrudd av i menyen.'
+    : funnet ? 'Trykk på en melodi for å høre den. Trykk ferdig en stor ting på øya for å lære hele melodien (♪♪♪).'
+    : 'Trykk på trær, steiner og andre ting på øya for å finne melodier.';
+  const rad = (id) => {
+    const m = L.SANG[id], n = har(id);
+    const noter = `<span class="noter">${[1, 2, 3].map((k) => `<span class="note ${n >= k ? 'har' : ''}">${'♪'.repeat(k)}</span>`).join('')}</span>`;
+    return n
+      ? `<button class="sangrad${n >= 3 ? ' hel' : ''}" data-sang="${id}"><span class="spill">▶</span>
+          <span class="sn"><b>${esc(m.navn)}</b><small>${esc(m.av)}</small></span>${noter}<span class="framdrift"></span></button>`
+      : `<div class="sangrad ukjent"><span class="spill">?</span><span class="sn"><b>???</b><small>${esc(m.av)}</small></span>${noter}</div>`;
+  };
+  const gruppe = (navn, tittel) => `<h3>${tittel}</h3>${L.SANGER.filter((id) => L.SANG[id].gruppe === navn).map(rad).join('')}`;
+  $('kirke-liste').innerHTML = gruppe('klassisk', '🎻 Klassisk musikk') + gruppe('sang', '🎶 Sanger og viser');
+  $('kirke-liste').querySelectorAll('[data-sang]').forEach((b) => { b.onclick = () => spillSang(b.dataset.sang, b); });
+}
+
+let spilles = null;
+
+/** Spiller det man har lært av melodien (starten, litt mer, eller hele). Et nytt trykk stopper den. */
+function spillSang(id, knapp) {
+  L.vekk();
+  const var_ = spilles === id;
+  stoppSang();
+  const n = t.spill.sanger[id] ?? 0;
+  if (var_ || !n) return;
+  const antall = n >= 3 ? L.SANG[id].toner.length : L.SANG[id].deler[n - 1];
+  spilles = id;
+  knapp.classList.add('spiller');
+  knapp.querySelector('.spill').textContent = '⏹';
+  const strek = knapp.querySelector('.framdrift');
+  L.spillMelodi(id, antall, {
+    vedTone: (k) => { strek.style.width = `${((k + 1) / antall) * 100}%`; },
+    vedSlutt: () => { if (spilles === id) stoppSang(); },
+  });
+}
+
+function stoppSang() {
+  L.stoppMelodi();
+  spilles = null;
+  $('kirke-liste').querySelectorAll('.sangrad.spiller').forEach((b) => {
+    b.classList.remove('spiller');
+    b.querySelector('.spill').textContent = '▶';
+    b.querySelector('.framdrift').style.width = '0';
+  });
+}
+
+function lukkSangbok() {
+  stoppSang();
+  $('kirke').hidden = true;
+  t.skitten = true;
 }
 
 let meldingTid = 0;
@@ -2109,7 +2163,7 @@ function start() {
   $('fane-kjop').onclick = () => { fane = 'kjop'; tegnButikk(); };
   $('butikk-lukk').onclick = () => $('butikk').close();
   $('plasser-avbryt').onclick = avbrytPlassering;
-  $('sangbok-lukk').onclick = () => $('sangbok').close();
+  $('kirke-tilbake').onclick = lukkSangbok;
   $('meny-lukk').onclick = () => $('meny').close();
   $('meny-sov').onclick = () => { $('meny').close(); startNatt(); };
   $('meny-lyd').onclick = () => {

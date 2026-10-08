@@ -1,7 +1,10 @@
 // Tingene man kan samle, det man kan selge og kjøpe, og alle tallene for
 // økonomien samlet ett sted, så de er lette å justere.
 
-/** Hver ting har sin sang (antall trykk = antall toner) og sitt instrument. */
+/**
+ * Hver ting har sitt instrument. Melodien er tilfeldig for hver ting (antall trykk = antall toner),
+ * se data/melodier.js – bare kistene har sin faste sang (`sang`).
+ */
 export const TING = {
   tre:   { navn: ['Lite tre', 'Tre', 'Stort tre'], ikon: '🌳', sang: 'petter', instrument: 'hogg',
            sprut: ['#8a5c38', '#e8c48a', '#6f9a3f', '#8fbf55'] },

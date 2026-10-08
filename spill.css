@@ -104,16 +104,8 @@ body.liten .vare.null { letter-spacing: 0; padding-right: 9px; }
 #morgen { position: absolute; bottom: max(28px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); }
 
 /* ---------- Sangboka ---------- */
-.sangliste { display: grid; gap: 8px; margin: 10px 0 16px; }
-.sang-rad { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 5px 12px; border: 2px solid transparent; }
-.sang-rad.hel { border-color: var(--gullkant); background: #fff6d0; }
-.sang-rad .ikon { font-size: 28px; }
-.sang-rad .sangnavn { flex: 1; font-weight: 700; }
-.sang-rad .noter { display: flex; gap: 6px; }
 .note { color: #cfc6ad; font-size: 18px; font-weight: 800; }
 .note.har { color: #d9a520; }
-#sangbok-tekst { margin: 0; text-align: center; color: #6d6656; }
-#sangbok-lukk { width: 100%; }
 
 /* ---------- Melding ---------- */
 .melding {
@@ -248,10 +240,10 @@ body.neon #dag, body.neon #sol-tall { color: #fff; text-shadow: 0 0 6px #ff2bd6,
 body.neon .vare { background: #22113d; color: #f6eaff; }
 body.neon .vare.mynter { background: #3a2400; color: #ffe58a; border-color: #ffd23f; }
 body.neon dialog.kort { box-shadow: 0 0 30px rgba(176, 44, 255, 0.55); }
-body.neon .selgrad, body.neon .sang-rad, body.neon .artrad, body.neon .byggkort, body.neon .matte-svar { background: #22113d; color: #f6eaff; }
+body.neon .selgrad, body.neon .artrad, body.neon .byggkort, body.neon .matte-svar { background: #22113d; color: #f6eaff; }
 body.neon .byggkort .bp { color: #ffe58a; }
 body.neon .byggkort.havn { background: #0b2a3d; border-color: #19e3ff; }
-body.neon .selgrad .vn small, body.neon .tom-tekst, body.neon .eksempel, body.neon #sangbok-tekst, body.neon .artrad .tak { color: #b9a6d6; }
+body.neon .selgrad .vn small, body.neon .tom-tekst, body.neon .eksempel, body.neon .artrad .tak { color: #b9a6d6; }
 body.neon .melding { box-shadow: 0 0 18px rgba(255, 43, 214, 0.6); }
 body.neon .tast-ok, body.neon .svarvalg.riktig { background: #0f4a2c; color: #9dffc9; border-color: #2bff9c; }
 body.neon .svarvalg.feil { background: #4a0f1c; color: #ffb3c0; }
@@ -383,3 +375,38 @@ body.neon .museum-hint { color: #b9a6d6; }
 }
 @media (max-width: 480px) { #museum-sal { min-width: 150px; font-size: 16px; padding: 10px 8px; } }
 .selgrad .grad { color: #b8860b; white-space: nowrap; }
+
+/* ---------- Stavkirka: sangboka ---------- */
+#kirke {
+  position: fixed; inset: 0; z-index: 22; overflow: hidden; display: flex; flex-direction: column; align-items: center; animation: inn 0.35s ease-out;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 190, 90, 0.3), transparent 62%),
+    repeating-linear-gradient(90deg, #3b2414 0 46px, #2c1a0c 46px 50px, #442a17 50px 96px, #2c1a0c 96px 100px), #3b2414;
+}
+#kirke h2 { margin: max(20px, env(safe-area-inset-top)) 0 12px; font-size: 28px; color: #ffe9b0; font-family: Georgia, "Times New Roman", serif; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); }
+.kirke-bok {
+  flex: 1; min-height: 0; width: min(96vw, 980px); margin-bottom: 26px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  background: linear-gradient(90deg, #f1e3bf, #fbf3dc 47%, #e6d5aa 50%, #fbf3dc 53%, #f1e3bf); color: #3a2a12;
+  border: 6px solid #7a4a22; border-radius: 14px; padding: 14px 18px 20px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6), inset 0 0 30px rgba(120, 80, 30, 0.25);
+}
+#kirke-tall { margin: 0; text-align: center; font-weight: 800; font-size: 19px; }
+#kirke-hint { margin: 4px 0 10px; text-align: center; color: #6d5a3a; font-size: 15px; }
+#kirke-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 8px 14px; }
+#kirke-liste h3 { grid-column: 1 / -1; margin: 10px 0 2px; padding-bottom: 3px; font-family: Georgia, "Times New Roman", serif; font-size: 21px; border-bottom: 2px solid #c9a86a; }
+.sangrad {
+  position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; text-align: left;
+  padding: 6px 12px; border-radius: 14px; border: 2px solid #d8c28f; background: rgba(255, 255, 255, 0.78); color: #3a2a12;
+}
+div.sangrad.ukjent { opacity: 0.6; background: rgba(255, 255, 255, 0.35); border-style: dashed; }
+.sangrad .spill { width: 38px; height: 38px; flex: none; border-radius: 50%; display: grid; place-items: center; background: #ffe58a; border: 2px solid var(--gullkant); font-size: 16px; }
+.sangrad.ukjent .spill { background: transparent; border-color: #c9b78c; font-weight: 800; }
+.sangrad .sn { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sangrad .sn b { font-size: 17px; line-height: 1.15; }
+.sangrad .sn small { font-size: 13px; color: #7a6846; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sangrad .noter { display: flex; gap: 5px; }
+.sangrad .noter .note { font-size: 15px; }
+.sangrad.hel { border-color: var(--gullkant); background: #fff6d0; }
+.sangrad.spiller { border-color: #1e8a4c; background: #e2f6e8; }
+.sangrad .framdrift { position: absolute; left: 0; bottom: 0; height: 5px; width: 0; background: #1e8a4c; transition: width 0.12s linear; }
+button.sangrad:active { transform: scale(0.98); }
+@media (max-width: 520px) { #kirke h2 { margin-top: calc(max(12px, env(safe-area-inset-top)) + 60px); font-size: 24px; } }

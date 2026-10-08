@@ -96,6 +96,18 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Dyrene lever**: sauene beiter, puster, logrer og blunker. Hjorten løfter hodet og vipper med halen, og fiskene spreller.
 - Teknikk: kortet med det som står stille lagres som før, og bare det som beveger seg tegnes på nytt hver gang skjermen tegnes, og bare for ruter man ser.
 
+## Stor sangbok og tilfeldige melodier (2026-10-08, v1.45)
+- **44 melodier** (`js/data/melodier.js`): 26 klassiske stykker (Beethoven, Mozart, Bach, Grieg, Vivaldi, Tsjajkovskij, Brahms, Strauss, Pachelbel,
+  Offenbach, Rossini, Bizet, Haydn, Dvořák, Wagner, Holst) og 18 sanger og viser (de sju barnesangene fra før, Ja, vi elsker, Glade jul, Bjelleklang,
+  Greensleeves, Amazing Grace m.fl.). Alle er uten opphavsrett. Hver melodi er skrevet med toner **og rytme**.
+- **Hver ting på øya får en tilfeldig melodi** (ny hver gang noe vokser fram). Ett trykk = én tone, som før: den lille tingen spiller starten,
+  den mellomste litt mer, og den store hele melodien. Instrumentet følger fortsatt tingen (hogg, treblokk, ambolt …). Kistene har sin faste sang.
+- **Sangboka ligger i stavkirka**: trykk på stavkirka for å gå inn. (Den kan også åpnes fra menyen.) Den viser alle melodiene i to grupper,
+  med komponist. Melodier man ikke har funnet, står som «???». ♪ / ♪♪ / ♪♪♪ viser hvor mye man har lært.
+- **Trykk på en melodi** (hele raden) for å høre det man har lært av den, spilt med orgelklang i riktig rytme. Et nytt trykk stopper.
+- Meldinger: «Ny melodi i sangboka: …» første gang, og «Nå kan du hele …» når en stor ting er trykket ferdig.
+- Det hjelperne samler inn, gir ingen melodier – barnet må trykke selv.
+
 ## Høyst ti kister på øya (2026-10-08, v1.43)
 - Det er aldri mer enn **10 uåpnede kister** på øya (`MAKS_KISTER`). Skattekryssene regnes med, siden de blir til kister når man graver.
 - Når det er fullt, kommer det ingen nye kister når man børster bort tåke, og ingen nye kryss om natta.

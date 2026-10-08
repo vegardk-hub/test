@@ -3,6 +3,7 @@ import * as R from '../js/regler.js';
 import * as M from '../js/matte.js';
 import { SOL, TAKE_TRYKK, UTBYTTE, GJENVEKST, STYKKER, BYGG, VARER, SKATTER, METALLER, EDELSTEINER, SJELDENHET, NYFUNN } from '../js/data/ting.js';
 import { lagTilfeldig } from '../js/rng.js';
+import * as L from '../js/trykk/toner.js';
 
 let feil = 0;
 const sjekk = (ok, tekst) => { if (!ok) { feil++; console.log('FEIL:', tekst); } };
@@ -677,6 +678,60 @@ for (const tak of [2, 3, 4, 5, 10]) {
   sjekk(for_.length > 10 && etter.length === 10 && etter.every((i, n) => i === for_[n]), `gamle lagringer: ${for_.length} kister blir til de 10 nærmeste`);
   const lagret = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
   sjekk(R.kisterPaaOya(lagret, ve).length === 10, 'hvilke som venter, huskes ved lagring');
+}
+
+// --- Melodiene: mange, tilfeldige, og de samles i sangboka ----------------------
+{
+  sjekk(L.SANGER.length >= 40, `en stor sangbok (${L.SANGER.length} melodier)`);
+  sjekk(L.hertz('A4') === 440 && L.hertz('C4') === 261.63 && L.hertz('Bb3') === L.hertz('A#3'), 'tonene har riktig frekvens');
+  const t = L.tolk('C4 D4, E4; F4- G4. r A4,. | B4--');
+  sjekk(t.map((n) => n.v).join() === '1,0.5,0.25,2,1.5,1,0.75,3' && t[5].f === null && t.filter((n) => n.f).length === 7, 'lengder og pauser tolkes riktig');
+  for (const id of L.SANGER) {
+    const m = L.SANG[id];
+    sjekk(m.navn && m.av && ['klassisk', 'sang'].includes(m.gruppe) && m.tempo >= 60 && m.tempo <= 300, `${id}: navn, opphav, gruppe og tempo`);
+    sjekk(m.deler[0] >= 3 && m.deler[0] < m.deler[1] && m.deler[1] < m.toner.length && m.toner.length <= 60, `${id}: liten < middels < hel (${m.deler}, ${m.toner.length})`);
+    sjekk(m.toner.every((f) => f > 100 && f < 2200), `${id}: tonene ligger i et hørbart område`);
+    sjekk(L.tonerFor(id, 0).length === m.deler[0] && L.tonerFor(id, 1).length === m.deler[1] && L.tonerFor(id, 2).length === m.toner.length, `${id}: tonerFor gir riktig antall`);
+  }
+  sjekk(L.SANGER.filter((id) => L.SANG[id].gruppe === 'klassisk').length >= 20, 'minst 20 klassiske stykker');
+  // Tilfeldige melodier på tingene: mange forskjellige på samme øy
+  const sp = R.nyttSpill({ navn: 'Musiker' }, 12);
+  const ve = R.lagVerden(sp);
+  sp.avdekket.fill(1);
+  sp.evigDag = true;
+  R.fyllOpp(sp, ve);
+  const hort = new Set();
+  let forsteHendelse = null, storFerdig = null;
+  for (let runde = 0; runde < 120; runde++) {
+    const ruter = [...sp.avdekket.keys()].filter((i) => R.tingVed(sp, ve, i) && R.tingVed(sp, ve, i).type !== 'kiste');
+    const i = ruter[runde % ruter.length], ting = R.tingVed(sp, ve, i);
+    sjekk(L.SANGER.includes(ting.sang) && ting.antall === L.tonerFor(ting.sang, ting.str).length, 'tingen har en melodi fra sangboka, og like mange trykk som toner');
+    const for_ = sp.sanger[ting.sang] ?? 0;
+    let ferdig = null;
+    for (let k = 0; k < ting.antall; k++) {
+      const h = R.trykkTing(sp, ve, i);
+      if (k < ting.antall - 1 || true) sjekk(h[0].frekvens === ting.toner[k], 'hvert trykk spiller neste tone i melodien');
+      ferdig = h.find((e) => e.type === 'ferdig') ?? ferdig;
+    }
+    sjekk(ferdig && ferdig.sang === ting.sang && sp.sanger[ting.sang] === Math.max(for_, ting.str + 1), 'melodien skrives i sangboka med hvor mye man har lært');
+    sjekk(ferdig.nySang === (for_ === 0) && ferdig.helSang === (ting.str === 2 && for_ < 3), 'ny melodi og hel melodi meldes riktig');
+    forsteHendelse ??= ferdig;
+    if (ting.str === 2) storFerdig ??= ferdig;
+    hort.add(ting.sang);
+  }
+  sjekk(hort.size >= 25, `stor variasjon: ${hort.size} forskjellige melodier på 120 ting`);
+  sjekk(forsteHendelse.nySang === true && storFerdig?.helSang === true, 'første ting gir en ny melodi, første store ting gir en hel');
+  const kiste = R.kisterPaaOya(sp, ve)[0];
+  sjekk(R.tingVed(sp, ve, kiste).sang === 'bursdag', 'kistene har sin faste sang');
+  // Hjelperne lærer ikke bort melodier (barnet må trykke selv)
+  const sp2 = R.nyttSpill({ navn: 'Hjelp' }, 5);
+  const ve2 = R.lagVerden(sp2);
+  sp2.avdekket.fill(1);
+  sp2.stat.bygg = 15;
+  R.nyeHjelpere(sp2);
+  const dag = R.nyDag(sp2, ve2)[0];
+  for (const o of dag.oppdrag) R.hjelperFerdig(sp2, ve2, o.h);
+  sjekk(dag.oppdrag.length > 0 && Object.keys(sp2.sanger).length === 0, 'det hjelperne samler inn, gir ingen melodier i sangboka');
 }
 
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));

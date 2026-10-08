@@ -8,7 +8,7 @@
 import { genererVerden } from './kartgen.js';
 import { T } from './data/terreng.js';
 import {
-  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, MAKS_PER_TYPE, SPAWN, HJELPER, HJELPERE, SKOLE, MUSEUM, SKATTER, OPPFINNELSER,
+  TING, VARER, UTBYTTE, KISTE, NYFUNN, trekkvekt, METALLER, EDELSTEINER, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, MAKS_PER_TYPE, SPAWN, HJELPER, HJELPERE, SKOLE, MUSEUM, SKATTER, OPPFINNELSER,
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
 import { medStandard, lagOppgave, alternativer, TEGN } from './matte.js';
@@ -120,6 +120,9 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     kreativ: false,           // kreativmodus (foreldrekontroll): alle bygg er gratis
     hort: [],                 // kunnskapstekstene læreren har lest (så de ikke kommer igjen for tidlig)
     museum: {},               // skattene man har solgt: vare → antall (de står utstilt i museet)
+    kjent: [],                // slagene metaller og edelsteiner man har funnet (kistene gir mest av dem)
+    nyTeller: 0,              // regnestykker løst i kister siden forrige nye slag
+    nesteNy: null,            // neste nye slag og hvor mange stykker det tar: { vare, etter }
     oyNr: 1,                  // øya man er på (1, 2, 3 …)
     oyFra: null,              // øya man fant denne fra (havna der man seilte ut)
     oyer: [],                 // de andre øyene man har vært på (pakket som data)
@@ -270,11 +273,87 @@ export function settEvigDag(spill, paa) {
   spill.sol = SOL[spill.nivaa];
 }
 
+// ---------------------------------------------------------------------------
+// Kistene: mest av slagene man kjenner, og innimellom et nytt slag
+// ---------------------------------------------------------------------------
+const ALLE_SLAG = [...METALLER, ...EDELSTEINER];
+
+/** Bestemmer hvilket slag som blir det neste nye, og hvor mange regnestykker det tar. */
+function velgNesteNy(spill) {
+  const ukjent = ALLE_SLAG.filter((v) => !spill.kjent.includes(v));
+  if (!ukjent.length) { spill.nesteNy = null; return; }
+  const r = lagTilfeldig(blandSeed(spill.seed, 'nytt slag', spill.kjent.length, spill.stat.kister));
+  const vekt = (v) => Math.pow(SJELDENHET_VEKT(v), NYFUNN.bratt);
+  let x = r.tall() * ukjent.reduce((a, v) => a + vekt(v), 0), vare = ukjent[ukjent.length - 1];
+  for (const v of ukjent) { x -= vekt(v); if (x < 0) { vare = v; break; } }
+  const slingring = 1 + (r.tall() * 2 - 1) * NYFUNN.slingring;
+  const oppstart = Math.min(1, (spill.kjent.length + 1) / NYFUNN.oppstart);
+  spill.nesteNy = { vare, etter: Math.max(1, Math.round(NYFUNN.etter[VARER[vare].grad] * slingring * oppstart)) };
+}
+const SJELDENHET_VEKT = (v) => trekkvekt(VARER[v].grad, 0);
+
+/**
+ * Trekker én ting blant slagene man kjenner. Graden trekkes etter vektene for ALLE slagene i lista
+ * (også dem man ikke har funnet), så de sjeldne gradene er like sjeldne hele veien. Kjenner man ingen
+ * av den graden, blir det nærmeste lavere grad (ellers høyere). Gir null hvis man ikke kjenner noen.
+ */
+export function trekkKjent(r, liste, kjent, lykke = 0, minstGrad = 1) {
+  const perGrad = [0, 0, 0, 0, 0, 0], kjente = [[], [], [], [], [], []];
+  for (const v of liste) {
+    const g = VARER[v].grad;
+    if (g >= minstGrad) perGrad[g] += trekkvekt(g, lykke);
+    if (kjent.includes(v)) kjente[g].push(v);
+  }
+  if (!kjente.some((x) => x.length)) return null;
+  let x = r.tall() * perGrad.reduce((a, b) => a + b, 0), grad = 5;
+  for (let g = 1; g <= 5; g++) { x -= perGrad[g]; if (x < 0) { grad = g; break; } }
+  let g = grad;
+  while (g > 1 && !kjente[g].length) g--;
+  while (g < 5 && !kjente[g].length) g++;
+  return kjente[g][Math.floor(r.tall() * kjente[g].length)];
+}
+
+/**
+ * Det som ligger i en kiste av størrelse str (0–2). Hvert regnestykke man har løst, teller mot neste
+ * nye slag; når det er nok, ligger det ett eksemplar av det nye slaget i kista (i stedet for én av de andre tingene).
+ * Gir { gave: { vare: antall }, ny: det nye slaget eller null }.
+ */
+export function kisteinnhold(spill, str, r) {
+  const k = KISTE[str], gave = {};
+  const legg = (v) => { if (v) gave[v] = (gave[v] ?? 0) + 1; };
+  if (!spill.nesteNy) velgNesteNy(spill);
+  spill.nyTeller = (spill.nyTeller ?? 0) + STYKKER[str];
+  let ny = null;
+  // Kjenner man ingen slag ennå, kommer det første med en gang (en kiste er aldri tom).
+  if (spill.nesteNy && (spill.nyTeller >= spill.nesteNy.etter || !spill.kjent.length)) {
+    ny = spill.nesteNy.vare;
+    spill.kjent.push(ny);
+    spill.nyTeller = 0;
+    velgNesteNy(spill);
+    legg(ny);
+  }
+  const plan = [];   // hva som skal trekkes: [liste, minste grad]
+  for (let n = 0; n < k.metaller; n++) plan.push([METALLER, 1]);
+  for (let n = 0; n < k.steiner; n++) plan.push([EDELSTEINER, 1]);
+  for (let n = 0; n < k.valgfri; n++) plan.push([r.sjanse(0.5) ? METALLER : EDELSTEINER, 1]);
+  if (k.sikker) plan.push([EDELSTEINER, k.sikker]);
+  // Det nye slaget tar plassen til én av tingene av samme sort (eller den første).
+  if (ny) {
+    const sort = METALLER.includes(ny) ? METALLER : EDELSTEINER;
+    const hvor = plan.findIndex(([liste, minst]) => liste === sort && minst === 1);
+    plan.splice(hvor >= 0 ? hvor : 0, 1);
+  }
+  for (const [liste, minst] of plan) {
+    const annen = liste === METALLER ? EDELSTEINER : METALLER;
+    legg(trekkKjent(r, liste, spill.kjent, k.lykke, minst) ?? trekkKjent(r, annen, spill.kjent, k.lykke));
+  }
+  return { gave, ny };
+}
+
 /** Tingen er ferdig: gaven deles ut, ruta står tom til noe nytt vokser fram. */
 function fullfor(spill, i, ting, s) {
-  const gave = ting.type === 'kiste'
-    ? KISTEGAVE[ting.str](lagTilfeldig(blandSeed(spill.seed, 'gave', i, s.gang ?? 0)))
-    : { [ting.type]: UTBYTTE[ting.str] };
+  const kiste = ting.type === 'kiste' ? kisteinnhold(spill, ting.str, lagTilfeldig(blandSeed(spill.seed, 'gave', i, s.gang ?? 0))) : null;
+  const gave = kiste ? kiste.gave : { [ting.type]: UTBYTTE[ting.str] };
   gi(spill, gave);
   s.gang = (s.gang ?? 0) + 1;
   delete s.igjen;
@@ -286,7 +365,7 @@ function fullfor(spill, i, ting, s) {
   const for_ = spill.sanger[sang] ?? 0;
   spill.sanger[sang] = Math.max(for_, ting.str + 1);
   spill.stat.ting++;
-  return { type: 'ferdig', ting, gave, sang, nySang: ting.str === 2 && for_ < 3 };
+  return { type: 'ferdig', ting, gave, ny: kiste?.ny ?? null, sang, nySang: ting.str === 2 && for_ < 3 };
 }
 
 /** Ett trykk på tingen på rute i (ikke kister – de åpnes med mattestykker). */
@@ -885,6 +964,10 @@ export function fraData(d) {
     ideDag: d.ideDag ?? null,
     hort: d.hort ?? [],
     museum: d.museum ?? {},
+    // Lagringer fra før nye slag kom litt etter litt: man kjenner det man har i forrådet eller museet.
+    kjent: d.kjent ?? ALLE_SLAG.filter((v) => (d.forrad?.[v] ?? 0) > 0 || (d.museum?.[v] ?? 0) > 0),
+    nyTeller: d.nyTeller ?? 0,
+    nesteNy: d.nesteNy ?? null,
     kreativ: d.kreativ ?? false,
     evigDag: d.evigDag ?? false,
     dagTeller: d.dagTeller ?? 0,

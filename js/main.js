@@ -365,13 +365,12 @@ function ferdigNaer(n, h, r) {
   if (h.nySang) setTimeout(() => melding(`Ny sang i sangboka: ${L.SANG[h.sang].navn}!`, { ikon: '🎵✨' }), 1300);
   if (n.ting.type === 'kiste') {
     const verdi = Object.entries(h.gave).reduce((a, [v, k]) => a + VARER[v].pris * k, 0);
-    // Det sjeldneste i kista ropes opp hvis det er minst «sjelden».
-    const best = Object.keys(h.gave).sort((a, b) => VARER[b].grad - VARER[a].grad || VARER[b].pris - VARER[a].pris)[0];
-    const grad = VARER[best]?.grad ?? 0;
-    if (grad >= 3) {
-      if (grad >= 4) setTimeout(() => L.fanfare(3), 1300);
-      setTimeout(() => melding(`${'★'.repeat(grad)} Du fant ${VARER[best].navn} – ${SJELDENHET[grad].navn}! Skatten er verdt ${verdi} mynter.`,
-        { ikon: liten() ? '★'.repeat(grad) : '' }), 1500);
+    if (h.ny) {
+      // Et nytt slag! Det ropes opp, med stjerner for hvor sjeldent det er.
+      const grad = VARER[h.ny].grad;
+      setTimeout(() => L.fanfare(grad >= 3 ? 3 : 2), 1300);
+      setTimeout(() => melding(`Nytt funn: ${VARER[h.ny].navn}! ${'★'.repeat(grad)} ${SJELDENHET[grad].navn}. Skatten er verdt ${verdi} mynter.`,
+        { ikon: liten() ? `🆕${'★'.repeat(grad)}` : '🆕' }), 1500);
     } else if (!liten()) setTimeout(() => melding(`Skatten er verdt ${verdi} mynter i butikken!`, { ikon: '💰' }), 1500);
   }
   setTimeout(lukkNaer, 2400);
@@ -1229,6 +1228,7 @@ function statistikkHtml(s) {
       ${rute(pst(ms.forste, ms.lost), 'riktig på første forsøk')}
       ${rute(pst(ms.lost, svar), `riktige av alle svar (${tall(svar)} svar, ${tall(ms.feil)} feil)`)}
       ${rute(tall(st.kister), 'kister åpnet')}
+      ${rute(`${s.kjent.length} / ${METALLER.length + EDELSTEINER.length}`, 'slag metaller og edelsteiner funnet')}
     </div>
     ${arter.length ? `<table class="stat-arter"><tr><th>Regneart</th><th>Løst</th><th>Første forsøk</th><th>Feil svar</th></tr>
       ${arter.map(([a, v]) => `<tr><td>${M.ARTNAVN[a]} (${M.TEGN[a]})</td><td>${tall(v.lost)}</td><td>${pst(v.forste, v.lost)}</td><td>${tall(v.feil ?? 0)}</td></tr>`).join('')}</table>` : ''}

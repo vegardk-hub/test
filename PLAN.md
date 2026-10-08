@@ -156,6 +156,14 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Prisene** (4–300 mynter) er satt slik at en kiste er verdt omtrent det samme som før i snitt (ca. 13, 52 og 108 mynter),
   selv om det er færre ting i den. De sjeldne er verdt mest. (v1.39: færre ting og tre ganger så bratt sjeldenhet, etter brukertest.)
   Finner man noe som er minst «sjelden», står det i meldingen («★★★★ Du fant aleksandritt – svært sjelden!»).
+- **Nye slag kommer litt etter litt** (v1.40, `NYFUNN` og `kisteinnhold` i `regler.js`): kistene gir mest av slagene man allerede kjenner
+  (`spill.kjent`). Et nytt slag kommer først når man har løst nok **regnestykker i kister** siden forrige nye slag: ca. 5 for et vanlig,
+  8 for et uvanlig, 12 for et sjeldent, 18 for et svært sjeldent og 26 for et legendarisk (± 30 %). De vanlige kommer stort sett først,
+  men innimellom kommer et sjeldnere tidlig. De tre første slagene kommer fortere. I snitt: 3 slag etter 10 stykker, 9 etter 50,
+  16 etter 100, 28 etter 200, og hele samlingen (58 slag) etter ca. 650 stykker. Graden trekkes som før (også for slag man ikke kjenner);
+  kjenner man ingen av graden, får man nærmeste lavere grad. Derfor er kistene verdt mindre i starten (ca. 8, 27 og 46 mynter)
+  og mer etter hvert (ca. 19, 62 og 128). Et nytt slag ropes opp: «🆕 Nytt funn: jaspis! ★ vanlig.»
+  Gamle lagringer kjenner det de har i forrådet og museet.
 - **Forrådet** nederst har én rute for alle metallene og én for alle edelsteinene (det er for mange slag til en rute hver).
   I butikken står de hver for seg, med stjerner og sjeldenhet.
 - **Museet** har sju **saler** med høyst ni montre: Metaller 1–3 (stjernestøvet står i den første) og Edelsteiner 1–4, fra de vanligste

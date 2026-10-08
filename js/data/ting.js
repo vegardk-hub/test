@@ -126,7 +126,8 @@ export const STYKKER = [1, 2, 3];
 /**
  * Innholdet i kistene: liten, stor og kjempekiste. Den lille har én ting (metall eller edelstein),
  * den store tre og kjempekista fem. Jo større kiste, jo mer «lykke»: da øker sjansen for de sjeldne.
- * Kjempekista har alltid med én edelstein som er minst «uvanlig».
+ * Kjempekista har alltid med én edelstein som er minst «uvanlig» (hvis man kjenner en).
+ * Tingene trekkes blant slagene man allerede har funnet – se NYFUNN for hvordan nye slag kommer.
  */
 export const KISTE = [
   { metaller: 0, steiner: 0, valgfri: 1, lykke: 0 },
@@ -137,26 +138,14 @@ export const KISTE = [
 /** Hvor tungt en ting av en grad veier i trekningen. Lykke løfter de sjeldne. */
 export const trekkvekt = (grad, lykke = 0) => SJELDENHET[grad].vekt * (1 + lykke * (grad - 1) * 0.5);
 
-/** Trekker én ting fra lista: de vanligste oftest, de sjeldneste sjeldnest. r = seedet tilfeldighet. */
-export function trekkSkatt(r, liste, lykke = 0, minstGrad = 1) {
-  const utvalg = liste.filter((v) => VARER[v].grad >= minstGrad);
-  let x = r.tall() * utvalg.reduce((a, v) => a + trekkvekt(VARER[v].grad, lykke), 0);
-  for (const v of utvalg) {
-    x -= trekkvekt(VARER[v].grad, lykke);
-    if (x < 0) return v;
-  }
-  return utvalg[utvalg.length - 1];
-}
-
-export const KISTEGAVE = KISTE.map((k) => (r) => {
-  const g = {};
-  const legg = (v) => { g[v] = (g[v] ?? 0) + 1; };
-  for (let n = 0; n < k.metaller; n++) legg(trekkSkatt(r, METALLER, k.lykke));
-  for (let n = 0; n < k.steiner; n++) legg(trekkSkatt(r, EDELSTEINER, k.lykke));
-  for (let n = 0; n < k.valgfri; n++) legg(trekkSkatt(r, r.sjanse(0.5) ? METALLER : EDELSTEINER, k.lykke));
-  if (k.sikker) legg(trekkSkatt(r, EDELSTEINER, 0, k.sikker));
-  return g;
-});
+/**
+ * Nye slag: man finner mest av de slagene man kjenner fra før. Et nytt slag dukker opp først når man
+ * har løst et visst antall regnestykker i kistene siden forrige nye slag – og jo sjeldnere slaget er,
+ * jo flere stykker (`etter`, per grad). `slingring` gjør at det ikke kommer helt på slaget.
+ * De vanlige kommer stort sett først (`bratt` = hvor sterkt), men innimellom kommer et sjeldnere slag tidlig.
+ * De aller første slagene kommer fortere (`oppstart`), så man har noe å begynne med.
+ */
+export const NYFUNN = { etter: [0, 5, 8, 12, 18, 26], slingring: 0.3, bratt: 1.5, oppstart: 4 };
 
 /**
  * Bygg man kan kjøpe og sette ut på øya. Prisen følger hvor krevende bygget er.

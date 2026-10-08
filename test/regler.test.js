@@ -1,7 +1,7 @@
 // Tester for reglene og mattegeneratoren. Kjør: node test/regler.test.js
 import * as R from '../js/regler.js';
 import * as M from '../js/matte.js';
-import { SOL, TAKE_TRYKK, UTBYTTE, GJENVEKST, STYKKER, BYGG, VARER, SKATTER, METALLER, EDELSTEINER, SJELDENHET, KISTEGAVE, trekkSkatt } from '../js/data/ting.js';
+import { SOL, TAKE_TRYKK, UTBYTTE, GJENVEKST, STYKKER, BYGG, VARER, SKATTER, METALLER, EDELSTEINER, SJELDENHET, NYFUNN } from '../js/data/ting.js';
 import { lagTilfeldig } from '../js/rng.js';
 
 let feil = 0;
@@ -537,11 +537,11 @@ for (const tak of [2, 3, 4, 5, 10]) {
       sjekk(a.grad < b.grad || (a.grad === b.grad && a.pris <= b.pris), `sortert fra vanlig til sjelden, og dyrere jo sjeldnere (${a.navn} → ${b.navn})`);
     }
   }
-  // Trekningen: jo sjeldnere, jo sjeldnere dukker tingen opp
+  // Trekningen blant alle slagene (når alt er funnet): jo sjeldnere, jo sjeldnere dukker tingen opp
   const r = lagTilfeldig(4242);
   for (const liste of [METALLER, EDELSTEINER]) {
     const antall = {}, N = 600000;
-    for (let n = 0; n < N; n++) { const v = trekkSkatt(r, liste); antall[v] = (antall[v] ?? 0) + 1; }
+    for (let n = 0; n < N; n++) { const v = R.trekkKjent(r, liste, liste); antall[v] = (antall[v] ?? 0) + 1; }
     const perGrad = [0, 0, 0, 0, 0, 0], iGrad = [0, 0, 0, 0, 0, 0];
     for (const v of liste) { perGrad[VARER[v].grad] += antall[v] ?? 0; iGrad[VARER[v].grad]++; }
     const snitt = perGrad.map((n, g) => (iGrad[g] ? n / iGrad[g] / N : 0));
@@ -552,24 +552,76 @@ for (const tak of [2, 3, 4, 5, 10]) {
       const maksDenne = Math.max(...liste.filter((v) => VARER[v].grad === g).map((v) => antall[v]));
       sjekk(maksDenne < minForrige, `hver ting av grad ${g} er sjeldnere enn alle av grad ${g - 1}`);
     }
-    console.log(liste === METALLER ? 'Metaller' : 'Edelsteiner', 'sjanse per trekk, per ting:', snitt.slice(1).map((x, g) => `${SJELDENHET[g + 1].navn} ${(x * 100).toFixed(3)} %`).join(', '));
   }
-  // Kistene: større kiste gir mer, og oftere sjeldne ting
-  const verdi = [0, 0, 0], sjeldne = [0, 0, 0], ting = [0, 0, 0], N = 20000;
-  for (let str = 0; str < 3; str++) {
-    for (let n = 0; n < N; n++) {
-      for (const [v, k] of Object.entries(KISTEGAVE[str](r))) {
-        verdi[str] += VARER[v].pris * k;
-        ting[str] += k;
-        if (VARER[v].grad >= 4) sjeldne[str] += k;
+  // Man trekker bare slag man kjenner
+  sjekk(R.trekkKjent(r, EDELSTEINER, []) === null, 'kjenner man ingen, trekkes ingenting');
+  const bare = new Set();
+  for (let n = 0; n < 5000; n++) bare.add(R.trekkKjent(r, EDELSTEINER, ['agat', 'rubin', 'kobber']));
+  sjekk(bare.size === 2 && bare.has('agat') && bare.has('rubin'), `bare kjente slag trekkes (${[...bare]})`);
+}
+
+// --- Nye slag kommer litt etter litt -------------------------------------------
+{
+  // Spiller mange spill: åpner kister (med den vanlige blandingen av størrelser) og ser når de nye slagene kommer.
+  const ALLE = METALLER.length + EDELSTEINER.length;
+  const spill = 40, etter = [10, 25, 50, 100, 200, 400];   // regnestykker løst
+  const slag = etter.map(() => 0), sjeldne = etter.map(() => 0), ferdigVed = [];
+  let tingTotalt = 0, gamleTing = 0, verdiTidlig = [0, 0, 0], verdiSent = [0, 0, 0], nT = [0, 0, 0], nS = [0, 0, 0];
+  let forsteGrad = 0, rekkefolgeGrad = [0, 0, 0, 0, 0, 0], rekkefolgeN = [0, 0, 0, 0, 0, 0];
+  for (let n = 0; n < spill; n++) {
+    const sp = R.nyttSpill({ navn: 'Samler' }, 500 + n);
+    const r = lagTilfeldig(900 + n);
+    let stykker = 0, kister = 0, neste = 0;
+    while (sp.kjent.length < ALLE && stykker < 3000) {
+      const x = r.tall(), str = x < 0.55 ? 0 : x < 0.85 ? 1 : 2;
+      const for_ = sp.kjent.length;
+      const { gave, ny } = R.kisteinnhold(sp, str, r);
+      sp.stat.kister = ++kister;
+      stykker += STYKKER[str];
+      const antall = Object.values(gave).reduce((a, b) => a + b, 0);
+      const verdi = Object.entries(gave).reduce((a, [v, k]) => a + VARER[v].pris * k, 0);
+      sjekk(antall === [1, 3, 5][str], `kista har ${[1, 3, 5][str]} ting (${antall})`);
+      sjekk(Object.keys(gave).every((v) => sp.kjent.includes(v)), 'alt i kista er slag man kjenner (det nye medregnet)');
+      sjekk(sp.kjent.length - for_ <= 1 && (ny === null) === (sp.kjent.length === for_), 'høyst ett nytt slag per kiste');
+      if (kister === 1) { sjekk(ny !== null, 'den første kista gir det første slaget'); forsteGrad += VARER[ny]?.grad ?? 0; }
+      if (ny) { const plass = Math.min(5, Math.ceil(sp.kjent.length / 12)); rekkefolgeGrad[plass] += VARER[ny].grad; rekkefolgeN[plass]++; }
+      tingTotalt += antall;
+      gamleTing += antall - (ny ? 1 : 0);
+      if (stykker <= 30) { verdiTidlig[str] += verdi; nT[str]++; }
+      if (sp.kjent.length > 45) { verdiSent[str] += verdi; nS[str]++; }
+      while (neste < etter.length && stykker >= etter[neste]) {
+        slag[neste] += sp.kjent.length;
+        sjeldne[neste] += sp.kjent.filter((v) => VARER[v].grad >= 3).length;
+        neste++;
       }
     }
+    ferdigVed.push(stykker);
   }
-  console.log('Kister (liten, stor, kjempe): verdi i snitt', verdi.map((x) => (x / N).toFixed(1)).join(', '),
-    '· ting', ting.map((x) => x / N).join(', '), '· andel svært sjeldne eller legendariske', sjeldne.map((x, k) => `${((x / ting[k]) * 100).toFixed(1)} %`).join(', '));
-  sjekk(verdi[0] < verdi[1] && verdi[1] < verdi[2], 'større kister er verdt mer');
-  sjekk(sjeldne[0] / ting[0] < sjeldne[1] / ting[1] && sjeldne[1] / ting[1] < sjeldne[2] / ting[2], 'større kister har oftere sjeldne ting');
-  sjekk(ting[0] / N === 1 && ting[1] / N === 3 && ting[2] / N === 5, 'antall ting i kistene: 1, 3 og 5');
+  const snitt = (x) => (x / spill).toFixed(1);
+  console.log('Slag funnet etter', etter.join(', '), 'løste regnestykker:', slag.map(snitt).join(', '), '· av dem minst «sjelden»:', sjeldne.map(snitt).join(', '));
+  console.log('Hele samlingen (58 slag) etter i snitt', Math.round(ferdigVed.reduce((a, b) => a + b, 0) / spill), 'regnestykker',
+    `(${Math.min(...ferdigVed)}–${Math.max(...ferdigVed)})`, '· andel av tingene som er slag man hadde fra før:', `${((gamleTing / tingTotalt) * 100).toFixed(0)} %`);
+  console.log('Kisteverdi (liten, stor, kjempe) de første 30 stykkene:', verdiTidlig.map((x, k) => (x / nT[k]).toFixed(0)).join(', '),
+    '· når man kjenner over 45 slag:', verdiSent.map((x, k) => (x / nS[k]).toFixed(0)).join(', '));
+  console.log('Snittgrad på de nye slagene, per tolv funn:', rekkefolgeGrad.slice(1).map((x, k) => (x / rekkefolgeN[k + 1]).toFixed(2)).join(', '));
+  sjekk(slag[0] / spill <= 5 && slag[2] / spill <= 12, `det går sakte i starten (${snitt(slag[0])} slag etter 10 stykker, ${snitt(slag[2])} etter 50)`);
+  sjekk(slag[0] / spill >= 2, 'men man får noen slag med en gang');
+  sjekk(sjeldne[1] / spill < 0.5, `sjeldne slag kommer nesten aldri tidlig (${snitt(sjeldne[1])} etter 25 stykker)`);
+  sjekk(ferdigVed.every((x) => x < 3000) && Math.min(...ferdigVed) > 350, 'hele samlingen tar lang tid, men man kommer i mål');
+  sjekk(gamleTing / tingTotalt > 0.85, 'det meste man finner, er slag man har fra før');
+  sjekk(rekkefolgeGrad[1] / rekkefolgeN[1] < rekkefolgeGrad[3] / rekkefolgeN[3] && rekkefolgeGrad[3] / rekkefolgeN[3] < rekkefolgeGrad[5] / rekkefolgeN[5], 'de vanlige kommer først og de sjeldne sist');
+  // Lagring og gamle lagringer
+  const sp = R.nyttSpill({ navn: 'Samler' }, 77);
+  R.kisteinnhold(sp, 0, lagTilfeldig(1));
+  const lagret = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
+  sjekk(lagret.kjent.length === 1 && lagret.nesteNy.vare === sp.nesteNy.vare && lagret.nyTeller === sp.nyTeller, 'det man kjenner og det som kommer, huskes ved lagring');
+  const gammel = JSON.parse(JSON.stringify(R.tilData(sp)));
+  delete gammel.kjent; delete gammel.nesteNy; delete gammel.nyTeller;
+  gammel.forrad = { ...gammel.forrad, gull: 2, rubin: 0, stov: 9 };
+  gammel.museum = { safir: 1, stov: 3 };
+  const fra = R.fraData(gammel);
+  sjekk(fra.kjent.includes('gull') && fra.kjent.includes('safir') && !fra.kjent.includes('rubin') && !fra.kjent.includes('stov'), `gamle lagringer kjenner det de har i forrådet og museet (${fra.kjent})`);
+  sjekk(NYFUNN.etter.slice(1).every((x, k, a) => k === 0 || x > a[k - 1]), 'jo sjeldnere, jo flere regnestykker til et nytt slag');
 }
 
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));

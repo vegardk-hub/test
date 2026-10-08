@@ -35,7 +35,7 @@ sjekk(s.sol === SOL.stor - ting.antall, 'hvert trykk koster én solstråle');
 sjekk(s.forrad[ting.type] === UTBYTTE[ting.str], 'riktig utbytte');
 sjekk(R.tingVed(s, v, i) === null, 'ruta er tom etter høsting');
 for (let d = 0; d < GJENVEKST; d++) R.nyDag(s, v);
-sjekk(R.tingVed(s, v, i) !== null, 'noe nytt vokser fram etter gjenvekst');
+sjekk(R.venterPaa(s, v, i) === 0 && [...s.avdekket.keys()].some((x) => s.avdekket[x] && R.tingVed(s, v, x)?.type === ting.type), 'noe nytt vokser fram etter gjenvekst');
 
 // --- Kister åpnes med mattestykker --------------------------------------------
 let kisteFunnet = 0;
@@ -303,14 +303,30 @@ for (const tak of [2, 3, 4, 5, 10]) {
     }
   }
   sjekk(hostet === 3 && sp.oppdrag.length === 0, 'alle tre samlet inn én ting');
+  // Fire turer om dagen: tre til, og så er de ferdige
+  let turer = 1, ferdige = 3;
+  const avstander = [];
+  const stI = ve.startIndeks, Bx = ve.bredde;
+  const avstand = (x) => Math.hypot(x % Bx - stI % Bx, Math.floor(x / Bx) - Math.floor(stI / Bx));
+  avstander.push(Math.max(...dag.oppdrag.map((o) => avstand(o.i))));
+  for (;;) {
+    const runde = R.nesteRunde(sp, ve);
+    if (!runde.length) break;
+    turer++;
+    avstander.push(Math.max(...runde.map((o) => avstand(o.i))));
+    sjekk(R.nesteRunde(sp, ve).length === 0, 'ingen ny tur før alle er hjemme');
+    for (const o of runde) if (R.hjelperFerdig(sp, ve, o.h)[0].type === 'hjelperHostet') ferdige++;
+  }
+  sjekk(turer === 4 && ferdige === 12, `fire turer om dagen (${turer} turer, ${ferdige} ting)`);
+  sjekk(avstander.at(-1) > avstander[0] + 2, `turene går lenger og lenger ut (${avstander.map((a) => a.toFixed(1))})`);
   // Dagen etter: nye oppdrag, og det som ikke ble gjort, gjøres ferdig først
   const dag2 = R.nyDag(sp, ve)[0];
   sjekk(dag2.oppdrag.length === 3, 'nye oppdrag neste dag');
   const lagret = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
   sjekk(lagret.hjelpere.length === 3 && lagret.oppdrag.length === 3, 'hjelpere og oppdrag huskes ved lagring');
   const ubrukt = sp.stat.hjulpet;
-  R.nyDag(sp, ve);
-  sjekk(sp.stat.hjulpet === ubrukt + 3, 'oppdrag fra i går gjøres ferdig om morgenen');
+  const neste = R.nyDag(sp, ve)[0];
+  sjekk(sp.stat.hjulpet === ubrukt + 12 && neste.etterslep.length === 12, `alle fire turene fra i går gjøres ferdig om morgenen (${sp.stat.hjulpet - ubrukt})`);
   const fem = R.fraData({ ...JSON.parse(JSON.stringify(R.tilData(sp))), hjelpere: [1, 2, 3, 4, 5].map((n) => ({ navn: `H${n}` })), oppdrag: [{ h: 4, i: 1, type: 'tre' }] });
   sjekk(fem.hjelpere.length === 3 && fem.oppdrag.length === 0, 'gamle lagringer med fem hjelpere får tre');
 }

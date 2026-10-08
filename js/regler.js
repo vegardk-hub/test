@@ -8,7 +8,7 @@
 import { genererVerden } from './kartgen.js';
 import { T } from './data/terreng.js';
 import {
-  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, MAKS_PER_TYPE, HJELPER, HJELPERE, SKOLE, OPPFINNELSER,
+  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, MAKS_PER_TYPE, SPAWN, HJELPER, HJELPERE, SKOLE, OPPFINNELSER,
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
 import { medStandard } from './matte.js';
@@ -109,7 +109,9 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     bygg: new Map(),          // rute → id for bygg man har satt ut
     takfarge: null,           // fargen på taket og flaggene (null = standard rød)
     hjelpere: [],             // hjelperne som har kommet (én per fem bygg, høyst fem)
-    oppdrag: [],              // dagens oppdrag for hjelperne: { h, i, type } som ikke er gjort ennå
+    oppdrag: [],              // hjelpernes oppdrag på turen de er ute på nå: { h, i, type } som ikke er gjort ennå
+    turerIgjen: 0,            // turer hjelperne har igjen i dag (etter den de er ute på)
+    spawn: {},                // hvor mange ting av hver type som har dukket opp i dag (nye kommer lenger og lenger unna)
     oppfinnelser: [],         // det Theo på skolen har funnet på (kan kjøpes i butikken)
     skoleTeller: 0,           // dager med skole siden forrige idé
     ideDag: null,             // dagen Theo sist fikk en idé (lyspæra vises den dagen)
@@ -194,14 +196,15 @@ export function tingVed(spill, verden, i) {
 
 /**
  * Høyst MAKS_PER_TYPE klikkbare ting av hver type på øya samtidig. De som er ute, blir
- * stående til de er høstet (ingenting forsvinner mens man ser på det); når det er plass,
- * slippes den neste ledige av typen fram – den som er nærmest leiren først (og ting man
- * har begynt å trykke på, før alt annet). Kister regnes ikke med.
+ * stående til de er høstet (ingenting forsvinner mens man ser på det). Når det er plass,
+ * slippes en ny av typen fram – først ting man har begynt å trykke på, ellers den som ligger
+ * nærmest en avstand fra leiren som øker for hver ny ting den dagen (SPAWN): om morgenen
+ * nær leiren, og så lenger og lenger unna. Kister regnes ikke med.
  */
 export function fyllOpp(spill, verden) {
   const B = verden.bredde, st = verden.startIndeks;
   const avst = (i) => Math.hypot(i % B - st % B, Math.floor(i / B) - Math.floor(st / B));
-  const ute = {}, kandidater = [];
+  const ute = {}, kandidater = {};
   spill.avdekket.forEach((v, i) => {
     if (!v || i === st || spill.bygg.has(i)) return;
     const type = grunnTing(spill, verden, i);
@@ -209,13 +212,18 @@ export function fyllOpp(spill, verden) {
     const s = spill.ting.get(i);
     if (s?.borteTil === -1 || (s?.borteTil && spill.dag < s.borteTil)) return;
     if (s?.aktiv) ute[type] = (ute[type] ?? 0) + 1;
-    else kandidater.push({ i, type, paabegynt: s?.igjen !== undefined ? 0 : 1, d: avst(i) });
+    else (kandidater[type] ??= []).push({ i, paabegynt: s?.igjen !== undefined ? 0 : 1, d: avst(i) });
   });
-  kandidater.sort((a, b) => a.paabegynt - b.paabegynt || a.d - b.d || a.i - b.i);
-  for (const k of kandidater) {
-    if ((ute[k.type] ?? 0) >= MAKS_PER_TYPE) continue;
-    ute[k.type] = (ute[k.type] ?? 0) + 1;
-    spill.ting.set(k.i, { ...(spill.ting.get(k.i) ?? {}), aktiv: true });
+  spill.spawn ??= {};
+  for (const [type, liste] of Object.entries(kandidater)) {
+    while ((ute[type] ?? 0) < MAKS_PER_TYPE && liste.length) {
+      const maal = SPAWN.start + SPAWN.steg * (spill.spawn[type] ?? 0);
+      liste.sort((a, b) => a.paabegynt - b.paabegynt || Math.abs(a.d - maal) - Math.abs(b.d - maal) || a.i - b.i);
+      const k = liste.shift();
+      ute[type] = (ute[type] ?? 0) + 1;
+      spill.spawn[type] = (spill.spawn[type] ?? 0) + 1;
+      spill.ting.set(k.i, { ...(spill.ting.get(k.i) ?? {}), aktiv: true });
+    }
   }
 }
 
@@ -523,8 +531,8 @@ export function nyeHjelpere(spill) {
 }
 
 /**
- * Dagens oppdrag: hver hjelper får sin egen type ting (så langt det finnes nok typer)
- * og går til den nærmeste av den typen. Ingen to hjelpere går til samme rute.
+ * Oppdragene for én tur: hver hjelper får sin egen type ting (så langt det finnes nok typer)
+ * og går til den som ligger lengst unna av den typen. Ingen to hjelpere går til samme rute.
  */
 export function planleggOppdrag(spill, verden) {
   spill.oppdrag = [];
@@ -539,7 +547,8 @@ export function planleggOppdrag(spill, verden) {
     if (!perType.has(ting.type)) perType.set(ting.type, []);
     perType.get(ting.type).push(i);
   });
-  for (const liste of perType.values()) liste.sort((a, b) => avst(a) - avst(b));
+  // Hjelperne går til den som ligger lengst unna av sin type, så barnet får ha de nærmeste i fred.
+  for (const liste of perType.values()) liste.sort((a, b) => avst(b) - avst(a));
   // Typene i tilfeldig (men seedet) rekkefølge, så hjelperne bytter på hva de gjør fra dag til dag.
   const r = lagTilfeldig(blandSeed(spill.seed, 'oppdrag', spill.dag));
   const typer = [...perType.keys()].sort().map((tp) => [r.tall(), tp]).sort((a, b) => a[0] - b[0]).map(([, tp]) => tp);
@@ -557,6 +566,16 @@ export function planleggOppdrag(spill, verden) {
     }
   });
   return spill.oppdrag;
+}
+
+/**
+ * Neste tur: når alle er hjemme fra forrige tur og det er turer igjen i dag, får hjelperne
+ * nye oppdrag. Gir oppdragene (tom liste hvis de fortsatt er ute, eller er ferdige for dagen).
+ */
+export function nesteRunde(spill, verden) {
+  if (spill.oppdrag.length || !spill.hjelpere.length || (spill.turerIgjen ?? 0) <= 0) return [];
+  spill.turerIgjen--;
+  return planleggOppdrag(spill, verden);
 }
 
 /** Hjelper nr. h er ferdig med oppdraget sitt: tingen høstes, og det den gir, går i forrådet. */
@@ -699,6 +718,7 @@ export function seil(spill, seed = Math.floor(Math.random() * 2 ** 31)) {
   const nr = Math.max(spill.oyNr, ...(spill.oyer ?? []).map((o) => o.nr)) + 1;
   spill.oyer = [...(spill.oyer ?? []), pakkOy(spill)];
   spill.oppdrag = [];
+  spill.spawn = {};
   pakkUt(spill, { nr, fra, seed, avdekket: [], take: [], ting: [], bygg: [] });
   spill.sol = SOL[spill.nivaa];
   avdekkStart(spill);
@@ -727,16 +747,23 @@ export function nyDag(spill, verden) {
   spill.dag++;
   spill.sol = SOL[spill.nivaa];
   spill.nattFangst = 0;
+  // Det hjelperne ikke rakk i går (turen de var ute på, og turene de hadde igjen), gjøres ferdig nå.
+  const etterslep = [];
+  const gjorFerdig = () => {
+    for (const o of [...spill.oppdrag]) {
+      for (const e of hjelperFerdig(spill, verden, o.h)) if (e.type === 'hjelperHostet') etterslep.push(e.gave);
+    }
+  };
+  gjorFerdig();
+  while (nesteRunde(spill, verden).length) gjorFerdig();
+  spill.spawn = {};   // ny dag: tingene dukker opp nær leiren igjen
   fyllOpp(spill, verden);
   const vokst = [...for_].filter((i) => tingVed(spill, verden, i));
   // Annenhver natt (før dag 3, 5, 7 …) dukker det opp nye skattekryss.
   const kryss = (spill.dag - 1) % KRYSS.hverNatt === 0 ? leggKryss(spill, verden) : [];
-  // Det hjelperne ikke rakk i går, gjøres ferdig før de får nye oppdrag.
-  const etterslep = [];
-  for (const o of [...spill.oppdrag]) {
-    for (const e of hjelperFerdig(spill, verden, o.h)) if (e.type === 'hjelperHostet') etterslep.push(e.gave);
-  }
-  const oppdrag = planleggOppdrag(spill, verden);
+  // Hjelperne går HJELPER.turer turer om dagen; den første begynner nå.
+  spill.turerIgjen = HJELPER.turer;
+  const oppdrag = nesteRunde(spill, verden);
   // Barnet på skolen får en ny idé med 5–7 dagers mellomrom (bare på øya der skolen står).
   let ide = null;
   if (skoleVed(spill) >= 0 && spill.oppfinnelser.length < OPPFINNELSER.length) {
@@ -812,6 +839,8 @@ export function fraData(d) {
     evigDag: d.evigDag ?? false,
     dagTeller: d.dagTeller ?? 0,
     oppdrag: (d.oppdrag ?? []).filter((o) => o.h < HJELPER.maks),
+    turerIgjen: d.turerIgjen ?? 0,
+    spawn: d.spawn ?? {},
     kryss: new Map(d.kryss ?? []),
     gravd: new Set(d.gravd ?? []),
     nattFangst: d.nattFangst ?? 0,

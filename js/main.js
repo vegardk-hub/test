@@ -157,7 +157,7 @@ function startSpill(id) {
   t.velkomst = null;
   const nye = R.nyeHjelpere(spill);
   if (nye.length) setTimeout(() => velkommenHjelper(nye), 900);
-  else if (spill.oppdrag.length) setTimeout(startTur, 1200);
+  else if (spill.oppdrag.length || R.nesteRunde(spill, t.verden).length) setTimeout(startTur, 1200);
   if (spill.stat.avdekket === 0) setTimeout(() => melding('Trykk på tåka for å børste den bort', { ikon: '👆☁️' }), 600);
   if (spill.sol <= 0 && !spill.evigDag) setTimeout(startNatt, 500);
 }
@@ -1554,6 +1554,7 @@ function paaSkjerm(kx, ky) {
 }
 
 function startTur() {
+  clearTimeout(t.turPause);
   const s = t.spill;
   if (!s?.oppdrag.length) return;
   const [lx, ly] = dor();
@@ -1562,7 +1563,7 @@ function startTur() {
     ledd: s.oppdrag.map((o, k) => {
       const [mx, my] = midtAv(o.i);
       const til = [mx - RUTE * 0.3, my + RUTE * 0.24];
-      const ut = 1000 + (Math.hypot(til[0] - lx, til[1] - ly) / RUTE) * 600;
+      const ut = 1000 + (Math.hypot(til[0] - lx, til[1] - ly) / RUTE) * 480;
       return { ...o, til, ut, arbeid: 3000, start: 300 + k * 900, ferdig: false, hugg: 0 };
     }),
   };
@@ -1624,7 +1625,12 @@ function tegnHjelpere(ctx, ms) {
       const fase = tau < l.ut ? 'ut' : tau < l.ut + l.arbeid ? 'arbeid' : 'hjem';
       tegn.push({ x, y, alfa: ved, o: { farge: hj.farge, nr: l.h, t: tsek + l.h * 0.7, gaar, arbeid, type: l.type, mot }, hvem: { type: 'hjelper', l, fase } });
     }
-    if (!igang) { t.tur = null; lagreSnart(); }
+    if (!igang) {
+      // Alle er hjemme. Er det flere turer igjen i dag, hviler de litt og går ut igjen.
+      t.tur = null;
+      lagreSnart();
+      if (R.nesteRunde(t.spill, t.verden).length) { t.turPause = setTimeout(startTur, 2500); lagreSnart(); }
+    }
   }
   const v = t.velkomst;
   if (v) {

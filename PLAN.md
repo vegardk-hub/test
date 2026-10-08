@@ -94,6 +94,13 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Dyrene lever**: sauene beiter, puster, logrer og blunker. Hjorten løfter hodet og vipper med halen, og fiskene spreller.
 - Teknikk: kortet med det som står stille lagres som før, og bare det som beveger seg tegnes på nytt hver gang skjermen tegnes, og bare for ruter man ser.
 
+## Mer aktive hjelpere (2026-10-08)
+- Hver hjelper går **fire turer om dagen** (`HJELPER.turer`). Når alle er hjemme fra en tur, hviler de 2,5 sekunder og går ut igjen (`nesteRunde`).
+  Det de ikke rekker før dagen er over (turen de er ute på, og turene de har igjen), kommer i forrådet neste morgen.
+- Hjelperne går til den tingen av sin type som ligger **lengst unna**, så barnet får ha de nærmeste i fred. De går litt fortere enn før.
+- **Nye ting dukker opp lenger og lenger unna leiren** (`SPAWN`): den første om morgenen ca. 2 ruter unna, og hver neste av samme type 1,5 ruter lenger ut.
+  Hver morgen begynner det nær leiren igjen.
+
 ## Natt av og på (2026-10-08)
 - Knappen øverst til høyre (der sangboka sto) skrur **natta av og på**: 🌙 = natta er på (som før), ☀️ = natta er av.
 - **Med natta av** (`spill.evigDag`) brukes det ingen solstråler, det blir aldri kveld, og sola står stille midt på himmelen. «Dag N» og soltallet skjules.

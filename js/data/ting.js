@@ -158,7 +158,13 @@ export const GRAV_TRYKK = 4;
  * en hjelper – høyst tre. Hver morgen går de ut av leiren og samler inn én ting hver
  * (hogger et tre, fisker, slår korn …), og helst forskjellige typer.
  */
-export const HJELPER = { perBygg: 5, maks: 3 };
+export const HJELPER = { perBygg: 5, maks: 3, turer: 4 };   // fire turer om dagen
+
+/**
+ * Hvor nye ting dukker opp: den første om morgenen ca. `start` ruter fra leiren, og hver
+ * neste av samme type `steg` ruter lenger unna – så hjelperne (og barnet) må lenger og lenger ut.
+ */
+export const SPAWN = { start: 2, steg: 1.5 };
 export const HJELPERE = [
   { navn: 'Ola', farge: '#3a74d8' },
   { navn: 'Siri', farge: '#e0393e' },

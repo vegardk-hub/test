@@ -21,13 +21,13 @@ export const TING = {
 
 /**
  * Sjeldenhet: grad 1–5. vekt = hvor ofte en ting av den graden trekkes i en kiste
- * (hver grad er halvparten så vanlig som den forrige).
+ * (hver grad er tre ganger så sjelden som den forrige).
  */
 export const SJELDENHET = [null,
-  { navn: 'vanlig', vekt: 16 },
-  { navn: 'uvanlig', vekt: 8 },
-  { navn: 'sjelden', vekt: 4 },
-  { navn: 'svært sjelden', vekt: 2 },
+  { navn: 'vanlig', vekt: 81 },
+  { navn: 'uvanlig', vekt: 27 },
+  { navn: 'sjelden', vekt: 9 },
+  { navn: 'svært sjelden', vekt: 3 },
   { navn: 'legendarisk', vekt: 1 },
 ];
 
@@ -37,7 +37,8 @@ const stein = (navn, farge, pris, grad) => ({ form: 'stein', farge, navn, pris, 
 /**
  * Det som havner i forrådet, og hva det kan selges for (mynter per stykk).
  * Metallene og edelsteinene finnes på ordentlig, og fargen er den de har i naturen.
- * grad = hvor sjeldne de er (se SJELDENHET). Prisen følger graden.
+ * grad = hvor sjeldne de er (se SJELDENHET). Prisen følger graden: det er få ting i kistene,
+ * så hver ting er verdt en del, og de sjeldne er verdt mye.
  */
 export const VARER = {
   tre:     { ikon: '🪵', navn: 'tre', pris: 1 },
@@ -49,66 +50,66 @@ export const VARER = {
   stov:    { ikon: '✨', navn: 'stjernestøv', pris: 3 },
 
   // --- Metaller (22) -------------------------------------------------------
-  kobber:    metall('kobber', '#c9713c', 2, 1),
-  tinn:      metall('tinn', '#d5d3ca', 2, 1),
-  sink:      metall('sink', '#b4bcc5', 2, 1),
-  nikkel:    metall('nikkel', '#c8c1a6', 3, 1),
-  titan:     metall('titan', '#9b9ea3', 4, 2),
-  krom:      metall('krom', '#c6d2da', 4, 2),
-  solv:      metall('sølv', '#c9d3dd', 5, 2),
-  kobolt:    metall('kobolt', '#8d99a9', 5, 2),
-  wolfram:   metall('wolfram', '#7c8188', 5, 2),
-  vismut:    metall('vismut', '#dcc4c8', 6, 2),
-  niob:      metall('niob', '#a4a7ad', 6, 2),
-  elektrum:  metall('elektrum', '#e8d47c', 8, 3),
-  tantal:    metall('tantal', '#7e8896', 9, 3),
-  indium:    metall('indium', '#dddee2', 9, 3),
-  gull:      metall('gull', '#f5c431', 10, 3),
-  palladium: metall('palladium', '#cfd0cb', 14, 3),
-  platina:   metall('platina', '#dad9d2', 16, 3),
-  ruthenium: metall('ruthenium', '#b8bbc0', 22, 4),
-  rhenium:   metall('rhenium', '#a7aab0', 24, 4),
-  osmium:    metall('osmium', '#a6b8cb', 26, 4),
-  iridium:   metall('iridium', '#d9d6ca', 35, 5),
-  rhodium:   metall('rhodium', '#e8eaec', 45, 5),
+  kobber:    metall('kobber', '#c9713c', 4, 1),
+  tinn:      metall('tinn', '#d5d3ca', 4, 1),
+  sink:      metall('sink', '#b4bcc5', 4, 1),
+  nikkel:    metall('nikkel', '#c8c1a6', 6, 1),
+  titan:     metall('titan', '#9b9ea3', 10, 2),
+  krom:      metall('krom', '#c6d2da', 10, 2),
+  solv:      metall('sølv', '#c9d3dd', 12, 2),
+  kobolt:    metall('kobolt', '#8d99a9', 12, 2),
+  wolfram:   metall('wolfram', '#7c8188', 12, 2),
+  vismut:    metall('vismut', '#dcc4c8', 15, 2),
+  niob:      metall('niob', '#a4a7ad', 15, 2),
+  elektrum:  metall('elektrum', '#e8d47c', 24, 3),
+  tantal:    metall('tantal', '#7e8896', 27, 3),
+  indium:    metall('indium', '#dddee2', 27, 3),
+  gull:      metall('gull', '#f5c431', 30, 3),
+  palladium: metall('palladium', '#cfd0cb', 42, 3),
+  platina:   metall('platina', '#dad9d2', 48, 3),
+  ruthenium: metall('ruthenium', '#b8bbc0', 75, 4),
+  rhenium:   metall('rhenium', '#a7aab0', 85, 4),
+  osmium:    metall('osmium', '#a6b8cb', 90, 4),
+  iridium:   metall('iridium', '#d9d6ca', 140, 5),
+  rhodium:   metall('rhodium', '#e8eaec', 180, 5),
 
   // --- Edelsteiner og smykkesteiner (36) -----------------------------------
-  bergkrystall: stein('bergkrystall', '#e6f1f6', 3, 1),
-  rosenkvarts:  stein('rosenkvarts', '#f4b6c8', 3, 1),
-  roykkvarts:   stein('røykkvarts', '#8a6f5c', 3, 1),
-  agat:         stein('agat', '#c9793a', 3, 1),
-  jaspis:       stein('jaspis', '#a5402c', 3, 1),
-  citrin:       stein('citrin', '#f2c12e', 4, 1),
-  karneol:      stein('karneol', '#e2622b', 4, 1),
-  onyks:        stein('onyks', '#23232b', 4, 1),
-  tigeroye:     stein('tigerøye', '#b87a26', 4, 1),
-  fluoritt:     stein('fluoritt', '#5cc9a0', 4, 1),
-  granat:       stein('granat', '#8f1d2f', 6, 2),
-  rav:          stein('rav', '#e8981c', 6, 2),
-  peridot:      stein('peridot', '#9ccc3c', 7, 2),
-  turkis:       stein('turkis', '#30c4c0', 7, 2),
-  malakitt:     stein('malakitt', '#1f9c62', 7, 2),
-  topas:        stein('topas', '#f39a2b', 8, 2),
-  akvamarin:    stein('akvamarin', '#8fd8ea', 8, 2),
-  lapis:        stein('lapis lazuli', '#2040a8', 8, 2),
-  maanestein:   stein('månestein', '#dbe6f6', 9, 2),
-  jade:         stein('jade', '#58b074', 9, 2),
-  perle:        stein('perle', '#f6f0e6', 10, 2),
-  ametyst:      stein('ametyst', '#9b59d0', 12, 2),
-  turmalin:     stein('turmalin', '#e0559a', 14, 3),
-  zirkon:       stein('zirkon', '#5fb9da', 14, 3),
-  smaragd:      stein('smaragd', '#25b86a', 15, 3),
-  opal:         stein('opal', '#eaf3f2', 16, 3),
-  morganitt:    stein('morganitt', '#f3b49c', 16, 3),
-  tanzanitt:    stein('tanzanitt', '#5b50d0', 18, 3),
-  safir:        stein('safir', '#3a74d8', 20, 3),
-  rubin:        stein('rubin', '#e0353f', 25, 4),
-  svartopal:    stein('svart opal', '#1c2030', 30, 4),
-  aleksandritt: stein('aleksandritt', '#1f9c8a', 32, 4),
-  padparadscha: stein('padparadscha', '#ff8c6b', 35, 4),
-  diamant:      stein('diamant', '#d8f3ff', 40, 4),
-  rodberyll:    stein('rød beryll', '#d4163c', 60, 5),
-  taaffeitt:    stein('taaffeitt', '#c7a2dc', 75, 5),
+  bergkrystall: stein('bergkrystall', '#e6f1f6', 6, 1),
+  rosenkvarts:  stein('rosenkvarts', '#f4b6c8', 6, 1),
+  roykkvarts:   stein('røykkvarts', '#8a6f5c', 6, 1),
+  agat:         stein('agat', '#c9793a', 6, 1),
+  jaspis:       stein('jaspis', '#a5402c', 6, 1),
+  citrin:       stein('citrin', '#f2c12e', 8, 1),
+  karneol:      stein('karneol', '#e2622b', 8, 1),
+  onyks:        stein('onyks', '#23232b', 8, 1),
+  tigeroye:     stein('tigerøye', '#b87a26', 8, 1),
+  fluoritt:     stein('fluoritt', '#5cc9a0', 8, 1),
+  granat:       stein('granat', '#8f1d2f', 15, 2),
+  rav:          stein('rav', '#e8981c', 15, 2),
+  peridot:      stein('peridot', '#9ccc3c', 18, 2),
+  turkis:       stein('turkis', '#30c4c0', 18, 2),
+  malakitt:     stein('malakitt', '#1f9c62', 18, 2),
+  topas:        stein('topas', '#f39a2b', 20, 2),
+  akvamarin:    stein('akvamarin', '#8fd8ea', 20, 2),
+  lapis:        stein('lapis lazuli', '#2040a8', 20, 2),
+  maanestein:   stein('månestein', '#dbe6f6', 22, 2),
+  jade:         stein('jade', '#58b074', 22, 2),
+  perle:        stein('perle', '#f6f0e6', 25, 2),
+  ametyst:      stein('ametyst', '#9b59d0', 30, 2),
+  turmalin:     stein('turmalin', '#e0559a', 42, 3),
+  zirkon:       stein('zirkon', '#5fb9da', 42, 3),
+  smaragd:      stein('smaragd', '#25b86a', 45, 3),
+  opal:         stein('opal', '#eaf3f2', 48, 3),
+  morganitt:    stein('morganitt', '#f3b49c', 48, 3),
+  tanzanitt:    stein('tanzanitt', '#5b50d0', 54, 3),
+  safir:        stein('safir', '#3a74d8', 60, 3),
+  rubin:        stein('rubin', '#e0353f', 90, 4),
+  svartopal:    stein('svart opal', '#1c2030', 105, 4),
+  aleksandritt: stein('aleksandritt', '#1f9c8a', 110, 4),
+  padparadscha: stein('padparadscha', '#ff8c6b', 120, 4),
+  diamant:      stein('diamant', '#d8f3ff', 140, 4),
+  rodberyll:    stein('rød beryll', '#d4163c', 240, 5),
+  taaffeitt:    stein('taaffeitt', '#c7a2dc', 300, 5),
 };
 /** Rekkefølgen er den de står i over: fra de vanligste til de sjeldneste. */
 export const METALLER = Object.keys(VARER).filter((v) => VARER[v].form === 'barre');
@@ -123,14 +124,14 @@ export const UTBYTTE = [2, 5, 12];
 export const STYKKER = [1, 2, 3];
 
 /**
- * Innholdet i kistene: liten, stor og kjempekiste. Så mange metaller og edelsteiner trekkes,
- * og jo større kiste, jo mer «lykke»: da øker sjansen for de sjeldne. Kjempekista har alltid
- * med én edelstein som er minst «sjelden».
+ * Innholdet i kistene: liten, stor og kjempekiste. Den lille har én ting (metall eller edelstein),
+ * den store tre og kjempekista fem. Jo større kiste, jo mer «lykke»: da øker sjansen for de sjeldne.
+ * Kjempekista har alltid med én edelstein som er minst «uvanlig».
  */
 export const KISTE = [
-  { metaller: 1, steiner: 1, lykke: 0 },
-  { metaller: 2, steiner: 3, lykke: 1 },
-  { metaller: 3, steiner: 5, lykke: 2, sikker: 3 },
+  { metaller: 0, steiner: 0, valgfri: 1, lykke: 0 },
+  { metaller: 1, steiner: 2, valgfri: 0, lykke: 1 },
+  { metaller: 2, steiner: 2, valgfri: 0, lykke: 2, sikker: 2 },
 ];
 
 /** Hvor tungt en ting av en grad veier i trekningen. Lykke løfter de sjeldne. */
@@ -152,6 +153,7 @@ export const KISTEGAVE = KISTE.map((k) => (r) => {
   const legg = (v) => { g[v] = (g[v] ?? 0) + 1; };
   for (let n = 0; n < k.metaller; n++) legg(trekkSkatt(r, METALLER, k.lykke));
   for (let n = 0; n < k.steiner; n++) legg(trekkSkatt(r, EDELSTEINER, k.lykke));
+  for (let n = 0; n < k.valgfri; n++) legg(trekkSkatt(r, r.sjanse(0.5) ? METALLER : EDELSTEINER, k.lykke));
   if (k.sikker) legg(trekkSkatt(r, EDELSTEINER, 0, k.sikker));
   return g;
 });

@@ -149,10 +149,12 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
   Alle finnes på ordentlig, med fargen de har i naturen. Det finnes bare åtte egentlige edelmetaller (gull, sølv og de seks i platinagruppen),
   så lista er fylt opp med andre ekte metaller (kobber, tinn, sink, nikkel, titan, krom, kobolt, wolfram, vismut, niob, tantal, indium, rhenium)
   og elektrum, som er en naturlig blanding av gull og sølv.
-- **Sjeldenhet** (`SJELDENHET`): grad 1–5 = vanlig, uvanlig, sjelden, svært sjelden, legendarisk. Hver grad trekkes halvparten så ofte
-  som den forrige (vekt 16, 8, 4, 2, 1 per ting), og prisen følger graden (2–75 mynter).
-- **Kistene** (`KISTE`, `trekkSkatt`): liten = 1 metall + 1 edelstein, stor = 2 + 3, kjempe = 3 + 5 og én edelstein som er minst «sjelden».
-  Større kister har mer «lykke», som løfter sjansen for de sjeldne. Verdien i snitt er omtrent som før (ca. 14, 45 og 105 mynter).
+- **Sjeldenhet** (`SJELDENHET`): grad 1–5 = vanlig, uvanlig, sjelden, svært sjelden, legendarisk. Hver grad trekkes en tredel så ofte
+  som den forrige (vekt 81, 27, 9, 3, 1 per ting). Per trekk og per edelstein: 6,7 % · 2,2 % · 0,74 % · 0,25 % · 0,09 %.
+- **Kistene** (`KISTE`, `trekkSkatt`): liten = én ting (metall eller edelstein), stor = 1 metall + 2 edelsteiner, kjempe = 2 + 2 og én
+  edelstein som er minst «uvanlig». Større kister har mer «lykke», som løfter sjansen for de sjeldne.
+- **Prisene** (4–300 mynter) er satt slik at en kiste er verdt omtrent det samme som før i snitt (ca. 13, 52 og 108 mynter),
+  selv om det er færre ting i den. De sjeldne er verdt mest. (v1.39: færre ting og tre ganger så bratt sjeldenhet, etter brukertest.)
   Finner man noe som er minst «sjelden», står det i meldingen («★★★★ Du fant aleksandritt – svært sjelden!»).
 - **Forrådet** nederst har én rute for alle metallene og én for alle edelsteinene (det er for mange slag til en rute hver).
   I butikken står de hver for seg, med stjerner og sjeldenhet.

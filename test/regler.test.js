@@ -67,14 +67,15 @@ sjekk(kisteFunnet === 3, 'fant kister å teste på');
 // --- Salg og kjøp ---------------------------------------------------------
 s.forrad.rubin = 3;
 const solgt = R.selg(s, 'rubin');
-sjekk(solgt[0].sum === 3 * VARER.rubin.pris && s.mynter === 75 && s.forrad.rubin === 0, 'salg av rubiner');
+const rubiner = 3 * VARER.rubin.pris;
+sjekk(solgt[0].sum === rubiner && s.mynter === rubiner && s.forrad.rubin === 0, 'salg av rubiner');
 sjekk(R.selg(s, 'rubin').length === 0, 'kan ikke selge det man ikke har');
 sjekk(s.museum.rubin === 3 && solgt[0].tilMuseet === true, 'rubinene man selger, havner i museet');
 const tomRute = [...s.avdekket.keys()].find((j) => R.kanPlassere(s, v, j));
 sjekk(tomRute !== undefined, 'det finnes en ledig rute');
 sjekk(R.kjopOgPlasser(s, v, tomRute, 'borg')[0].type === 'forLiteMynter', 'for lite mynter til borgen');
 sjekk(R.kjopOgPlasser(s, v, tomRute, 'telt')[0].type === 'bygget', 'kjøpte et telt');
-sjekk(s.mynter === 75 - 15 && s.bygg.get(tomRute) === 'telt', 'teltet står og myntene er trukket');
+sjekk(s.mynter === rubiner - 15 && s.bygg.get(tomRute) === 'telt', 'teltet står og myntene er trukket');
 sjekk(!R.kanPlassere(s, v, tomRute), 'kan ikke bygge to ganger på samme rute');
 sjekk(!R.kanPlassere(s, v, v.startIndeks), 'kan ikke bygge på leiren');
 sjekk(BYGG.length === 20 && BYGG.every((b, k) => k === 0 || b.pris >= BYGG[k - 1].pris), '20 bygg, sortert etter pris');
@@ -539,19 +540,19 @@ for (const tak of [2, 3, 4, 5, 10]) {
   // Trekningen: jo sjeldnere, jo sjeldnere dukker tingen opp
   const r = lagTilfeldig(4242);
   for (const liste of [METALLER, EDELSTEINER]) {
-    const antall = {}, N = 200000;
+    const antall = {}, N = 600000;
     for (let n = 0; n < N; n++) { const v = trekkSkatt(r, liste); antall[v] = (antall[v] ?? 0) + 1; }
     const perGrad = [0, 0, 0, 0, 0, 0], iGrad = [0, 0, 0, 0, 0, 0];
     for (const v of liste) { perGrad[VARER[v].grad] += antall[v] ?? 0; iGrad[VARER[v].grad]++; }
     const snitt = perGrad.map((n, g) => (iGrad[g] ? n / iGrad[g] / N : 0));
     sjekk(liste.every((v) => antall[v] > 0), 'alle kan dukke opp');
     for (let g = 2; g <= 5; g++) {
-      sjekk(Math.abs(snitt[g] / snitt[g - 1] - 0.5) < 0.08, `en ting av grad ${g} dukker opp halvparten så ofte som en av grad ${g - 1} (${(snitt[g] / snitt[g - 1]).toFixed(2)})`);
+      sjekk(Math.abs(snitt[g] / snitt[g - 1] - 1 / 3) < 0.07, `en ting av grad ${g} dukker opp en tredel så ofte som en av grad ${g - 1} (${(snitt[g] / snitt[g - 1]).toFixed(2)})`);
       const minForrige = Math.min(...liste.filter((v) => VARER[v].grad === g - 1).map((v) => antall[v]));
       const maksDenne = Math.max(...liste.filter((v) => VARER[v].grad === g).map((v) => antall[v]));
       sjekk(maksDenne < minForrige, `hver ting av grad ${g} er sjeldnere enn alle av grad ${g - 1}`);
     }
-    console.log(liste === METALLER ? 'Metaller' : 'Edelsteiner', 'sjanse per trekk, per ting:', snitt.slice(1).map((x, g) => `${SJELDENHET[g + 1].navn} ${(x * 100).toFixed(2)} %`).join(', '));
+    console.log(liste === METALLER ? 'Metaller' : 'Edelsteiner', 'sjanse per trekk, per ting:', snitt.slice(1).map((x, g) => `${SJELDENHET[g + 1].navn} ${(x * 100).toFixed(3)} %`).join(', '));
   }
   // Kistene: større kiste gir mer, og oftere sjeldne ting
   const verdi = [0, 0, 0], sjeldne = [0, 0, 0], ting = [0, 0, 0], N = 20000;
@@ -568,7 +569,7 @@ for (const tak of [2, 3, 4, 5, 10]) {
     '· ting', ting.map((x) => x / N).join(', '), '· andel svært sjeldne eller legendariske', sjeldne.map((x, k) => `${((x / ting[k]) * 100).toFixed(1)} %`).join(', '));
   sjekk(verdi[0] < verdi[1] && verdi[1] < verdi[2], 'større kister er verdt mer');
   sjekk(sjeldne[0] / ting[0] < sjeldne[1] / ting[1] && sjeldne[1] / ting[1] < sjeldne[2] / ting[2], 'større kister har oftere sjeldne ting');
-  sjekk(ting[0] / N === 2 && ting[1] / N === 5 && ting[2] / N === 9, 'antall ting i kistene');
+  sjekk(ting[0] / N === 1 && ting[1] / N === 3 && ting[2] / N === 5, 'antall ting i kistene: 1, 3 og 5');
 }
 
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));

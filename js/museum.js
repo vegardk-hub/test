@@ -4,7 +4,7 @@
 // Ingen DOM-elementer her (bortsett fra to skjulte lerreter til det som står stille) –
 // main.js eier lerretet, knappene og trykkene.
 
-import { VARER, SKATTER } from './data/ting.js';
+import { VARER, SKATTER, METALLER, EDELSTEINER, SJELDENHET } from './data/ting.js';
 import { mulberry32 } from './rng.js';
 
 const TAU = Math.PI * 2;
@@ -20,7 +20,7 @@ const norm = ([x, y, z]) => { const l = Math.hypot(x, y, z) || 1; return [x / l,
 const prikk = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const rgb = (hex) => { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 const css = ([r, g, b]) => `rgb(${r | 0},${g | 0},${b | 0})`;
-const rgba = (hex, a) => { const [r, g, b] = rgb(hex); return `rgba(${r},${g},${b},${a})`; };
+const rgba = (farge, a) => { const [r, g, b] = typeof farge === 'string' ? rgb(farge) : farge; return `rgba(${r | 0},${g | 0},${b | 0},${a})`; };
 const mellom = (a, b, u) => [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
 const stor = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -165,49 +165,113 @@ function ferdig({ v, f }, storrelse = null) {
 }
 
 const krystall = slip([ring(6, 0.5, 0.5), ring(6, 0.5, -0.75)], 1.15, null);
+const dobbel = slip([ring(6, 0.4, 0.62), ring(6, 0.4, -0.62)], 1.2, -1.2);     // krystall med spiss i begge ender
+const terning = slip([ring(4, 1, 0.707), ring(4, 1, -0.707)]);
 
-const FORM = {
+// Fasongene: slipte steiner, krystaller, kupler (cabochon) og former for metallene.
+const F = {
   // Brilliantslip: flat topp, krone, rundist og spiss.
-  diamant: ferdig(slip([ring(8, 0.56, 0.44), ring(8, 0.82, 0.3, true), ring(8, 1, 0.1), ring(8, 1, 0.03), ring(8, 0.55, -0.5, true)], null, -1)),
-  // Oval slip.
-  rubin: ferdig(slip([ring(10, 0.6, 0.42, false, 1, 0.74), ring(10, 0.86, 0.3, true, 1, 0.74), ring(10, 1, 0.08, false, 1, 0.74),
+  brilliant: ferdig(slip([ring(8, 0.56, 0.44), ring(8, 0.82, 0.3, true), ring(8, 1, 0.1), ring(8, 1, 0.03), ring(8, 0.55, -0.5, true)], null, -1)),
+  oval: ferdig(slip([ring(10, 0.6, 0.42, false, 1, 0.74), ring(10, 0.86, 0.3, true, 1, 0.74), ring(10, 1, 0.08, false, 1, 0.74),
     ring(10, 1, 0.02, false, 1, 0.74), ring(10, 0.5, -0.42, true, 1, 0.74)], null, -0.74)),
-  // Smaragdslip: avlang, med trinn.
-  smaragd: ferdig(slip([rekt(0.62, 0.4, 0.16, 0.4), rekt(0.84, 0.56, 0.2, 0.27), rekt(1, 0.7, 0.24, 0.1), rekt(1, 0.7, 0.24, 0.03),
+  // Smal oval (markise).
+  markise: ferdig(slip([ring(8, 0.56, 0.42, false, 1, 0.5), ring(8, 0.82, 0.3, true, 1, 0.5), ring(8, 1, 0.1, false, 1, 0.5),
+    ring(8, 1, 0.03, false, 1, 0.5), ring(8, 0.55, -0.45, true, 1, 0.5)], null, -0.85)),
+  // Smaragdslip: avlang, med trinn. Beryllene (smaragd, akvamarin, rød beryll) slipes gjerne slik.
+  trinn: ferdig(slip([rekt(0.62, 0.4, 0.16, 0.4), rekt(0.84, 0.56, 0.2, 0.27), rekt(1, 0.7, 0.24, 0.1), rekt(1, 0.7, 0.24, 0.03),
     rekt(0.72, 0.48, 0.17, -0.32), rekt(0.42, 0.24, 0.09, -0.6), rekt(0.2, 0.05, 0.02, -0.78)])),
   // Dråpe (briolett).
-  safir: ferdig(slip([ring(8, 0.34, 0.62), ring(8, 0.66, 0.12, true), ring(8, 0.8, -0.3), ring(8, 0.62, -0.68, true), ring(8, 0.3, -0.93)], 1.2, -1.03)),
-  // Sekskantet trinnslip.
-  topas: ferdig(slip([ring(6, 0.55, 0.42), ring(6, 0.82, 0.28), ring(6, 1, 0.1), ring(6, 1, 0.03), ring(6, 0.62, -0.35), ring(6, 0.3, -0.7)], null, -0.95)),
-  // Krystallklynge: en stor krystall og tre små som peker ut til sidene.
-  ametyst: ferdig(flett(krystall,
+  draape: ferdig(slip([ring(8, 0.34, 0.62), ring(8, 0.66, 0.12, true), ring(8, 0.8, -0.3), ring(8, 0.62, -0.68, true), ring(8, 0.3, -0.93)], 1.2, -1.03)),
+  sekskant: ferdig(slip([ring(6, 0.55, 0.42), ring(6, 0.82, 0.28), ring(6, 1, 0.1), ring(6, 1, 0.03), ring(6, 0.62, -0.35), ring(6, 0.3, -0.7)], null, -0.95)),
+  prinsesse: ferdig(slip([ring(4, 0.6, 0.42), ring(4, 0.85, 0.28), ring(4, 1, 0.1), ring(4, 1, 0.03), ring(4, 0.55, -0.45)], null, -0.95)),
+  trillion: ferdig(slip([ring(3, 0.55, 0.4), ring(3, 0.8, 0.28, true), ring(3, 1, 0.1), ring(3, 1, 0.03), ring(3, 0.5, -0.45, true)], null, -0.9)),
+  oktaeder: ferdig(slip([ring(4, 1, 0)], 1.05, -1.05)),
+  // Kuppelslip for steiner man ikke ser gjennom: rund og høy, eller oval og lav.
+  kuppel: ferdig(slip([ring(10, 0.4, 0.62), ring(10, 0.76, 0.4, true), ring(10, 1, 0.05), ring(10, 0.9, -0.12, true)], 0.72, null)),
+  cabochon: ferdig(slip([ring(10, 0.42, 0.44, false, 1, 0.76), ring(10, 0.78, 0.27, true, 1, 0.76), ring(10, 1, 0, false, 1, 0.76), ring(10, 0.9, -0.14, true, 1, 0.76)], 0.52, null)),
+  // Krystaller slik de vokser: klynge, to spisser, og en lang stav.
+  klynge: ferdig(flett(krystall,
     flytt(krystall, { s: 0.6, velt: 0.55, ut: 0.5, opp: -0.38, rundt: 0.3 }),
     flytt(krystall, { s: 0.5, velt: 0.6, ut: 0.48, opp: -0.45, rundt: 2.5 }),
     flytt(krystall, { s: 0.42, velt: 0.7, ut: 0.46, opp: -0.5, rundt: 4.3 }))),
-  gull: ferdig(klump(7), 0.86),
-  solv: ferdig(klump(23, { sx: 0.95, sy: 0.82, sz: 0.9, uro: 0.42, lapper: 9 }), 0.8),
+  spiss: ferdig(flett(krystall, flytt(krystall, { s: 0.58, velt: 0.5, ut: 0.5, opp: -0.4, rundt: 1.2 }))),
+  stav: ferdig(flytt(dobbel, { velt: 0.3 })),
+  // Metaller: terning, terningklynge og støpt barre.
+  terning: ferdig(terning),
+  terninger: ferdig(flett(terning, flytt(terning, { s: 0.6, velt: 0.35, ut: 0.95, opp: -0.25, rundt: 0.8 }), flytt(terning, { s: 0.45, velt: -0.3, ut: 0.9, opp: 0.3, rundt: 3.6 }))),
+  barre: ferdig(slip([rekt(0.78, 0.3, 0.03, 0.2), rekt(1, 0.42, 0.03, -0.2)])),
+};
+const K = (seed, o = {}) => ferdig(klump(seed, o), o.str ?? 0.84);                                        // klump
+const T = (seed) => ferdig(klump(seed, { sx: 1, sy: 0.72, sz: 0.82, uro: 0.14, lapper: 4 }), 0.92);        // trommelpolert stein
+
+const FORM = {
+  // Metaller
+  kobber: K(31, { uro: 0.42, lapper: 10 }), tinn: F.barre, sink: K(47, { sy: 0.6, uro: 0.24 }), nikkel: K(59, { sy: 0.8, uro: 0.2, lapper: 5 }),
+  titan: F.stav, krom: K(53, { uro: 0.5, lapper: 12, sy: 0.86, str: 0.66 }), solv: K(23, { sx: 0.95, sy: 0.82, sz: 0.9, uro: 0.42, lapper: 9, str: 0.8 }),
+  kobolt: K(61, { sy: 0.8, uro: 0.3 }), wolfram: F.terning, vismut: F.terninger, niob: K(67, { sz: 0.7, uro: 0.28 }),
+  elektrum: K(71, { sy: 0.68, uro: 0.36 }), tantal: K(73, { uro: 0.26, sz: 0.72 }), indium: F.barre, gull: K(7, { str: 0.86 }),
+  palladium: K(79, { sy: 0.7, uro: 0.22, lapper: 6 }), platina: K(83, { uro: 0.3, sy: 0.72, lapper: 8 }),
+  ruthenium: K(89, { uro: 0.46, lapper: 11 }), rhenium: F.barre, osmium: F.klynge, iridium: K(97, { uro: 0.36, sy: 0.8 }), rhodium: F.barre,
+  // Edelsteiner
+  bergkrystall: F.spiss, rosenkvarts: T(101), roykkvarts: F.klynge, agat: F.cabochon, jaspis: T(103), citrin: F.trillion, karneol: F.cabochon,
+  onyks: F.kuppel, tigeroye: F.cabochon, fluoritt: F.oktaeder, granat: F.oval, rav: T(107), peridot: F.markise, turkis: F.kuppel,
+  malakitt: F.cabochon, topas: F.sekskant, akvamarin: F.trinn, lapis: T(109), maanestein: F.kuppel, jade: F.cabochon, ametyst: F.klynge,
+  turmalin: F.stav, zirkon: F.brilliant, smaragd: F.trinn, opal: F.kuppel, morganitt: F.draape, tanzanitt: F.prinsesse, safir: F.draape,
+  rubin: F.oval, svartopal: F.cabochon, aleksandritt: F.brilliant, padparadscha: F.oval, diamant: F.brilliant, rodberyll: F.trinn, taaffeitt: F.markise,
 };
 
 // ---------------------------------------------------------------------------
 // Stoffene: fargetrapp fra skygge til blink
 // ---------------------------------------------------------------------------
-function edel(farge, { ild = false, dyp = 0.72 } = {}) {
+const HVIT = [255, 255, 255], SVART = [0, 0, 0];
+/** Gjennomsiktig, slipt stein. ild = regnbuefarger inni (0–1). c2 = en annen farge steinen skifter til. */
+function edel(farge, { ild = 0, dyp = 0.72, skift = null } = {}) {
   const c = rgb(farge);
-  return { type: 'edel', ild, glod: farge, c: [mellom(c, [10, 6, 24], dyp), c, mellom(c, [255, 255, 255], 0.5), [255, 255, 255]] };
+  return { type: 'edel', ild, glod: farge, c: [mellom(c, [10, 6, 24], dyp), c, mellom(c, HVIT, 0.5), HVIT],
+    c2: skift ? edel(skift, { dyp }).c : null };
+}
+/** Klar eller melkehvit stein med egen fargetrapp. */
+const klar = (trapp, glod, ild = 0) => ({ type: 'edel', ild, glod, c: trapp.map(rgb), c2: null });
+/** Stein man ikke ser gjennom. striper = fargen på båndene (agat, malakitt, tigerøye). */
+function matt(farge, { striper = null, frekv = 9 } = {}) {
+  const trapp = (f) => { const c = rgb(f); return [mellom(c, SVART, 0.62), c, mellom(c, HVIT, 0.38), HVIT]; };
+  return { type: 'matt', glod: farge, c: trapp(farge), c2: striper ? trapp(striper) : null, frekv };
 }
 const metall = (trapp, glod) => ({ type: 'metall', glod, c: trapp.map(rgb) });
+/** Metall i sin egen farge: mørkt i skyggen, blankt i lyset. */
+function metallAv(farge) {
+  const c = rgb(farge);
+  return { type: 'metall', glod: mellom(c, HVIT, 0.25), c: [mellom(c, [12, 13, 20], 0.86), mellom(c, SVART, 0.42), mellom(c, HVIT, 0.14), mellom(c, HVIT, 0.88)] };
+}
 
 const STOFF = {
-  topas: edel(VARER.topas.farge),
-  ametyst: edel(VARER.ametyst.farge),
-  smaragd: edel(VARER.smaragd.farge),
-  safir: edel(VARER.safir.farge),
-  rubin: edel(VARER.rubin.farge),
-  diamant: { type: 'edel', ild: true, glod: '#bfe9ff', c: ['#2f5f8c', '#a9dcf7', '#eef9ff', '#ffffff'].map(rgb) },
+  stov: { type: 'glass', glod: '#ffe58a' },
   gull: metall(['#3d2402', '#c4850a', '#ffd84a', '#fffbe0'], '#ffcf4a'),
   solv: metall(['#1b212b', '#727f8f', '#d3dde6', '#ffffff'], '#cfe0f0'),
-  stov: { type: 'glass', glod: '#ffe58a' },
+  bergkrystall: klar(['#4f6a80', '#d3e6f0', '#f6fbff', '#ffffff'], '#d9efff'),
+  maanestein: klar(['#56698f', '#cfdcf2', '#f2f7ff', '#ffffff'], '#bcd3ff', 0.12),
+  rosenkvarts: edel(VARER.rosenkvarts.farge, { dyp: 0.5 }),
+  karneol: edel(VARER.karneol.farge, { dyp: 0.6 }),
+  rav: edel(VARER.rav.farge, { dyp: 0.55 }),
+  granat: edel(VARER.granat.farge, { dyp: 0.8 }),
+  agat: matt(VARER.agat.farge, { striper: '#f1dcc0', frekv: 9 }),
+  jaspis: matt(VARER.jaspis.farge, { striper: '#6e2418', frekv: 5 }),
+  tigeroye: matt(VARER.tigeroye.farge, { striper: '#4a2a0c', frekv: 11 }),
+  malakitt: matt(VARER.malakitt.farge, { striper: '#0b5a37', frekv: 10 }),
+  turkis: matt(VARER.turkis.farge),
+  lapis: matt(VARER.lapis.farge),
+  jade: matt(VARER.jade.farge),
+  onyks: { type: 'matt', glod: '#9aa0b5', c: ['#020203', '#23232b', '#6a6a7c', '#ffffff'].map(rgb), c2: null },
+  perle: { type: 'perle', glod: '#fff3e6' },
+  opal: klar(['#6f8c92', '#dcebe9', '#f6fbfa', '#ffffff'], '#d9fff6', 0.6),
+  // Svart opal: mørk stein med flekker som lyser i alle farger.
+  svartopal: { type: 'matt', glod: '#7f8cff', c: ['#020308', '#161a2a', '#39446e', '#dfe4ff'].map(rgb), c2: null, ild: 0.85 },
+  // Aleksandritt skifter farge: grønn i dagslys, rød i lampelys.
+  aleksandritt: edel(VARER.aleksandritt.farge, { skift: '#a8306e' }),
+  diamant: klar(['#2f5f8c', '#a9dcf7', '#eef9ff', '#ffffff'], '#bfe9ff', 0.38),
 };
+for (const v of METALLER) STOFF[v] ??= metallAv(VARER[v].farge);
+for (const v of EDELSTEINER) STOFF[v] ??= edel(VARER[v].farge);
 // En ting man ikke har funnet ennå: bare en mørk skygge.
 const SKYGGE = metall(['#0b0e16', '#171d2a', '#262f42', '#333d54'], '#000000');
 
@@ -271,14 +335,19 @@ function tegnForm(ctx, form, stoff, x, y, s, vinkel, glimt = true) {
   ctx.lineJoin = 'round';
   const blink = [];
   if (stoff.type === 'edel') {
+    // Noen steiner skifter farge mens de snurrer.
+    let skift = stoff.c2 ? 0.5 + 0.5 * Math.sin(vinkel * 0.7) : 0;
+    skift = skift * skift * (3 - 2 * skift);
+    skift = skift * skift * (3 - 2 * skift);   // mest tid i den ene eller den andre fargen
+    const trapp = stoff.c2 ? stoff.c.map((c, k) => mellom(c, stoff.c2[k], skift)) : stoff.c;
     // Baksiden først: der kastes lyset rundt inne i steinen, og det ser vi gjennom forsiden.
     bak.sort((a, b) => a.z - b.z);
     ctx.lineWidth = 0.7;
     for (const o of bak) {
       const m = [-o.n[0], -o.n[1], -o.n[2]];
       const b = 0.14 + 0.85 * Math.pow(Math.max(0, prikk(m, INDRE)), 1.6) + 0.4 * Math.pow(Math.max(0, prikk(m, LYS)), 3);
-      let c = tone(stoff.c, b);
-      if (stoff.ild) c = mellom(c, regnbue((o.n[0] * 150 + o.n[1] * 210 + 720) % 360), 0.38);
+      let c = tone(trapp, b);
+      if (stoff.ild) c = mellom(c, regnbue((o.n[0] * 150 + o.n[1] * 210 + 720) % 360), stoff.ild);
       sti(o.fl.idx);
       ctx.fillStyle = ctx.strokeStyle = css(c);
       ctx.fill();
@@ -287,8 +356,8 @@ function tegnForm(ctx, form, stoff, x, y, s, vinkel, glimt = true) {
     for (const o of foran) {
       const d = Math.max(0, prikk(o.n, LYS)), d2 = Math.max(0, prikk(o.n, LYS2));
       const g = Math.pow(Math.max(0, prikk(o.n, HALV)), 28) + 0.6 * Math.pow(Math.max(0, prikk(o.n, HALV2)), 20);
-      let c = tone(stoff.c, 0.16 + 0.34 * d + 0.13 * d2 + 1.05 * g);
-      if (stoff.ild) c = mellom(c, regnbue((o.n[0] * 190 - o.n[1] * 120 + 900) % 360), 0.16 * (1 - Math.min(1, g)));
+      let c = tone(trapp, 0.16 + 0.34 * d + 0.13 * d2 + 1.05 * g);
+      if (stoff.ild) c = mellom(c, regnbue((o.n[0] * 190 - o.n[1] * 120 + 900) % 360), stoff.ild * 0.42 * (1 - Math.min(1, g)));
       sti(o.fl.idx);
       ctx.globalAlpha = 0.6 + 0.4 * Math.min(1, g);
       ctx.fillStyle = css(c);
@@ -300,6 +369,28 @@ function tegnForm(ctx, form, stoff, x, y, s, vinkel, glimt = true) {
       if (g > 0.5) blink.push({ o, g });
     }
     ctx.globalAlpha = 1;
+  } else if (stoff.type === 'matt') {
+    // Stein man ikke ser gjennom: myk glans, og bånd på tvers for dem som har det.
+    ctx.lineWidth = 0.7;
+    for (const o of foran) {
+      const d = Math.max(0, prikk(o.n, LYS)), d2 = Math.max(0, prikk(o.n, LYS2));
+      const g = Math.pow(Math.max(0, prikk(o.n, HALV)), 18);
+      const b = 0.2 + 0.42 * d + 0.14 * d2 + 0.6 * g;
+      let c = tone(stoff.c, b);
+      if (stoff.c2) {
+        const band = 0.5 + 0.5 * Math.sin(o.fl.c[1] * stoff.frekv + o.fl.c[0] * 1.6);
+        c = mellom(c, tone(stoff.c2, b), band * band);
+      }
+      if (stoff.ild) {
+        const flekk = Math.max(0, Math.sin(o.n[0] * 6 + o.n[1] * 4 + o.fl.c[0] * 7 + o.fl.c[2] * 5));
+        c = mellom(c, regnbue((o.fl.c[0] * 260 + o.fl.c[2] * 200 + o.n[0] * 120 + 900) % 360), stoff.ild * flekk);
+      }
+      sti(o.fl.idx);
+      ctx.fillStyle = ctx.strokeStyle = css(c);
+      ctx.fill();
+      ctx.stroke();
+      if (g > 0.7) blink.push({ o, g: 0.5 + (g - 0.7) });
+    }
   } else {
     ctx.lineWidth = 0.7;
     for (const o of foran) {
@@ -422,9 +513,37 @@ function tegnStovglass(ctx, x, y, s, vinkel, t, antall, skygget) {
   }
 }
 
+/** Perla er rund og blank, med et svakt skjær av rosa og blått. */
+function tegnPerle(ctx, x, y, s, vinkel, skygget) {
+  const r = s * 0.8;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, TAU);
+  if (skygget) { ctx.fillStyle = '#171d2a'; ctx.fill(); return; }
+  const hx = x - r * 0.32 + Math.cos(vinkel) * r * 0.07, hy = y - r * 0.36;
+  let g = ctx.createRadialGradient(hx, hy, r * 0.05, x, y, r);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, '#f8f2ea'); g.addColorStop(0.78, '#d8cdc6'); g.addColorStop(1, '#9a909e');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.save();
+  ctx.clip();
+  for (const [dv, farge] of [[0, 'rgba(255, 160, 200, 0.26)'], [2.4, 'rgba(140, 220, 255, 0.24)']]) {
+    const px = x + Math.cos(vinkel * 0.6 + dv) * r * 0.45, py = y + r * 0.35 + Math.sin(vinkel * 0.6 + dv) * r * 0.2;
+    g = ctx.createRadialGradient(px, py, 0, px, py, r * 0.75);
+    g.addColorStop(0, farge); g.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.lineWidth = Math.max(0.8, r * 0.05);
+  ctx.beginPath(); ctx.arc(x, y, r * 0.9, 0.5, 1.5); ctx.stroke();
+  stjerne(ctx, hx, hy, r * 0.3, 0.9);
+}
+
 /** Tegner en skatt med midten i (x, y) og «radius» s. skygget = en ting man ikke har ennå. */
 export function tegnTing(ctx, vare, x, y, s, vinkel, t, { skygget = false, antall = 1, glimt = true } = {}) {
   if (vare === 'stov') tegnStovglass(ctx, x, y + s * 0.1, s, vinkel, t, antall, skygget);
+  else if (STOFF[vare].type === 'perle') tegnPerle(ctx, x, y, s, vinkel, skygget);
   else tegnForm(ctx, FORM[vare], skygget ? SKYGGE : STOFF[vare], x, y, s, vinkel, glimt && !skygget);
 }
 
@@ -477,7 +596,7 @@ function montre(cx, by, u, vare) {
 }
 
 /** Det som står bak tingen: skygge, sokkel, skilt, glassets bakside og dreieskiva. */
-function montreBak(ctx, m, { vis, tekst }) {
+function montreBak(ctx, m, { vis, tekst, grad = 0 }) {
   const { cx, by, u, pw, ph, dz, ins, gw, gh, gd, gi, topY, gy } = m;
   // Skygge og lys på gulvet
   ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
@@ -516,6 +635,14 @@ function montreBak(ctx, m, { vis, tekst }) {
   ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
   ctx.lineWidth = Math.max(0.8, u * 0.006);
   ctx.stroke();
+  if (grad) {
+    // Sjeldenheten: én til fem stjerner over skiltet.
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = vis ? '#e9c35a' : '#5a6078';
+    ctx.font = `700 ${Math.max(7, ph * 0.17)}px ${SANS}`;
+    ctx.fillText('★'.repeat(grad), cx, topY + ph * 0.235);
+  }
   if (tekst) {
     ctx.fillStyle = vis ? '#3a2a08' : '#9aa0b5';
     ctx.textAlign = 'center';
@@ -710,13 +837,22 @@ function bakgrunn(ctx, W, H, horisont, u) {
   ctx.fillRect(0, 0, W, H);
 }
 
-/** Hvor montrene står: to rekker (5 + 4) liggende, tre rekker (3 + 3 + 3) stående. */
-function oppsett(W, H, medTittel) {
+/** Salene: høyst ni montre i hver. Stjernestøvet og metallene først, så edelsteinene, fra de vanligste til de sjeldneste. */
+const del = (liste, n) => Array.from({ length: Math.ceil(liste.length / n) }, (_, k) => liste.slice(k * n, k * n + n));
+export const SALER = [
+  ...del(['stov', ...METALLER], 9).map((varer, k, a) => ({ navn: `Metaller ${k + 1} av ${a.length}`, varer })),
+  ...del(EDELSTEINER, 9).map((varer, k, a) => ({ navn: `Edelsteiner ${k + 1} av ${a.length}`, varer })),
+];
+export const salFor = (vare) => Math.max(0, SALER.findIndex((sal) => sal.varer.includes(vare)));
+
+/** Hvor montrene står: to rekker liggende (5 + 4 når salen er full), rekker på tre stående. */
+function oppsett(W, H, medTittel, varer) {
   const smal = W < 640;
-  const topp = (smal && medTittel ? 112 : 78), bunn = 22;
+  const topp = (smal && medTittel ? 112 : 78), bunn = 76;   // nederst står knappene for å bytte sal
   const liggende = W > H * 1.1;
-  const rader = liggende ? [5, 4] : [3, 3, 3];
-  const skala = liggende ? [0.84, 1] : [0.9, 0.95, 1];
+  const n = varer.length;
+  const rader = liggende ? [Math.ceil(n / 2), Math.floor(n / 2)].filter(Boolean) : del(varer, 3).map((x) => x.length);
+  const skala = rader.map((_, r) => 1 - (rader.length - 1 - r) * (liggende ? 0.16 : 0.05));
   const steg = (W - 16) / Math.max(...rader);
   const sum = skala.reduce((a, b) => a + b, 0) * 1.66 + (rader.length - 1) * 0.04;
   const u = Math.min(steg * 0.98, (H - topp - bunn) / sum, 240);
@@ -724,10 +860,10 @@ function oppsett(W, H, medTittel) {
   let y = topp + (H - topp - bunn - hoyde) * 0.6;
   const plass = [];
   let nr = 0;
-  rader.forEach((n, r) => {
+  rader.forEach((iRad, r) => {
     const ur = u * skala[r];
     y += ur * 1.66;
-    for (let k = 0; k < n; k++) plass.push({ cx: W / 2 + (k - (n - 1) / 2) * Math.min(steg, u * 1.28), by: y, u: ur, vare: SKATTER[nr++] });
+    for (let k = 0; k < iRad; k++) plass.push({ cx: W / 2 + (k - (iRad - 1) / 2) * Math.min(steg, u * 1.28), by: y, u: ur, vare: varer[nr++] });
     y += u * 0.04;
   });
   const forste = plass[0];
@@ -752,7 +888,7 @@ const skilt = navnPaa;
 function byggLag(W, H, valg, nokkel) {
   const dpr = valg.dpr ?? 1;
   const bak = lagLerret(W, H, dpr), foran = lagLerret(W, H, dpr);
-  const o = oppsett(W, H, !!valg.tittel);
+  const o = oppsett(W, H, !!valg.tittel, SALER[valg.sal ?? 0].varer);
   bakgrunn(bak.ctx, W, H, o.horisont, o.u);
   if (valg.tittel) {
     const c = bak.ctx;
@@ -765,14 +901,15 @@ function byggLag(W, H, valg, nokkel) {
   const montrer = o.plass.map((p) => montre(p.cx, p.by, p.u, p.vare));
   for (const m of montrer) {
     const vis = synlig(valg, m.vare);
-    montreBak(bak.ctx, m, { vis, tekst: skilt(valg, m.vare) });
+    montreBak(bak.ctx, m, { vis, tekst: skilt(valg, m.vare), grad: VARER[m.vare].grad });
     montreForan(foran.ctx, m, { vis });
   }
   return { nokkel, bak: bak.c, foran: foran.c, montrer };
 }
 
 function rom(ctx, W, H, t, st, valg, levende = true) {
-  const nokkel = [W, H, valg.dpr, valg.tittel, valg.versaler, SKATTER.map((v) => `${synlig(valg, v) ? 1 : 0}${skilt(valg, v)}`).join(',')].join('|');
+  const varer = SALER[valg.sal ?? 0].varer;
+  const nokkel = [W, H, valg.dpr, valg.tittel, valg.versaler, valg.sal ?? 0, varer.map((v) => (synlig(valg, v) ? 1 : 0)).join('')].join('|');
   if (st.lag?.nokkel !== nokkel) st.lag = byggLag(W, H, valg, nokkel);
   ctx.drawImage(st.lag.bak, 0, 0, W, H);
   if (!levende) return [];
@@ -790,9 +927,10 @@ function naerbilde(ctx, W, H, t, st, valg) {
   ctx.fillRect(0, 0, W, H);
   const vare = valg.vare, vis = synlig(valg, vare), antall = valg.samling[vare] ?? 0;
   const topp = W < 640 && valg.tittel ? 112 : 78;   // på smale skjermer står romtittelen under knappene
-  const u = Math.max(90, Math.min(W * 0.66, (H - topp - 136) / 1.66, 440));
-  const y0 = topp + Math.max(0, (H - topp - 1.66 * u - 136) / 2);
-  const m = montre(W / 2, y0 + 56 + 1.66 * u, u, vare);
+  const u = Math.max(90, Math.min(W * 0.66, (H - topp - 164) / 1.66, 440));
+  const y0 = topp + Math.max(0, (H - topp - 1.66 * u - 164) / 2);
+  const m = montre(W / 2, y0 + 84 + 1.66 * u, u, vare);
+  const grad = VARER[vare].grad ?? 0;
   // Lys på gulvet under montren
   const g = ctx.createRadialGradient(m.cx, m.by, 0, m.cx, m.by, u * 1.5);
   g.addColorStop(0, vis ? rgba(STOFF[vare].glod, 0.2) : 'rgba(120, 140, 190, 0.1)');
@@ -802,13 +940,17 @@ function naerbilde(ctx, W, H, t, st, valg) {
   ctx.fillStyle = g;
   ctx.fillRect(m.cx - u * 1.6, m.by - u * 1.6, u * 3.2, u * 3.2);
   ctx.restore();
-  montreBak(ctx, m, { vis, tekst: skilt(valg, vare) });
-  montreLiv(ctx, m, { vis, antall, vinkel: st.vinkel[vare], t, nr: SKATTER.indexOf(vare) });
+  montreBak(ctx, m, { vis, tekst: skilt(valg, vare), grad });
+  montreLiv(ctx, m, { vis, antall, vinkel: st.vinkel[vare], t, nr: SKATTER.indexOf(vare) % 9 });
   montreForan(ctx, m, { vis });
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle = gull(ctx, 0, y0 + 10, 0, y0 + 46);
   skriv(ctx, navnPaa(valg, vare), W / 2, y0 + 28, W - 30, Math.min(40, W * 0.09));
+  if (grad) {
+    ctx.fillStyle = '#e9c35a';
+    skriv(ctx, `${'★'.repeat(grad)} ${stor(SJELDENHET[grad].navn)}`, W / 2, y0 + 64, W - 30, Math.min(21, W * 0.05), '700', SANS);
+  }
   ctx.fillStyle = '#e9e2cf';
   skriv(ctx, antall ? `I museet: ${antall}` : 'Tom monter. Det du selger i butikken, havner her.', W / 2, m.by + 40, W - 24, Math.min(24, W * 0.055), '600', SANS);
   return [{ vare, x: m.cx - m.gw / 2, y: m.topp, w: m.gw, h: m.gy - m.topp }];
@@ -821,7 +963,7 @@ function samlingen(ctx, W, H, t, st, valg) {
   rom(ctx, W, H, t, st, valg, false);
   ctx.fillStyle = 'rgba(5, 7, 16, 0.8)';
   ctx.fillRect(0, 0, W, H);
-  const pw = Math.min(W - 20, 920), ph = Math.min(H - 78 - 22, 760);
+  const pw = Math.min(W - 20, 1000), ph = Math.min(H - 78 - 22, 820);
   const px = (W - pw) / 2, py = 78 + (H - 78 - 22 - ph) / 2;
   // Tavla
   ctx.save();
@@ -842,45 +984,55 @@ function samlingen(ctx, W, H, t, st, valg) {
   ctx.stroke();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const topp = 62, bunn = 58;
+  const topp = 60, bunn = 50;
   ctx.fillStyle = gull(ctx, 0, py + 24, 0, py + 58);
-  skriv(ctx, 'Samlingen', W / 2, py + 44, pw - 60, Math.min(34, W * 0.075));
-  // Rutene
-  const kol = pw > ph * 1.25 ? 5 : 3, rader = Math.ceil(SKATTER.length / kol);
-  const bw = (pw - 40) / kol, bh = (ph - topp - bunn - 16) / rader;
+  skriv(ctx, 'Samlingen', W / 2, py + 42, pw - 60, Math.min(32, W * 0.07));
+  // Rutenettet: så store ruter som mulig. Hver rute er litt høyere enn den er bred (tingen øverst, antallet under).
+  const n = SKATTER.length, gw = pw - 44, gh = ph - topp - bunn;
+  let kol = 4, rute = 0;
+  for (let k = 4; k <= 16; k++) {
+    const str = Math.min(gw / k, gh / Math.ceil(n / k) / 1.3);
+    if (str > rute) { rute = str; kol = k; }
+  }
+  const rader = Math.ceil(n / kol), bw = gw / kol, bh = gh / rader;
   const treff = [];
-  let sum = 0;
+  let sum = 0, slag = 0;
   SKATTER.forEach((vare, k) => {
-    const rad = Math.floor(k / kol), iRad = rad === rader - 1 ? SKATTER.length - rad * kol : kol;
-    const cx = W / 2 + ((k % kol) - (iRad - 1) / 2) * bw, y = py + topp + 8 + rad * bh;
+    const rad = Math.floor(k / kol), iRad = rad === rader - 1 ? n - rad * kol : kol;
+    const cx = W / 2 + ((k % kol) - (iRad - 1) / 2) * bw, y = py + topp + rad * bh;
     const antall = valg.samling[vare] ?? 0, vis = synlig(valg, vare);
     sum += antall;
-    const s = Math.min(bw * 0.27, bh * 0.25);
-    const ty = y + bh * 0.33;
-    // Lys bak tingen og en liten pute den hviler over
+    if (antall) slag++;
+    const s = rute * 0.3, ty = y + bh * 0.4;
     if (vis) {
-      g = ctx.createRadialGradient(cx, ty, 0, cx, ty, s * 2.1);
-      g.addColorStop(0, rgba(STOFF[vare].glod, 0.3)); g.addColorStop(1, rgba(STOFF[vare].glod, 0));
+      g = ctx.createRadialGradient(cx, ty, 0, cx, ty, s * 1.9);
+      g.addColorStop(0, rgba(STOFF[vare].glod, 0.28)); g.addColorStop(1, rgba(STOFF[vare].glod, 0));
       ctx.fillStyle = g;
-      ctx.fillRect(cx - s * 2.2, ty - s * 2.2, s * 4.4, s * 4.4);
+      ctx.fillRect(cx - s * 2, ty - s * 2, s * 4, s * 4);
+      tegnTing(ctx, vare, cx, ty, s, st.vinkel[vare], t, { antall, glimt: rute > 44 });
+      if (antall) {
+        const tallPx = Math.max(10, rute * 0.26);
+        ctx.fillStyle = gull(ctx, 0, y + bh * 0.86 - tallPx / 2, 0, y + bh * 0.86 + tallPx / 2);
+        skriv(ctx, String(antall), cx, y + bh * 0.86, bw - 4, tallPx, '800', SANS);
+      }
+    } else {
+      // Ikke funnet ennå: en tom plass med spørsmålstegn.
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+      ctx.beginPath(); ctx.arc(cx, ty, s * 0.95, 0, TAU); ctx.fill();
+      ctx.strokeStyle = 'rgba(233, 201, 110, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(233, 201, 110, 0.45)';
+      ctx.font = `700 ${Math.max(9, s * 1.05)}px ${SERIF}`;
+      ctx.fillText('?', cx, ty + s * 0.06);
     }
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-    ctx.beginPath(); ctx.ellipse(cx, ty + s * 1.25, s * 0.8, s * 0.16, 0, 0, TAU); ctx.fill();
-    tegnTing(ctx, vare, cx, ty + Math.sin(t * 1.3 + k) * s * 0.05, s, st.vinkel[vare], t, { skygget: !vis, antall });
-    ctx.fillStyle = vis ? '#f1e6d0' : '#8f7f8a';
-    skriv(ctx, navnPaa(valg, vare), cx, y + bh * 0.73, bw - 10, Math.min(19, bh * 0.1), '600', SANS);
-    const tallPx = Math.min(44, bh * 0.2);
-    const tallY = y + bh * 0.89;
-    ctx.fillStyle = antall ? gull(ctx, 0, tallY - tallPx / 2, 0, tallY + tallPx / 2) : 'rgba(233, 201, 110, 0.3)';
-    skriv(ctx, String(antall), cx, tallY, bw - 10, tallPx, '800', SANS);
     treff.push({ vare, x: cx - bw / 2, y, w: bw, h: bh });
   });
   // I alt
-  const by = py + ph - bunn / 2 - 8;
   ctx.fillStyle = '#f1e6d0';
-  const tekst = sum ? `I alt ${sum} ${sum === 1 ? 'skatt' : 'skatter'} i museet`
+  const tekst = sum ? `${slag} av ${n} slag funnet · ${sum} ${sum === 1 ? 'skatt' : 'skatter'} i alt`
     : 'Museet er tomt ennå. Skattene du selger i butikken, havner her.';
-  skriv(ctx, tekst, W / 2, by, pw - 50, Math.min(24, W * 0.05), '700', SANS);
+  skriv(ctx, tekst, W / 2, py + ph - bunn / 2 - 6, pw - 50, Math.min(22, W * 0.046), '700', SANS);
   return treff;
 }
 
@@ -894,7 +1046,7 @@ export function nyTilstand() {
 /** Et trykk på en ting: den snurrer fort en stund, og det spruter gnister fra (x, y). */
 export function dytt(st, vare, x, y) {
   st.fart[vare] = Math.min(14, (st.fart[vare] ?? 0) + 7);
-  const farge = STOFF[vare].glod;
+  const farge = rgba(STOFF[vare].glod, 1);
   for (let k = 0; k < 18; k++) {
     const v = Math.random() * TAU, fart = 60 + Math.random() * 190;
     st.gnister.push({ x, y, vx: Math.cos(v) * fart, vy: Math.sin(v) * fart - 60, t0: st.sist ?? 0, liv: 0.6 + Math.random() * 0.6,
@@ -903,7 +1055,7 @@ export function dytt(st, vare, x, y) {
 }
 
 /**
- * Tegner museet. valg = { modus: 'rom' | 'naer' | 'samling', vare, samling: { vare: antall },
+ * Tegner museet. valg = { modus: 'rom' | 'naer' | 'samling', sal (nummer i SALER), vare, samling: { vare: antall },
  * tittel, versaler (navnene med store bokstaver), alt (vis alle tingene, også de man ikke har), dpr }.
  * Gir tilbake det man kan trykke på: [{ vare, x, y, w, h }].
  */

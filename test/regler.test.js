@@ -1,7 +1,8 @@
 // Tester for reglene og mattegeneratoren. Kjør: node test/regler.test.js
 import * as R from '../js/regler.js';
 import * as M from '../js/matte.js';
-import { SOL, TAKE_TRYKK, UTBYTTE, GJENVEKST, STYKKER, BYGG, VARER } from '../js/data/ting.js';
+import { SOL, TAKE_TRYKK, UTBYTTE, GJENVEKST, STYKKER, BYGG, VARER, SKATTER, METALLER, EDELSTEINER, SJELDENHET, KISTEGAVE, trekkSkatt } from '../js/data/ting.js';
+import { lagTilfeldig } from '../js/rng.js';
 
 let feil = 0;
 const sjekk = (ok, tekst) => { if (!ok) { feil++; console.log('FEIL:', tekst); } };
@@ -520,6 +521,54 @@ for (const tak of [2, 3, 4, 5, 10]) {
   ve = R.lagVerden(sp);
   sp.avdekket.fill(1);
   sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'museum')[0].type === 'bygget', 'den nye øya kan få sitt eget museum');
+}
+
+// --- 22 metaller og 36 edelsteiner med sjeldenhetsgrad -------------------------
+{
+  sjekk(METALLER.length === 22 && EDELSTEINER.length === 36 && SKATTER.length === 59, `22 metaller og 36 edelsteiner (${METALLER.length} og ${EDELSTEINER.length})`);
+  const alle = [...METALLER, ...EDELSTEINER];
+  sjekk(alle.every((v) => VARER[v].grad >= 1 && VARER[v].grad <= 5 && VARER[v].pris > 0 && /^#[0-9a-f]{6}$/.test(VARER[v].farge)), 'alle har grad 1–5, pris og farge');
+  sjekk(new Set(alle.map((v) => VARER[v].navn)).size === alle.length, 'ingen navn går igjen');
+  for (const liste of [METALLER, EDELSTEINER]) {
+    for (let g = 1; g <= 5; g++) sjekk(liste.some((v) => VARER[v].grad === g), `alle fem grader er med (grad ${g})`);
+    for (let k = 1; k < liste.length; k++) {
+      const a = VARER[liste[k - 1]], b = VARER[liste[k]];
+      sjekk(a.grad < b.grad || (a.grad === b.grad && a.pris <= b.pris), `sortert fra vanlig til sjelden, og dyrere jo sjeldnere (${a.navn} → ${b.navn})`);
+    }
+  }
+  // Trekningen: jo sjeldnere, jo sjeldnere dukker tingen opp
+  const r = lagTilfeldig(4242);
+  for (const liste of [METALLER, EDELSTEINER]) {
+    const antall = {}, N = 200000;
+    for (let n = 0; n < N; n++) { const v = trekkSkatt(r, liste); antall[v] = (antall[v] ?? 0) + 1; }
+    const perGrad = [0, 0, 0, 0, 0, 0], iGrad = [0, 0, 0, 0, 0, 0];
+    for (const v of liste) { perGrad[VARER[v].grad] += antall[v] ?? 0; iGrad[VARER[v].grad]++; }
+    const snitt = perGrad.map((n, g) => (iGrad[g] ? n / iGrad[g] / N : 0));
+    sjekk(liste.every((v) => antall[v] > 0), 'alle kan dukke opp');
+    for (let g = 2; g <= 5; g++) {
+      sjekk(Math.abs(snitt[g] / snitt[g - 1] - 0.5) < 0.08, `en ting av grad ${g} dukker opp halvparten så ofte som en av grad ${g - 1} (${(snitt[g] / snitt[g - 1]).toFixed(2)})`);
+      const minForrige = Math.min(...liste.filter((v) => VARER[v].grad === g - 1).map((v) => antall[v]));
+      const maksDenne = Math.max(...liste.filter((v) => VARER[v].grad === g).map((v) => antall[v]));
+      sjekk(maksDenne < minForrige, `hver ting av grad ${g} er sjeldnere enn alle av grad ${g - 1}`);
+    }
+    console.log(liste === METALLER ? 'Metaller' : 'Edelsteiner', 'sjanse per trekk, per ting:', snitt.slice(1).map((x, g) => `${SJELDENHET[g + 1].navn} ${(x * 100).toFixed(2)} %`).join(', '));
+  }
+  // Kistene: større kiste gir mer, og oftere sjeldne ting
+  const verdi = [0, 0, 0], sjeldne = [0, 0, 0], ting = [0, 0, 0], N = 20000;
+  for (let str = 0; str < 3; str++) {
+    for (let n = 0; n < N; n++) {
+      for (const [v, k] of Object.entries(KISTEGAVE[str](r))) {
+        verdi[str] += VARER[v].pris * k;
+        ting[str] += k;
+        if (VARER[v].grad >= 4) sjeldne[str] += k;
+      }
+    }
+  }
+  console.log('Kister (liten, stor, kjempe): verdi i snitt', verdi.map((x) => (x / N).toFixed(1)).join(', '),
+    '· ting', ting.map((x) => x / N).join(', '), '· andel svært sjeldne eller legendariske', sjeldne.map((x, k) => `${((x / ting[k]) * 100).toFixed(1)} %`).join(', '));
+  sjekk(verdi[0] < verdi[1] && verdi[1] < verdi[2], 'større kister er verdt mer');
+  sjekk(sjeldne[0] / ting[0] < sjeldne[1] / ting[1] && sjeldne[1] / ting[1] < sjeldne[2] / ting[2], 'større kister har oftere sjeldne ting');
+  sjekk(ting[0] / N === 2 && ting[1] / N === 5 && ting[2] / N === 9, 'antall ting i kistene');
 }
 
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));

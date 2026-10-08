@@ -14,7 +14,7 @@ import { tegnMenneske, tegnFigur } from './figurer.js';
 import { tegnTomtKort } from './stil/ruter.js';
 import { PYNT, LIV, tegnBygg, ivrig } from './stil/pynt.js';
 import { poly, fasett } from './stil/lavpoly.js';
-import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER, LAERER, HJELPER, KISTETAK, MUSEUM } from './data/ting.js';
+import { TING, VARER, SKATTER, METALLER, EDELSTEINER, SJELDENHET, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER, LAERER, HJELPER, KISTETAK, MUSEUM } from './data/ting.js';
 import { EMNER } from './data/kunnskap.js';
 import * as Stemme from './stemme.js';
 import { spillSeiltur } from './seiltur.js';
@@ -88,6 +88,7 @@ function visVelg() {
   t.rydd = null;
   $('rydd').hidden = true;
   lukkMuseum();
+  sisteSal = 0;
   settNeon(false);
   document.body.classList.remove('neon');
   $('spill').hidden = true;
@@ -362,9 +363,16 @@ function ferdigNaer(n, h, r) {
   sprutNaer(n, n.S / 2, n.S * 0.55, 12 + n.ting.str * 8, 1.4);
   setTimeout(() => flyTil(h.gave, { x: r.left + r.width / 2, y: r.top + n.S / 2 }), 550);
   if (h.nySang) setTimeout(() => melding(`Ny sang i sangboka: ${L.SANG[h.sang].navn}!`, { ikon: '🎵✨' }), 1300);
-  if (n.ting.type === 'kiste' && !liten()) {
+  if (n.ting.type === 'kiste') {
     const verdi = Object.entries(h.gave).reduce((a, [v, k]) => a + VARER[v].pris * k, 0);
-    setTimeout(() => melding(`Skatten er verdt ${verdi} mynter i butikken!`, { ikon: '💰' }), 1500);
+    // Det sjeldneste i kista ropes opp hvis det er minst «sjelden».
+    const best = Object.keys(h.gave).sort((a, b) => VARER[b].grad - VARER[a].grad || VARER[b].pris - VARER[a].pris)[0];
+    const grad = VARER[best]?.grad ?? 0;
+    if (grad >= 3) {
+      if (grad >= 4) setTimeout(() => L.fanfare(3), 1300);
+      setTimeout(() => melding(`${'★'.repeat(grad)} Du fant ${VARER[best].navn} – ${SJELDENHET[grad].navn}! Skatten er verdt ${verdi} mynter.`,
+        { ikon: liten() ? '★'.repeat(grad) : '' }), 1500);
+    } else if (!liten()) setTimeout(() => melding(`Skatten er verdt ${verdi} mynter i butikken!`, { ikon: '💰' }), 1500);
   }
   setTimeout(lukkNaer, 2400);
 }
@@ -773,23 +781,30 @@ function svar(verdi, knapp = null) {
 // ---------------------------------------------------------------------------
 // Forrådet: tingene flyr ned og teller først når de lander
 // ---------------------------------------------------------------------------
-const FORRAD_REKKE = ['mynter', ...RAVARER, ...SKATTER];
+// Det er for mange slag metaller og edelsteiner til at hvert kan ha sin egen rute nederst:
+// de samles i to ruter (alle metallene, alle edelsteinene). I butikken og museet står de hver for seg.
+const FORRAD_REKKE = ['mynter', ...RAVARER, 'stov', 'metaller', 'steiner'];
+const GRUPPE = { metaller: METALLER, steiner: EDELSTEINER };
+const GRUPPE_NAVN = { mynter: 'mynter', metaller: 'metaller', steiner: 'edelsteiner' };
+const GRUPPE_IKON = { metaller: 'gull', steiner: 'diamant' };
+const plassFor = (vare) => (METALLER.includes(vare) ? 'metaller' : EDELSTEINER.includes(vare) ? 'steiner' : vare);
+const vistI = (v) => (GRUPPE[v] ? GRUPPE[v].reduce((a, x) => a + (t.vist[x] ?? 0), 0) : t.vist[v] ?? 0);
 
 function byggForrad() {
   $('forrad').innerHTML = FORRAD_REKKE.map((v) =>
-    `<span class="vare${v === 'mynter' ? ' mynter' : ''}" id="f-${v}" title="${v === 'mynter' ? 'mynter' : VARER[v].navn}"></span>`).join('');
+    `<span class="vare${v === 'mynter' ? ' mynter' : ''}" id="f-${v}" title="${GRUPPE_NAVN[v] ?? VARER[v].navn}"></span>`).join('');
   tegnForrad();
 }
 
 function tegnForrad(dunk) {
   for (const v of FORRAD_REKKE) {
-    const el = $(`f-${v}`), n = t.vist[v] ?? 0;
+    const el = $(`f-${v}`), n = vistI(v), bilde = ikon(GRUPPE_IKON[v] ?? v);
     // Skatter vises først når man har funnet noen (bortsett fra mynter).
-    el.hidden = SKATTER.includes(v) && !n;
+    el.hidden = (v === 'stov' || !!GRUPPE[v]) && !n;
     el.classList.toggle('null', !n);
     el.innerHTML = liten() && v !== 'mynter'
-      ? (n ? `${ikon(v).repeat(Math.min(n, 5))}${n > 5 ? '<small>+</small>' : ''}` : ikon(v))
-      : `${ikon(v)} <b>${n}</b>`;
+      ? (n ? `${bilde.repeat(Math.min(n, 5))}${n > 5 ? '<small>+</small>' : ''}` : bilde)
+      : `${bilde} <b>${n}</b>`;
   }
   if (dunk) {
     const el = $(`f-${dunk}`);
@@ -807,20 +822,21 @@ function flyTil(gave, fra) {
     const flygere = Math.min(n, 10);
     for (let k = 0; k < flygere; k++) {
       const andel = Math.floor(n / flygere) + (k < n % flygere ? 1 : 0);
-      if (SKATTER.includes(vare)) $(`f-${vare}`).hidden = false;
+      const plass = plassFor(vare);
+      $(`f-${plass}`).hidden = false;
       const s = document.createElement('span');
       s.className = 'flyr';
       s.innerHTML = ikon(vare);
       s.style.left = `${fra.x}px`;
       s.style.top = `${fra.y}px`;
       document.body.append(s);
-      const m = $(`f-${vare}`).getBoundingClientRect();
+      const m = $(`f-${plass}`).getBoundingClientRect();
       const dx = m.left + m.width / 2 - fra.x, dy = m.top + m.height / 2 - fra.y;
       setTimeout(() => { s.style.transform = `translate(${dx}px, ${dy}px) scale(0.6)`; }, 40 + forsink);
       setTimeout(() => {
         s.remove();
         t.vist[vare] = (t.vist[vare] ?? 0) + andel;
-        tegnForrad(vare);
+        tegnForrad(plass);
         if (vare === 'mynter') oppdaterButikkMynter();
       }, 900 + forsink);
       forsink += flygere > 6 ? 70 : 110;
@@ -884,7 +900,7 @@ function tegnButikk() {
         <div class="selgliste">${varer.map((v) => {
           const n = s.forrad[v], p = VARER[v].pris;
           return `<div class="selgrad"><span class="vi">${ikon(v)}</span>
-            <span class="vn">${liten() ? '' : `<b>${VARER[v].navn}</b><small>${n} × ${p} = ${n * p} 🪙</small>`}</span>
+            <span class="vn">${liten() ? '' : `<b>${VARER[v].navn}</b><small>${n} × ${p} = ${n * p} 🪙${VARER[v].grad ? ` · <span class="grad">${'★'.repeat(VARER[v].grad)} ${SJELDENHET[VARER[v].grad].navn}</span>` : ''}</small>`}</span>
             <button data-selg="${v}">${liten() ? `${'🪙'.repeat(Math.min(3, Math.ceil(n * p / 20)))}` : `Selg for ${n * p} 🪙`}</button></div>`;
         }).join('')}</div>${museumHint()}`
       : `<p class="tom-tekst">${liten() ? '🌳 🪨 🎁' : 'Du har ingenting å selge ennå. Trykk på ting på øya og åpne kister!'}</p>`;
@@ -1234,7 +1250,7 @@ function statistikkHtml(s) {
       ${rute(`${sanger} / ${Object.keys(TING).length}`, 'sanger lært helt')}
       ${rute(`${s.oppfinnelser.length} / ${OPPFINNELSER.length}`, 'oppfinnelser fra skolen')}
       ${rute(tall(st.lyttet), 'tekster læreren har lest')}
-      ${rute(tall(R.iMuseet(s)), 'skatter i museet')}
+      ${rute(tall(R.iMuseet(s)), `skatter i museet (${R.slagIMuseet(s)} av ${SKATTER.length} slag)`)}
       ${rute(tall(alleOyer), alleOyer === 1 ? 'øy' : 'øyer funnet')}
     </div></div>`;
 }
@@ -1966,10 +1982,12 @@ function lukkLaerer() {
 // Museet: skattene man har solgt, står utstilt i glassmontre (tegnes i museum.js)
 // ---------------------------------------------------------------------------
 const MUSEUMSTONER = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25, 783.99];
+const museumstone = (vare) => MUSEUMSTONER[SKATTER.indexOf(vare) % MUSEUMSTONER.length];
+let sisteSal = 0;   // salen man sist var i (huskes til man bytter spiller)
 
 function aapneMuseum() {
   L.vekk();
-  t.museum = { modus: 'rom', fra: 'rom', vare: null, tilstand: Museum.nyTilstand(), treff: [], W: 0, H: 0, dpr: 1 };
+  t.museum = { modus: 'rom', fra: 'rom', vare: null, sal: sisteSal, tilstand: Museum.nyTilstand(), treff: [], W: 0, H: 0, dpr: 1 };
   $('museum').hidden = false;
   tilpassMuseum();
   oppdaterMuseumKnapper();
@@ -1993,13 +2011,15 @@ function oppdaterMuseumKnapper() {
   $('museum-tilbake').textContent = m.modus === 'rom' ? '← Tilbake til øya' : '← Tilbake';
   $('museum-samling').textContent = '📖 Samlingen';
   $('museum-samling').hidden = m.modus !== 'rom';
+  $('museum-nav').hidden = m.modus !== 'rom';
+  $('museum-sal').textContent = Museum.SALER[m.sal].navn;
 }
 
 function tegnMuseet(tsek) {
   const m = t.museum, ctx = $('museum-lerret').getContext('2d');
   ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
   m.treff = Museum.tegn(ctx, m.W, m.H, tsek, m.tilstand, {
-    modus: m.modus, vare: m.vare, samling: t.spill.museum, dpr: m.dpr,
+    modus: m.modus, sal: m.sal, vare: m.vare, samling: t.spill.museum, dpr: m.dpr,
     versaler: liten(),      // 🐣 Liten: navnene på steinene og metallene med store bokstaver
     alt: t.spill.kreativ,   // i kreativmodus vises alle tingene, også dem man ikke har solgt
     tittel: t.spill.navn ? `${eierform(t.spill.navn)} museum` : 'Museum',
@@ -2017,15 +2037,27 @@ function trykkMuseum(e) {
   if (m.modus === 'naer') {
     if (!hit) { museumTilbake(); return; }
     Museum.dytt(m.tilstand, hit.vare, x, y);
-    L.INSTRUMENT.spilledaase(MUSEUMSTONER[SKATTER.indexOf(hit.vare)] * 2);
-    setTimeout(() => L.INSTRUMENT.spilledaase(MUSEUMSTONER[SKATTER.indexOf(hit.vare)] * 3), 110);
+    L.INSTRUMENT.spilledaase(museumstone(hit.vare) * 2);
+    setTimeout(() => L.INSTRUMENT.spilledaase(museumstone(hit.vare) * 3), 110);
     return;
   }
   if (!hit) { if (m.modus === 'samling') museumTilbake(); return; }
   m.fra = m.modus;
   m.modus = 'naer';
   m.vare = hit.vare;
-  L.INSTRUMENT.spilledaase(MUSEUMSTONER[SKATTER.indexOf(hit.vare)] * 2);
+  // Fra samlingen: gå til salen der tingen står, så man kommer dit når man går tilbake til rommet.
+  if (m.fra === 'samling') m.sal = sisteSal = Museum.salFor(hit.vare);
+  L.INSTRUMENT.spilledaase(museumstone(hit.vare) * 2);
+  oppdaterMuseumKnapper();
+}
+
+/** Neste eller forrige sal (rundt og rundt). */
+function byttSal(steg) {
+  const m = t.museum;
+  if (!m || m.modus !== 'rom') return;
+  L.vekk();
+  m.sal = sisteSal = (m.sal + steg + Museum.SALER.length) % Museum.SALER.length;
+  L.INSTRUMENT.xylofon(steg > 0 ? 587.33 : 523.25);
   oppdaterMuseumKnapper();
 }
 
@@ -2127,6 +2159,8 @@ function start() {
   $('museum-lerret').addEventListener('pointerdown', (e) => { e.preventDefault(); trykkMuseum(e); });
   $('museum-tilbake').onclick = museumTilbake;
   $('museum-samling').onclick = visSamling;
+  $('museum-forrige').onclick = () => byttSal(-1);
+  $('museum-neste').onclick = () => byttSal(1);
 
   $('meny-knapp').onclick = aapneMeny;
   $('natt-knapp').onclick = byttNatt;

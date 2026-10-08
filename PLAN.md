@@ -144,6 +144,25 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
   Derfra kan man seile tilbake når som helst, og alt er som man forlot det. Ting har vokst fram igjen mens man var borte, og man tar med seg forrådet og myntene.
   Hver havn kan finne **én** ny øy, så for å finne øy 3 må man sette opp alle 20 byggene og en havn på øy 2. Seiling til en kjent øy fyller ikke opp sola.
 
+## 22 metaller og 36 edelsteiner med sjeldenhet (2026-10-08)
+- **20 nye metaller** og **30 nye edelsteiner/smykkesteiner** (`VARER` i `ting.js`), i tillegg til sølv, gull og de seks steinene fra før.
+  Alle finnes på ordentlig, med fargen de har i naturen. Det finnes bare åtte egentlige edelmetaller (gull, sølv og de seks i platinagruppen),
+  så lista er fylt opp med andre ekte metaller (kobber, tinn, sink, nikkel, titan, krom, kobolt, wolfram, vismut, niob, tantal, indium, rhenium)
+  og elektrum, som er en naturlig blanding av gull og sølv.
+- **Sjeldenhet** (`SJELDENHET`): grad 1–5 = vanlig, uvanlig, sjelden, svært sjelden, legendarisk. Hver grad trekkes halvparten så ofte
+  som den forrige (vekt 16, 8, 4, 2, 1 per ting), og prisen følger graden (2–75 mynter).
+- **Kistene** (`KISTE`, `trekkSkatt`): liten = 1 metall + 1 edelstein, stor = 2 + 3, kjempe = 3 + 5 og én edelstein som er minst «sjelden».
+  Større kister har mer «lykke», som løfter sjansen for de sjeldne. Verdien i snitt er omtrent som før (ca. 14, 45 og 105 mynter).
+  Finner man noe som er minst «sjelden», står det i meldingen («★★★★ Du fant aleksandritt – svært sjelden!»).
+- **Forrådet** nederst har én rute for alle metallene og én for alle edelsteinene (det er for mange slag til en rute hver).
+  I butikken står de hver for seg, med stjerner og sjeldenhet.
+- **Museet** har sju **saler** med høyst ni montre: Metaller 1–3 (stjernestøvet står i den første) og Edelsteiner 1–4, fra de vanligste
+  til de sjeldneste. Knappene ◀ ▶ nederst bytter sal. Stjernene på sokkelen viser sjeldenheten, og nærbildet skriver den med ord.
+  **Samlingen** viser alle 59 på én tavle (spørsmålstegn for dem man ikke har), med «18 av 59 slag funnet».
+- Nye fasonger og stoffer i `museum.js`: markise, prinsesse, trillion, oktaeder, kuppel og cabochon, krystallstav, terning, barre og
+  trommelpolert stein; steiner man ikke ser gjennom (med bånd for agat, malakitt og tigerøye), perle, opal med fargespill,
+  og aleksandritt som skifter mellom grønn og rød mens den snurrer.
+
 ## Museet (2026-10-08)
 - **Museum** er et nytt bygg som er **gratis** (`MUSEUM` i `ting.js`), ett per øy. Det står først i butikken.
 - **Skattene man selger** (stjernestøv, sølv, gull og edelsteinene) blir ikke borte: de telles i `spill.museum` (vare → antall).

@@ -491,6 +491,9 @@ export function museumVed(spill) {
   return -1;
 }
 
+/** Hvor mange ulike slag skatter man har i museet. */
+export const slagIMuseet = (spill) => Object.values(spill.museum ?? {}).filter((n) => n > 0).length;
+
 /** Hvor mange skatter som står i museet i alt. */
 export const iMuseet = (spill) => Object.values(spill.museum ?? {}).reduce((a, b) => a + b, 0);
 

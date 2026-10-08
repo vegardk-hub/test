@@ -387,3 +387,14 @@ body.neon .rydd-teller .prikk.full { background: #ff2bd6; }
 .museum-knapp:active { transform: scale(0.96); }
 .museum-hint { text-align: center; color: #6d6656; font-size: 15px; margin: 10px 0 0; }
 body.neon .museum-hint { color: #b9a6d6; }
+.museum-nav {
+  position: absolute; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 2;
+  display: flex; align-items: center; gap: 10px;
+}
+.museum-nav .museum-knapp { position: static; min-width: 60px; font-size: 22px; }
+#museum-sal {
+  min-width: 190px; text-align: center; font-weight: 700; font-size: 18px; color: #fff1b8; white-space: nowrap;
+  background: rgba(20, 24, 46, 0.88); border: 2px solid #c9a24a; border-radius: 14px; padding: 10px 14px;
+}
+@media (max-width: 480px) { #museum-sal { min-width: 150px; font-size: 16px; padding: 10px 8px; } }
+.selgrad .grad { color: #b8860b; white-space: nowrap; }

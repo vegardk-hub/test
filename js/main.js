@@ -908,12 +908,12 @@ function kortFor(b) {
     <span class="bp">${prisTekst(pris)}</span>${!kan && !liten() ? `<span class="bm">mangler ${pris - s.mynter}</span>` : ''}</button>`;
 }
 
-/** Museet: gratis, ett per øy. Det står først i butikken. */
+/** Museet: gratis, ett per øy. Det står først i butikken og ser ut som de andre byggene. */
 function museumKort() {
   const s = t.spill, staar = R.museumVed(s) >= 0;
-  return `<button class="byggkort museum${staar ? ' laast' : ''}" data-bygg="${MUSEUM.id}">
-    <img src="${byggBilde(MUSEUM.id)}" alt=""><span class="bn">🏛️ ${esc(MUSEUM.navn)}</span>
-    <span class="bp">${prisTekst(R.prisFor(s, MUSEUM.id))}</span><span class="bl">${staar ? (liten() ? '✔️' : '✔️ Står på øya') : (liten() ? '💎' : 'Her stilles skattene dine ut')}</span></button>`;
+  return `<button class="byggkort${staar ? ' laast' : ''}" data-bygg="${MUSEUM.id}">
+    <img src="${byggBilde(MUSEUM.id)}" alt=""><span class="bn">${esc(MUSEUM.navn)}</span>
+    <span class="bp">${prisTekst(R.prisFor(s, MUSEUM.id))}</span>${staar ? `<span class="bl">${liten() ? '✔️' : '✔️ Står på øya'}</span>` : ''}</button>`;
 }
 
 /** Under salgslista: skattene man selger, havner i museet. */

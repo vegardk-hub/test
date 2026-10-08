@@ -173,7 +173,8 @@ dialog.kort.bred { width: min(94vw, 720px); max-height: 90vh; }
 .faner button { flex: 1; font-size: 19px; font-weight: 700; }
 .faner button.valgt { background: #ffe58a; border-color: var(--gullkant); }
 .mynter-linje { text-align: center; font-size: 22px; margin: 4px 0 10px; }
-.butikk-innhold { max-height: 56vh; overflow-y: auto; }
+/* Lista krymper på lave skjermer, så «Tilbake til øya» alltid er synlig uten å rulle. */
+.butikk-innhold { max-height: min(56vh, calc(90vh - 345px)); overflow-y: auto; }
 .selg-alle { width: 100%; margin-bottom: 10px; font-size: 19px; }
 .selgliste { display: grid; gap: 8px; }
 .selgrad { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 6px 10px; }
@@ -375,8 +376,8 @@ body.liten .rydd-boks h2 { font-size: 40px; }
 body.neon .rydd-teller .prikk.full { background: #ff2bd6; }
 
 /* ---------- Museet ---------- */
-.museum { position: fixed; inset: 0; z-index: 22; background: #0b0f14; animation: inn 0.35s ease-out; }
-.museum canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+#museum { position: fixed; inset: 0; z-index: 22; background: #0b0f14; animation: inn 0.35s ease-out; }
+#museum canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .museum-knapp {
   position: absolute; top: max(12px, env(safe-area-inset-top)); z-index: 2; background: rgba(20, 24, 46, 0.88); color: #fff1b8;
   border-color: #c9a24a; font-weight: 700; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
@@ -384,7 +385,5 @@ body.neon .rydd-teller .prikk.full { background: #ff2bd6; }
 .museum-knapp.venstre { left: max(12px, env(safe-area-inset-left)); }
 .museum-knapp.hoyre { right: max(12px, env(safe-area-inset-right)); }
 .museum-knapp:active { transform: scale(0.96); }
-.byggkort.museum { border-color: #c9a24a; background: #fff8e1; }
-body.neon .byggkort.museum { background: #2a2208; border-color: #ffd23f; }
 .museum-hint { text-align: center; color: #6d6656; font-size: 15px; margin: 10px 0 0; }
 body.neon .museum-hint { color: #b9a6d6; }

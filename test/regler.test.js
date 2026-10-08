@@ -218,6 +218,7 @@ sjekk(R.fraData({ ...R.tilData(R.nyttSpill({ navn: 'Uten' }, 4)), kister: undefi
   const sp = R.nyttSpill({ navn: 'Graver' }, 21);
   const ve = R.lagVerden(sp);
   sp.avdekket.fill(1);
+  for (const i of R.kisterPaaOya(sp, ve)) sp.ting.set(i, { borteTil: -1 });   // kistene er åpnet, så det er plass til kryss
   const d2 = R.nyDag(sp, ve)[0];
   sjekk(d2.dag === 2 && d2.kryss.length === 0, 'ingen kryss etter første natt');
   const d3 = R.nyDag(sp, ve)[0];
@@ -415,7 +416,8 @@ for (const tak of [2, 3, 4, 5, 10]) {
   sjekk(etter.length === 3 && !etter.includes(tre[0]) && etter.includes(tre[1]) && etter.includes(tre[2]), 'et høstet tre erstattes av et nytt, de andre blir stående');
   // Kryss: aldri mer enn 10 ute samtidig
   for (let d = 0; d < 20; d++) R.nyDag(sp, ve);
-  sjekk(sp.kryss.size === 10, `høyst 10 kryss samtidig (${sp.kryss.size})`);
+  const kisterNaa = R.kisterPaaOya(sp, ve).length;
+  sjekk(sp.kryss.size <= 10 && kisterNaa + sp.kryss.size === 10, `kister og kryss blir til sammen 10, ikke mer (${kisterNaa} kister, ${sp.kryss.size} kryss)`);
   sjekk(Object.values(perType()).every((n) => n <= 3), 'fortsatt høyst 3 av hver type etter mange dager');
   // Gamle lagringer uten «aktiv»: fyllOpp slipper fram tre av hver type
   const gml = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
@@ -621,6 +623,60 @@ for (const tak of [2, 3, 4, 5, 10]) {
   const fra = R.fraData(gammel);
   sjekk(fra.kjent.includes('gull') && fra.kjent.includes('safir') && !fra.kjent.includes('rubin') && !fra.kjent.includes('stov'), `gamle lagringer kjenner det de har i forrådet og museet (${fra.kjent})`);
   sjekk(NYFUNN.etter.slice(1).every((x, k, a) => k === 0 || x > a[k - 1]), 'jo sjeldnere, jo flere regnestykker til et nytt slag');
+}
+
+// --- Aldri mer enn 10 kister på øya ------------------------------------------
+{
+  for (const seed of [3, 21, 58]) {
+    const sp = R.nyttSpill({ navn: 'Tak' }, seed);
+    const ve = R.lagVerden(sp);
+    sp.evigDag = true;
+    let maks = 0, dager = 0;
+    const tell = () => R.kisterPaaOya(sp, ve).length + sp.kryss.size;
+    // Børst bort all tåka, rute for rute, med netter innimellom (så det kommer kryss)
+    for (let runde = 0; runde < 60; runde++) {
+      const kan = [...sp.avdekket.keys()].filter((i) => R.kanBorstes(sp, ve, i));
+      if (!kan.length) break;
+      for (const i of kan) {
+        while (!sp.avdekket[i]) R.borst(sp, ve, i);
+        maks = Math.max(maks, tell());
+      }
+      R.nyDag(sp, ve); R.nyDag(sp, ve); dager += 2;
+      maks = Math.max(maks, tell());
+    }
+    const skjulte = () => [...sp.ting.values()].filter((s) => s.skjult).length;
+    sjekk(sp.stat.avdekket > 500, `hele øya er avdekket (seed ${seed}: ${sp.stat.avdekket} ruter, ${dager} dager)`);
+    sjekk(maks === 10, `aldri mer enn 10 kister og kryss til sammen (seed ${seed}: høyst ${maks})`);
+    const skjultFor = skjulte();
+    sjekk(skjultFor > 0, `kister det ikke var plass til, venter (seed ${seed}: ${skjultFor})`);
+    // Grav fram alle kryssene: de blir til kister, og det er fortsatt høyst 10
+    for (const i of [...sp.kryss.keys()]) while (sp.kryss.has(i)) R.grav(sp, ve, i);
+    sjekk(R.kisterPaaOya(sp, ve).length === 10 && sp.kryss.size === 0, `kryssene blir til kister, fortsatt 10 (seed ${seed}: ${R.kisterPaaOya(sp, ve).length})`);
+    // Åpne én kiste: en av dem som ventet, kommer fram
+    const k = R.kisterPaaOya(sp, ve)[0], ting = R.tingVed(sp, ve, k);
+    for (let n = 0; n < ting.antall; n++) R.svarKiste(sp, ve, k, { riktig: true, forsteForsok: true, art: 'gange' });
+    sjekk(R.tingVed(sp, ve, k) === null && R.kisterPaaOya(sp, ve).length === 10 && skjulte() === skjultFor - 1, `når en kiste er åpnet, kommer en ny fram (seed ${seed})`);
+    // Åpne alle: til slutt er det tomt for skjulte, og det kommer kryss igjen
+    for (let n = 0; n < 400 && R.kisterPaaOya(sp, ve).length; n++) {
+      const x = R.kisterPaaOya(sp, ve)[0], tx = R.tingVed(sp, ve, x);
+      for (let m = 0; m < tx.antall; m++) R.svarKiste(sp, ve, x, { riktig: true, forsteForsok: true, art: 'gange' });
+      maks = Math.max(maks, tell());
+    }
+    sjekk(skjulte() === 0 && maks === 10, `alle kistene kan åpnes til slutt (seed ${seed})`);
+    R.nyDag(sp, ve); R.nyDag(sp, ve);
+    sjekk(sp.kryss.size > 0 && tell() <= 10, `når det er plass, kommer det kryss igjen (seed ${seed}: ${sp.kryss.size})`);
+  }
+  // Gamle lagringer med flere enn 10 kister: bare de 10 nærmeste vises, resten venter
+  const sp = R.nyttSpill({ navn: 'Gammel' }, 33);
+  const ve = R.lagVerden(sp);
+  sp.avdekket.fill(1);
+  for (const i of [...sp.avdekket.keys()].filter((x) => R.kanPlassere(sp, ve, x)).slice(0, 9)) sp.kister.add(i);
+  const for_ = R.kisterPaaOya(sp, ve);
+  R.fyllOpp(sp, ve);
+  const etter = R.kisterPaaOya(sp, ve);
+  sjekk(for_.length > 10 && etter.length === 10 && etter.every((i, n) => i === for_[n]), `gamle lagringer: ${for_.length} kister blir til de 10 nærmeste`);
+  const lagret = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
+  sjekk(R.kisterPaaOya(lagret, ve).length === 10, 'hvilke som venter, huskes ved lagring');
 }
 
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));

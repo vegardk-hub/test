@@ -239,6 +239,12 @@ export const KRYSS = { perGang: 3, hverNatt: 2, maks: 10 };   // høyst 10 kryss
 
 /** Høyst så mange klikkbare ting av hver type (tre, stein, jern, korn, sau, fisk) samtidig. */
 export const MAKS_PER_TYPE = 3;
+
+/**
+ * Høyst så mange uåpnede kister på øya samtidig (skattekryssene regnes med, siden de blir til kister).
+ * Når det er fullt, kommer det ingen nye kister eller kryss før man har åpnet en.
+ */
+export const MAKS_KISTER = 10;
 export const GRAV_TRYKK = 4;
 
 /**

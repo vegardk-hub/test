@@ -96,6 +96,12 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Dyrene lever**: sauene beiter, puster, logrer og blunker. Hjorten løfter hodet og vipper med halen, og fiskene spreller.
 - Teknikk: kortet med det som står stille lagres som før, og bare det som beveger seg tegnes på nytt hver gang skjermen tegnes, og bare for ruter man ser.
 
+## Høyst ti kister på øya (2026-10-08, v1.43)
+- Det er aldri mer enn **10 uåpnede kister** på øya (`MAKS_KISTER`). Skattekryssene regnes med, siden de blir til kister når man graver.
+- Når det er fullt, kommer det ingen nye kister når man børster bort tåke, og ingen nye kryss om natta.
+  Kister som lå under tåka fra før, ligger skjult (`skjult` på ruta) og kommer fram én og én når en annen kiste er åpnet, nærmest leiren først.
+- Gamle lagringer med flere enn ti: de ti nærmeste vises (og dem man har begynt på), resten venter. Kryss det ikke er plass til, tas bort.
+
 ## Ryddeskjermen er fjernet (2026-10-08, v1.42)
 - Skjermen som kom når det lå ti uåpnede kister på øya (og krevde at fem ble åpnet), er tatt bort. Den trengs ikke nå som
   metallene og edelsteinene i museet gir barna lyst til å åpne kister. Uåpnede kister blir bare liggende.

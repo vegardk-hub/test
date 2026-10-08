@@ -8,7 +8,7 @@
 import { genererVerden } from './kartgen.js';
 import { T } from './data/terreng.js';
 import {
-  TING, VARER, UTBYTTE, KISTE, NYFUNN, trekkvekt, METALLER, EDELSTEINER, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, MAKS_PER_TYPE, SPAWN, HJELPER, HJELPERE, SKOLE, MUSEUM, SKATTER, OPPFINNELSER,
+  TING, VARER, UTBYTTE, KISTE, NYFUNN, trekkvekt, METALLER, EDELSTEINER, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, MAKS_PER_TYPE, MAKS_KISTER, SPAWN, HJELPER, HJELPERE, SKOLE, MUSEUM, SKATTER, OPPFINNELSER,
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
 import { medStandard, lagOppgave, alternativer, TEGN } from './matte.js';
@@ -187,6 +187,7 @@ export function tingVed(spill, verden, i) {
   const s = spill.ting.get(i) ?? {};
   if (s.borteTil === -1 || (s.borteTil && spill.dag < s.borteTil)) return null;
   if (type !== 'kiste' && !s.aktiv) return null;   // høyst MAKS_PER_TYPE av hver type er ute samtidig
+  if (type === 'kiste' && s.skjult) return null;   // det er fullt av kister: denne venter til det blir plass
   const gang = s.gang ?? 0;
   const u = lagTilfeldig(blandSeed(spill.seed, 'str', i, gang)).tall();
   const str = u < STR_SJANSE[0] ? 0 : u < STR_SJANSE[0] + STR_SJANSE[1] ? 1 : 2;
@@ -228,6 +229,49 @@ export function fyllOpp(spill, verden) {
       spill.spawn[type] = (spill.spawn[type] ?? 0) + 1;
       spill.ting.set(k.i, { ...(spill.ting.get(k.i) ?? {}), aktiv: true });
     }
+  }
+  kistetak(spill, verden);
+}
+
+/** Hvor mange uåpnede kister som ligger framme på øya. */
+function antallKister(spill, verden) {
+  let n = 0;
+  spill.avdekket.forEach((v, i) => { if (v && tingVed(spill, verden, i)?.type === 'kiste') n++; });
+  return n;
+}
+
+/** Hvor mange kister (eller kryss) det er plass til før øya er full. */
+const kisteplasser = (spill, verden) => MAKS_KISTER - antallKister(spill, verden) - spill.kryss.size;
+
+/**
+ * Aldri mer enn MAKS_KISTER kister på øya (kryssene regnes med). Kister det ikke er plass til, ligger
+ * skjult og kommer fram når en annen er åpnet – nærmest leiren først. Er det for mange (gamle lagringer),
+ * skjules de som ligger lengst unna, og kryss det ikke er plass til, tas bort.
+ */
+function kistetak(spill, verden) {
+  const B = verden.bredde, st = verden.startIndeks;
+  const avst = (i) => Math.hypot(i % B - st % B, Math.floor(i / B) - Math.floor(st / B));
+  const synlige = [], skjulte = [];
+  spill.avdekket.forEach((v, i) => {
+    if (!v || spill.bygg.has(i) || grunnTing(spill, verden, i) !== 'kiste') return;
+    const s = spill.ting.get(i);
+    if (s?.borteTil === -1) return;
+    (s?.skjult ? skjulte : synlige).push(i);
+  });
+  if (synlige.length > MAKS_KISTER) {
+    const begynt = (i) => (spill.ting.get(i)?.igjen !== undefined || spill.ting.get(i)?.stykke ? 0 : 1);
+    synlige.sort((a, b) => begynt(a) - begynt(b) || avst(a) - avst(b) || a - b);
+    for (const i of synlige.splice(MAKS_KISTER)) spill.ting.set(i, { ...(spill.ting.get(i) ?? {}), skjult: true });
+  }
+  if (synlige.length + spill.kryss.size > MAKS_KISTER) {
+    const kryss = [...spill.kryss.entries()].sort((a, b) => a[1] - b[1]).map(([i]) => i);   // de man har gravd mest i, beholdes
+    while (synlige.length + spill.kryss.size > MAKS_KISTER && kryss.length) spill.kryss.delete(kryss.pop());
+  }
+  skjulte.sort((a, b) => avst(a) - avst(b) || a - b);
+  while (synlige.length + spill.kryss.size < MAKS_KISTER && skjulte.length) {
+    const i = skjulte.shift();
+    delete spill.ting.get(i).skjult;
+    synlige.push(i);
   }
 }
 
@@ -473,6 +517,7 @@ function kanskjeKiste(spill, verden, i) {
   if (grunnTing(spill, verden, i) === 'kiste') { spill.kisteTeller = 0; return; }
   spill.kisteTeller++;
   if (spill.kisteTeller < spill.nesteKiste || !kisteplass(spill, verden, i)) return;
+  if (kisteplasser(spill, verden) <= 0) return;   // fullt: kista kommer på en senere rute, når det er plass
   spill.kister.add(i);
   spill.kisteTeller = 0;
   spill.nesteKiste = lagTilfeldig(blandSeed(spill.seed, 'kiste', spill.kister.size)).heltall(...KISTE_HVER);
@@ -490,6 +535,8 @@ export function borst(spill, verden, i) {
     spill.avdekket[i] = 1;
     spill.stat.avdekket++;
     kanskjeKiste(spill, verden, i);
+    // Lå det en kiste under tåka, og øya er full? Da ligger den skjult til det blir plass.
+    if (grunnTing(spill, verden, i) === 'kiste' && kisteplasser(spill, verden) < 0) spill.ting.set(i, { ...(spill.ting.get(i) ?? {}), skjult: true });
     fyllOpp(spill, verden);
     h.push({ type: 'avdekket', i, nr, tall: nr + 1, ting: tingVed(spill, verden, i) });
   } else {
@@ -738,7 +785,8 @@ function kryssplass(spill, verden, i) {
 
 /** Legger ut nye skattekryss (seedet etter dagen). Gir rutene. */
 export function leggKryss(spill, verden, antall = KRYSS.perGang) {
-  antall = Math.min(antall, KRYSS.maks - spill.kryss.size);   // høyst KRYSS.maks kryss ute samtidig
+  // Høyst KRYSS.maks kryss ute samtidig, og aldri flere enn at kister og kryss til sammen blir MAKS_KISTER.
+  antall = Math.min(antall, KRYSS.maks - spill.kryss.size, kisteplasser(spill, verden));
   const r = lagTilfeldig(blandSeed(spill.seed, 'kryss', spill.dag));
   const ledige = [...spill.avdekket.keys()].filter((i) => kryssplass(spill, verden, i));
   const ut = [];

@@ -17,6 +17,7 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 3. **Skattekister åpnes med mattestykker** – liten kiste 1 stykke, stor 2, kjempekiste 3.
    **Ca. hver femte rute** man avdekker skjuler en kiste (4–6 ruter mellom hver, aldri i vannet), så det blir mye regning.
    Feil svar koster ingenting (prøv igjen), og hvert riktig svar spiller en bit av «Happy Birthday».
+   **Stykket hører til kista** (`stykkeFor`): det er det samme, med de samme svaralternativene, hver gang man åpner kista – helt til det er løst.
 4. **Skattene**: stjernestøv (3 mynter), sølv, gull og edelsteiner (topas, ametyst, smaragd, safir, rubin, diamant).
 5. **Butikken** (trykk på leiren eller 🏪): selg skatter og råvarer for mynter. Salgsraden viser regnestykket, for eksempel «4 × 20 = 80».
    Nederst i butikken velger man **farge på taket** på leiren. Den samme fargen brukes på **alle flaggene** på øya (leiren, telt, sirkustelt, tårn, borg, havn, seilbåt og landsbyer).

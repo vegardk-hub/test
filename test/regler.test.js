@@ -465,6 +465,30 @@ for (const tak of [2, 3, 4, 5, 10]) {
   sjekk(R.kisterPaaOya(sp, ve).length === kister.length - 1 && sp.mattestat.lost === k.antall, 'kista er borte, og stykkene telles i statistikken');
 }
 
+// Regnestykket på en kiste er det samme til det er løst
+{
+  const sp = R.nyttSpill({ navn: 'Fast' }, 33);
+  const ve = R.lagVerden(sp);
+  sp.avdekket.fill(1);
+  const kiste = R.kisterPaaOya(sp, ve).find((i) => R.tingVed(sp, ve, i).antall >= 2);
+  const forste = R.stykkeFor(sp, ve, kiste);
+  let like = true;
+  for (let n = 0; n < 30; n++) { const o = R.stykkeFor(sp, ve, kiste); if (o.tekst !== forste.tekst || o.valg.join() !== forste.valg.join()) like = false; }
+  sjekk(like, `samme stykke og samme svaralternativer hver gang kista åpnes (${forste.tekst})`);
+  const lagret = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
+  sjekk(R.stykkeFor(lagret, ve, kiste).tekst === forste.tekst, 'stykket huskes ved lagring');
+  R.svarKiste(sp, ve, kiste, { riktig: false, forsteForsok: true, art: forste.art });
+  sjekk(R.stykkeFor(sp, ve, kiste).bommet === true && R.stykkeFor(sp, ve, kiste).tekst === forste.tekst, 'et feil svar huskes, og stykket står');
+  R.svarKiste(sp, ve, kiste, { riktig: true, forsteForsok: false, art: forste.art });
+  const neste = R.stykkeFor(sp, ve, kiste);
+  sjekk(neste && neste.bommet === false && sp.ting.get(kiste).stykke === neste, 'når stykket er løst, lages det neste (og blir stående)');
+  // Foreldrene bytter til bare pluss: stykket byttes til et som passer
+  sp.foreldre = M.medStandard({ pluss: { paa: true, tak: 5 }, gange: { paa: false } });
+  sjekk(R.stykkeFor(sp, ve, kiste).art === 'pluss', 'nye foreldreinnstillinger gir et stykke som passer');
+  const annen = R.kisterPaaOya(sp, ve).find((i) => i !== kiste);
+  sjekk(R.stykkeFor(sp, ve, annen) !== R.stykkeFor(sp, ve, kiste), 'hver kiste har sitt eget stykke');
+}
+
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));
 sjekk(bareGange.art === 'gange' && [bareGange.a, bareGange.b].every((x) => x <= 2 || x === 10), 'bare ganging når bare ganging er valgt');
 

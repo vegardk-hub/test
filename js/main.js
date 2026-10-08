@@ -679,11 +679,13 @@ function tegnPrikker(ctx, S, H, n, gjort, medTall) {
 // ---------------------------------------------------------------------------
 function nyttStykke() {
   const n = t.naer;
-  const o = M.lagOppgave(innst(), t.forrigeStykke);
+  // Stykket hører til kista: det er det samme hver gang man åpner den, til det er løst.
+  const o = R.stykkeFor(t.spill, t.verden, n.i, t.forrigeStykke);
+  lagreSnart();
   t.forrigeStykke = o.tekst;
   n.oppgave = o;
   n.innTastet = '';
-  n.bommet = false;
+  n.bommet = o.bommet;
   $('matte-stykke').textContent = `${o.tekst} =`;
   $('matte-melding').textContent = '';
   $('matte-melding').className = 'matte-melding';
@@ -691,7 +693,7 @@ function nyttStykke() {
   $('matte-valg').hidden = !velg;
   $('matte-tast').hidden = velg;
   if (velg) {
-    $('matte-valg').innerHTML = M.alternativer(o).map((v) => `<button type="button" class="svarvalg" data-v="${v}">${v}</button>`).join('');
+    $('matte-valg').innerHTML = o.valg.map((v) => `<button type="button" class="svarvalg" data-v="${v}">${v}</button>`).join('');
     $('matte-valg').querySelectorAll('button').forEach((b) => {
       b.addEventListener('pointerdown', (e) => { e.preventDefault(); L.vekk(); svar(Number(b.dataset.v), b); });
     });

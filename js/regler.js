@@ -11,7 +11,7 @@ import {
   TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, MAKS_PER_TYPE, SPAWN, HJELPER, HJELPERE, SKOLE, OPPFINNELSER,
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
-import { medStandard } from './matte.js';
+import { medStandard, lagOppgave, alternativer, TEGN } from './matte.js';
 import { TEKSTER } from './data/kunnskap.js';
 import { blandSeed, lagTilfeldig } from './rng.js';
 
@@ -316,6 +316,24 @@ export function kisterPaaOya(spill, verden) {
 }
 
 /**
+ * Regnestykket som står på kista nå. Det lages første gang kista åpnes og blir stående
+ * (med de samme svaralternativene) til det er løst – også om man går ut og inn igjen.
+ * Endrer foreldrene innstillingene for regnestykker, lages et nytt som passer.
+ */
+export function stykkeFor(spill, verden, i, forrigeTekst = '') {
+  const ting = tingVed(spill, verden, i);
+  if (!ting || ting.type !== 'kiste') return null;
+  const s = spill.ting.get(i) ?? {};
+  const sig = Object.keys(TEGN).map((a) => `${spill.foreldre[a].paa ? 1 : 0}:${spill.foreldre[a].tak}`).join('|');
+  if (!s.stykke || s.stykke.sig !== sig) {
+    const o = lagOppgave(spill.foreldre, forrigeTekst);
+    s.stykke = { ...o, valg: alternativer(o), sig, bommet: false };
+    spill.ting.set(i, s);
+  }
+  return s.stykke;
+}
+
+/**
  * Svar på et mattestykke ved en kiste. Feil svar koster ingenting (prøv igjen).
  * Riktig svar koster én solstråle; når alle stykkene er løst, åpnes kista.
  */
@@ -327,6 +345,8 @@ export function svarKiste(spill, verden, i, { riktig, forsteForsok, art, gratis 
   if (!riktig) {
     m.feil++;
     pa.feil++;
+    const st = spill.ting.get(i);
+    if (st?.stykke) st.stykke.bommet = true;   // huskes, så «riktig på første forsøk» ikke kan lures
     return [{ type: 'feilSvar' }];
   }
   if (!gratis && tomForSol(spill)) return [{ type: 'tomSol' }];
@@ -335,6 +355,7 @@ export function svarKiste(spill, verden, i, { riktig, forsteForsok, art, gratis 
   if (forsteForsok) { m.forste++; pa.forste++; }
   const s = spill.ting.get(i) ?? {};
   s.igjen = ting.igjen - 1;
+  delete s.stykke;   // løst: neste stykke (hvis kista har flere) lages når det trengs
   spill.ting.set(i, s);
   const h = [{ type: 'riktigSvar', ting, nr: ting.antall - ting.igjen, igjen: s.igjen }];
   if (s.igjen <= 0) { h.push(fullfor(spill, i, ting, s)); fyllOpp(spill, verden); }

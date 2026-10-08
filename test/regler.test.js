@@ -452,7 +452,7 @@ for (const tak of [2, 3, 4, 5, 10]) {
   sjekk(lagret.evigDag === true, 'valget huskes ved lagring');
 }
 
-// For mange kister: de telles, og i ryddeskjermen koster svarene ingen sol
+// Uåpnede kister telles, og uten sol får man ikke svart
 {
   const sp = R.nyttSpill({ navn: 'Rot' }, 33);
   const ve = R.lagVerden(sp);
@@ -460,11 +460,10 @@ for (const tak of [2, 3, 4, 5, 10]) {
   const kister = R.kisterPaaOya(sp, ve);
   sjekk(kister.length >= 5 && kister.every((i) => R.tingVed(sp, ve, i).type === 'kiste'), `teller uåpnede kister (${kister.length})`);
   sp.sol = 0;
-  sjekk(R.svarKiste(sp, ve, kister[0], { riktig: true, forsteForsok: true, art: 'gange' })[0].type === 'tomSol', 'vanlig: ingen svar uten sol');
+  sjekk(R.svarKiste(sp, ve, kister[0], { riktig: true, forsteForsok: true, art: 'gange' })[0].type === 'tomSol', 'ingen svar uten sol');
+  sp.evigDag = true;
   const k = R.tingVed(sp, ve, kister[0]);
-  let typer = [];
-  for (let n = 0; n < k.antall; n++) typer.push(...R.svarKiste(sp, ve, kister[0], { riktig: true, forsteForsok: true, art: 'gange', gratis: true }).map((h) => h.type));
-  sjekk(typer.includes('ferdig') && !typer.includes('kveld') && sp.sol === 0, 'i ryddeskjermen åpnes kista uten sol og uten at det blir kveld');
+  for (let n = 0; n < k.antall; n++) R.svarKiste(sp, ve, kister[0], { riktig: true, forsteForsok: true, art: 'gange' });
   sjekk(R.kisterPaaOya(sp, ve).length === kister.length - 1 && sp.mattestat.lost === k.antall, 'kista er borte, og stykkene telles i statistikken');
 }
 

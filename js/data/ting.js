@@ -261,12 +261,6 @@ export const HJELPERE = [
   { navn: 'Nils', farge: '#9b59d0' },
 ];
 
-/**
- * For mange kister: når det ligger `maks` uåpnede kister på øya, kommer ryddeskjermen,
- * og `fjern` av dem må åpnes (med regnestykker) før man får spille videre.
- */
-export const KISTETAK = { maks: 10, fjern: 5 };
-
 /** Stjerneskudd man kan fange per natt. */
 export const MAKS_STJERNER = 10;
 

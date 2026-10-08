@@ -355,25 +355,6 @@ body.neon .stat-rute small { color: #b9a6d6; }
 #natt-knapp.av { background: #fff3c4; border-color: var(--gullkant); box-shadow: 0 0 0 3px rgba(255, 210, 63, 0.45); }
 body.neon #natt-knapp.av { background: #3a2400; border-color: #ffd23f; }
 
-/* ---------- Ryddeskjermen: for mange kister ---------- */
-.rydd { position: fixed; inset: 0; z-index: 18; display: grid; place-items: center; background: rgba(5, 8, 15, 0.9); overflow-y: auto; padding: 12px; animation: inn 0.3s ease-out; }
-.rydd-boks {
-  position: relative; width: min(96vw, 760px); background: var(--panel); color: var(--tekst); border: 3px solid var(--gullkant);
-  border-radius: 22px; padding: 18px 20px 20px; text-align: center;
-}
-.rydd-boks h2 { margin: 0 34px 6px; font-size: 26px; }
-.rydd-boks p { margin: 0 0 10px; font-size: 19px; line-height: 1.35; }
-.rydd-teller { font-size: 20px; font-weight: 800; margin-bottom: 12px; }
-.rydd-teller .prikk { display: inline-block; width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--gullkant); margin: 0 3px; vertical-align: -4px; }
-.rydd-teller .prikk.full { background: #ffd23f; }
-.rydd-kister { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-.rydd-kiste { padding: 4px; border-radius: 16px; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 700; font-size: 14px; }
-.rydd-kiste canvas { width: 100%; aspect-ratio: 1; border-radius: 12px; display: block; }
-.rydd-kiste:active { transform: scale(0.96); }
-.rydd-voksen { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; min-height: 0; padding: 0; border-radius: 50%; font-size: 15px; opacity: 0.45; }
-@media (max-width: 560px) { .rydd-kister { grid-template-columns: repeat(3, 1fr); } }
-body.liten .rydd-boks h2 { font-size: 40px; }
-body.neon .rydd-teller .prikk.full { background: #ff2bd6; }
 
 /* ---------- Museet ---------- */
 #museum { position: fixed; inset: 0; z-index: 22; background: #0b0f14; animation: inn 0.35s ease-out; }

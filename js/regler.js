@@ -417,7 +417,7 @@ export function stykkeFor(spill, verden, i, forrigeTekst = '') {
  * Svar på et mattestykke ved en kiste. Feil svar koster ingenting (prøv igjen).
  * Riktig svar koster én solstråle; når alle stykkene er løst, åpnes kista.
  */
-export function svarKiste(spill, verden, i, { riktig, forsteForsok, art, gratis = false }) {
+export function svarKiste(spill, verden, i, { riktig, forsteForsok, art }) {
   const ting = tingVed(spill, verden, i);
   if (!ting || ting.type !== 'kiste' || !spill.avdekket[i]) return [];
   const m = spill.mattestat;
@@ -429,7 +429,7 @@ export function svarKiste(spill, verden, i, { riktig, forsteForsok, art, gratis 
     if (st?.stykke) st.stykke.bommet = true;   // huskes, så «riktig på første forsøk» ikke kan lures
     return [{ type: 'feilSvar' }];
   }
-  if (!gratis && tomForSol(spill)) return [{ type: 'tomSol' }];
+  if (tomForSol(spill)) return [{ type: 'tomSol' }];
   m.lost++;
   pa.lost++;
   if (forsteForsok) { m.forste++; pa.forste++; }
@@ -439,7 +439,7 @@ export function svarKiste(spill, verden, i, { riktig, forsteForsok, art, gratis 
   spill.ting.set(i, s);
   const h = [{ type: 'riktigSvar', ting, nr: ting.antall - ting.igjen, igjen: s.igjen }];
   if (s.igjen <= 0) { h.push(fullfor(spill, i, ting, s)); fyllOpp(spill, verden); }
-  if (!gratis) brukSol(spill, verden, h);   // i ryddeskjermen koster svarene ingen sol
+  brukSol(spill, verden, h);
   return h;
 }
 

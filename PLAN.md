@@ -96,13 +96,9 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Dyrene lever**: sauene beiter, puster, logrer og blunker. Hjorten løfter hodet og vipper med halen, og fiskene spreller.
 - Teknikk: kortet med det som står stille lagres som før, og bare det som beveger seg tegnes på nytt hver gang skjermen tegnes, og bare for ruter man ser.
 
-## Ryddeskjerm ved for mange kister (2026-10-08)
-- Når det ligger **10 uåpnede kister** på den avdekkede delen av øya (`KISTETAK`), kommer en ryddeskjerm over hele spillet:
-  «Det er for mange skatter på øya! De hindrer at det kommer nye ressurser …» med de ti nærmeste kistene.
-- **Fem kister må åpnes** (med regnestykker, som vanlig) før skjermen lukker seg. Svarene i ryddeskjermen bruker ingen sol, og feil svar koster ingenting.
-- Skjermen kommer så snart ingenting annet er oppe (etter at en rute er avdekket, en kiste er gravd fram, om morgenen, når spillet åpnes, og når et nærbilde lukkes).
-  Ligger det fortsatt ti eller flere kister igjen etterpå, kommer den tilbake.
-- Det lille 🔒-merket lar en voksen lukke skjermen med foreldrekoden.
+## Ryddeskjermen er fjernet (2026-10-08, v1.42)
+- Skjermen som kom når det lå ti uåpnede kister på øya (og krevde at fem ble åpnet), er tatt bort. Den trengs ikke nå som
+  metallene og edelsteinene i museet gir barna lyst til å åpne kister. Uåpnede kister blir bare liggende.
 
 ## Mer aktive hjelpere (2026-10-08)
 - Hver hjelper går **fire turer om dagen** (`HJELPER.turer`). Når alle er hjemme fra en tur, hviler de 2,5 sekunder og går ut igjen (`nesteRunde`).

@@ -113,6 +113,8 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     oppfinnelser: [],         // det Theo på skolen har funnet på (kan kjøpes i butikken)
     skoleTeller: 0,           // dager med skole siden forrige idé
     ideDag: null,             // dagen Theo sist fikk en idé (lyspæra vises den dagen)
+    evigDag: false,           // natta er skrudd av: ingen sol brukes, og det blir aldri kveld
+    dagTeller: 0,             // trykk siden forrige stille dag (bare når natta er av)
     kreativ: false,           // kreativmodus (foreldrekontroll): alle bygg er gratis
     hort: [],                 // kunnskapstekstene læreren har lest (så de ikke kommer igjen for tidlig)
     oyNr: 1,                  // øya man er på (1, 2, 3 …)
@@ -229,6 +231,36 @@ function gi(spill, gave) {
   for (const [v, n] of Object.entries(gave)) spill.forrad[v] = (spill.forrad[v] ?? 0) + n;
 }
 
+/** Er dagens sol brukt opp? Aldri når natta er skrudd av. */
+const tomForSol = (spill) => !spill.evigDag && spill.sol <= 0;
+
+/**
+ * Ett trykk er brukt. Vanligvis koster det én solstråle, og når sola er brukt opp, blir det kveld.
+ * Med natta skrudd av (evigDag) står sola stille og det blir aldri kveld – men dagene går
+ * videre i det stille for hvert SOL-ende trykk, så ting vokser fram igjen, hjelperne går ut,
+ * skattekryssene kommer og barnet på skolen får ideer.
+ */
+function brukSol(spill, verden, h) {
+  spill.stat.trykk++;
+  if (!spill.evigDag) {
+    spill.sol--;
+    if (spill.sol <= 0) h.push({ type: 'kveld' });
+    return;
+  }
+  spill.dagTeller = (spill.dagTeller ?? 0) + 1;
+  if (spill.dagTeller >= SOL[spill.nivaa]) {
+    spill.dagTeller = 0;
+    h.push({ ...nyDag(spill, verden)[0], stille: true });
+  }
+}
+
+/** Skrur natta av (alltid dag) eller på igjen. Sola blir full begge veier. */
+export function settEvigDag(spill, paa) {
+  spill.evigDag = !!paa;
+  spill.dagTeller = 0;
+  spill.sol = SOL[spill.nivaa];
+}
+
 /** Tingen er ferdig: gaven deles ut, ruta står tom til noe nytt vokser fram. */
 function fullfor(spill, i, ting, s) {
   const gave = ting.type === 'kiste'
@@ -253,16 +285,14 @@ export function trykkTing(spill, verden, i) {
   if (!spill.avdekket[i]) return [];
   const ting = tingVed(spill, verden, i);
   if (!ting || ting.type === 'kiste') return [];
-  if (spill.sol <= 0) return [{ type: 'tomSol' }];
+  if (tomForSol(spill)) return [{ type: 'tomSol' }];
   const nr = ting.antall - ting.igjen;
   const s = spill.ting.get(i) ?? {};
   s.igjen = ting.igjen - 1;
   spill.ting.set(i, s);
-  spill.sol--;
-  spill.stat.trykk++;
   const h = [{ type: 'tone', ting, nr, tall: nr + 1, frekvens: ting.toner[nr], igjen: s.igjen }];
   if (s.igjen <= 0) { h.push(fullfor(spill, i, ting, s)); fyllOpp(spill, verden); }
-  if (spill.sol <= 0) h.push({ type: 'kveld' });
+  brukSol(spill, verden, h);
   return h;
 }
 
@@ -280,18 +310,16 @@ export function svarKiste(spill, verden, i, { riktig, forsteForsok, art }) {
     pa.feil++;
     return [{ type: 'feilSvar' }];
   }
-  if (spill.sol <= 0) return [{ type: 'tomSol' }];
+  if (tomForSol(spill)) return [{ type: 'tomSol' }];
   m.lost++;
   pa.lost++;
   if (forsteForsok) { m.forste++; pa.forste++; }
   const s = spill.ting.get(i) ?? {};
   s.igjen = ting.igjen - 1;
   spill.ting.set(i, s);
-  spill.sol--;
-  spill.stat.trykk++;
   const h = [{ type: 'riktigSvar', ting, nr: ting.antall - ting.igjen, igjen: s.igjen }];
   if (s.igjen <= 0) { h.push(fullfor(spill, i, ting, s)); fyllOpp(spill, verden); }
-  if (spill.sol <= 0) h.push({ type: 'kveld' });
+  brukSol(spill, verden, h);
   return h;
 }
 
@@ -333,11 +361,9 @@ function kanskjeKiste(spill, verden, i) {
 /** Ett børstestrøk på tåka over rute i. */
 export function borst(spill, verden, i) {
   if (!kanBorstes(spill, verden, i)) return [];
-  if (spill.sol <= 0) return [{ type: 'tomSol' }];
+  if (tomForSol(spill)) return [{ type: 'tomSol' }];
   const igjen = (spill.take.get(i) ?? TAKE_TRYKK) - 1;
   const nr = TAKE_TRYKK - 1 - igjen;
-  spill.sol--;
-  spill.stat.trykk++;
   const h = [];
   if (igjen <= 0) {
     spill.take.delete(i);
@@ -350,7 +376,7 @@ export function borst(spill, verden, i) {
     spill.take.set(i, igjen);
     h.push({ type: 'borst', i, nr, tall: nr + 1, igjen });
   }
-  if (spill.sol <= 0) h.push({ type: 'kveld' });
+  brukSol(spill, verden, h);
   return h;
 }
 
@@ -580,10 +606,8 @@ export function leggKryss(spill, verden, antall = KRYSS.perGang) {
 /** Ett gravetrykk på et skattekryss. Etter GRAV_TRYKK trykk kommer det fram en kiste. */
 export function grav(spill, verden, i) {
   if (!spill.kryss.has(i)) return [];
-  if (spill.sol <= 0) return [{ type: 'tomSol' }];
+  if (tomForSol(spill)) return [{ type: 'tomSol' }];
   const igjen = spill.kryss.get(i) - 1;
-  spill.sol--;
-  spill.stat.trykk++;
   const h = [];
   if (igjen > 0) {
     spill.kryss.set(i, igjen);
@@ -596,7 +620,7 @@ export function grav(spill, verden, i) {
     spill.stat.gravd++;
     h.push({ type: 'kisteFunnet', i, tall: GRAV_TRYKK, ting: tingVed(spill, verden, i) });
   }
-  if (spill.sol <= 0) h.push({ type: 'kveld' });
+  brukSol(spill, verden, h);
   return h;
 }
 
@@ -708,7 +732,10 @@ export function nyDag(spill, verden) {
   // Annenhver natt (før dag 3, 5, 7 …) dukker det opp nye skattekryss.
   const kryss = (spill.dag - 1) % KRYSS.hverNatt === 0 ? leggKryss(spill, verden) : [];
   // Det hjelperne ikke rakk i går, gjøres ferdig før de får nye oppdrag.
-  for (const o of [...spill.oppdrag]) hjelperFerdig(spill, verden, o.h);
+  const etterslep = [];
+  for (const o of [...spill.oppdrag]) {
+    for (const e of hjelperFerdig(spill, verden, o.h)) if (e.type === 'hjelperHostet') etterslep.push(e.gave);
+  }
   const oppdrag = planleggOppdrag(spill, verden);
   // Barnet på skolen får en ny idé med 5–7 dagers mellomrom (bare på øya der skolen står).
   let ide = null;
@@ -716,7 +743,7 @@ export function nyDag(spill, verden) {
     spill.skoleTeller++;
     if (spill.skoleTeller >= ideIntervall(spill)) { spill.skoleTeller = 0; ide = nyIde(spill); }
   }
-  return [{ type: 'nyDag', dag: spill.dag, vokst, kryss, oppdrag, ide }];
+  return [{ type: 'nyDag', dag: spill.dag, vokst, kryss, oppdrag, ide, etterslep }];
 }
 
 /** Et stjerneskudd fanget om natta. */
@@ -782,6 +809,8 @@ export function fraData(d) {
     ideDag: d.ideDag ?? null,
     hort: d.hort ?? [],
     kreativ: d.kreativ ?? false,
+    evigDag: d.evigDag ?? false,
+    dagTeller: d.dagTeller ?? 0,
     oppdrag: (d.oppdrag ?? []).filter((o) => o.h < HJELPER.maks),
     kryss: new Map(d.kryss ?? []),
     gravd: new Set(d.gravd ?? []),

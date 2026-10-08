@@ -349,3 +349,7 @@ body.neon .kreativ small { color: #b9a6d6; }
 body.neon .stat-rute, body.neon .stat-arter { background: #22113d; color: #f6eaff; }
 body.neon .stat-arter th { background: #2e1752; }
 body.neon .stat-rute small { color: #b9a6d6; }
+
+/* ---------- Natt av/på ---------- */
+#natt-knapp.av { background: #fff3c4; border-color: var(--gullkant); box-shadow: 0 0 0 3px rgba(255, 210, 63, 0.45); }
+body.neon #natt-knapp.av { background: #3a2400; border-color: #ffd23f; }

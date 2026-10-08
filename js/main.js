@@ -159,7 +159,7 @@ function startSpill(id) {
   if (nye.length) setTimeout(() => velkommenHjelper(nye), 900);
   else if (spill.oppdrag.length) setTimeout(startTur, 1200);
   if (spill.stat.avdekket === 0) setTimeout(() => melding('Trykk på tåka for å børste den bort', { ikon: '👆☁️' }), 600);
-  if (spill.sol <= 0) setTimeout(startNatt, 500);
+  if (spill.sol <= 0 && !spill.evigDag) setTimeout(startNatt, 500);
 }
 
 let lagreTid = 0;
@@ -206,6 +206,7 @@ function midtAv(i) {
 }
 
 function behandle(hendelser, i) {
+  stilleNyDag(hendelser);
   for (const h of hendelser) {
     if (h.type === 'borst' || h.type === 'avdekket') {
       L.INSTRUMENT.sus(L.SANG.take.toner[h.nr]);
@@ -234,6 +235,7 @@ function behandle(hendelser, i) {
 /** Graving på et skattekryss: fire trykk (1, 2, 3, 4), så spretter kista fram. */
 const GRAVETONER = [261.63, 329.63, 392.0, 523.25];
 function behandleGrav(hendelser, i) {
+  stilleNyDag(hendelser);
   const [kx, ky] = midtAv(i);
   for (const h of hendelser) {
     if (h.type === 'grav' || h.type === 'kisteFunnet') {
@@ -316,7 +318,9 @@ function trykkNaer(e) {
   }
   if (n.ting.type === 'kiste') return;   // kister åpnes med regnestykket under
   const def = TING[n.ting.type];
-  for (const h of R.trykkTing(t.spill, t.verden, n.i)) {
+  const hendelser = R.trykkTing(t.spill, t.verden, n.i);
+  stilleNyDag(hendelser);
+  for (const h of hendelser) {
     if (h.type === 'tone') {
       L.INSTRUMENT[def.instrument](h.frekvens);
       n.ting = { ...n.ting, igjen: h.igjen };
@@ -465,7 +469,7 @@ function seilAvsted(nr = null) {
 
 function lukkNaer() {
   if (!t.naer) return;
-  const kveld = t.naer.kveld || t.spill.sol <= 0;
+  const kveld = t.naer.kveld || (t.spill.sol <= 0 && !t.spill.evigDag);
   t.naer = null;
   $('naer').hidden = true;
   t.skitten = true;
@@ -639,6 +643,7 @@ function svar(verdi, knapp = null) {
   const o = n.oppgave;
   const riktig = verdi === o.fasit;
   const h = R.svarKiste(t.spill, t.verden, n.i, { riktig, forsteForsok: !n.bommet, art: o.art });
+  stilleNyDag(h);
   lagreSnart();
   if (!riktig) {
     // Ingen straff: samme stykke står, og man prøver igjen.
@@ -1177,8 +1182,12 @@ function tegnForeldre() {
 function oppdaterHud() {
   const s = t.spill;
   $('meny-knapp').textContent = s.avatar;
-  $('dag').textContent = liten() ? '' : `Dag ${s.dag}`;
-  $('sol-tall').textContent = liten() ? '' : `☀️ ${s.sol}`;
+  // Med natta skrudd av finnes det ingen dager eller solstråler å telle.
+  $('dag').textContent = liten() || s.evigDag ? '' : `Dag ${s.dag}`;
+  $('sol-tall').textContent = liten() || s.evigDag ? '' : `☀️ ${s.sol}`;
+  $('natt-knapp').textContent = s.evigDag ? '☀️' : '🌙';
+  $('natt-knapp').classList.toggle('av', !!s.evigDag);
+  $('natt-knapp').setAttribute('aria-label', s.evigDag ? 'Natta er av (alltid dag). Trykk for å skru den på.' : 'Natta er på. Trykk for å skru den av.');
   $('seil-knapp').hidden = !R.kanSeileTilbake(s);
 }
 
@@ -1195,7 +1204,8 @@ function tegnHimmel(tsek) {
   if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
   const ctx = c.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const maal = t.natt ? 1 : 1 - t.spill.sol / SOL[t.spill.nivaa];
+  // Med natta av står sola stille midt på himmelen.
+  const maal = t.natt ? 1 : t.spill.evigDag ? 0.45 : 1 - t.spill.sol / SOL[t.spill.nivaa];
   t.solVis += (maal - t.solVis) * 0.12;
   const f = t.solVis;
   if (neonPaa()) { tegnNeonHimmel(ctx, W, H, f, tsek); return; }
@@ -1284,6 +1294,41 @@ function tegnNeonHimmel(ctx, W, H, f, tsek) {
 // ---------------------------------------------------------------------------
 // Natta: stjerneskudd man kan fange, så ny dag
 // ---------------------------------------------------------------------------
+/** Knappen øverst: skrur natta av (alltid dag, ingen solstråler å bruke opp) eller på igjen. */
+function byttNatt() {
+  L.vekk();
+  const paa = !t.spill.evigDag;
+  R.settEvigDag(t.spill, paa);
+  L.INSTRUMENT.xylofon(paa ? 783.99 : 523.25);
+  melding(liten() ? (paa ? '☀️♾️' : '🌙')
+    : paa ? 'Natta er skrudd av. Nå er det alltid dag, og du kan trykke så mye du vil.'
+    : 'Natta er skrudd på igjen. Sola går ned når solstrålene er brukt opp.', { ikon: liten() ? '' : paa ? '☀️' : '🌙' });
+  oppdaterHud();
+  lagreSnart();
+  t.skitten = true;
+}
+
+/**
+ * Med natta av går dagene videre i det stille: det har vokst fram nye ting, hjelperne går ut,
+ * og det kan ha kommet skattekryss og en ny idé – uten nattskjerm.
+ */
+function stilleNyDag(hendelser) {
+  const h = hendelser.find((e) => e.type === 'nyDag');
+  if (!h) return;
+  // Det hjelperne ikke rakk forrige dag, kommer rett i forrådet.
+  if (t.tur) t.tur = null;
+  const [dx, dy] = dor();
+  for (const gave of h.etterslep) flyTil(gave, paaSkjerm(dx, dy));
+  if (h.ide) setTimeout(() => L.fanfare(2), 600);
+  if (h.oppdrag.length) setTimeout(startTur, 900);
+  if (h.kryss.length) {
+    melding(liten() ? '✖️'.repeat(h.kryss.length) + ' 🎁'
+      : `Det har dukket opp ${h.kryss.length} skattekryss på øya. Trykk på dem for å grave fram kister!`, { ikon: liten() ? '' : '✖️🎁' });
+  }
+  oppdaterHud();
+  t.skitten = true;
+}
+
 function startNatt() {
   if (t.natt || !t.spill || t.seiler) return;
   if (t.naer) { t.naer.kveld = false; lukkNaer(); }
@@ -1876,7 +1921,8 @@ function start() {
   $('morgen').onclick = godMorgen;
 
   $('meny-knapp').onclick = aapneMeny;
-  $('sangbok-knapp').onclick = aapneSangbok;
+  $('natt-knapp').onclick = byttNatt;
+  $('meny-sangbok').onclick = () => { $('meny').close(); aapneSangbok(); };
   $('butikk-knapp').onclick = () => aapneButikk();
   $('seil-knapp').onclick = aapneSjokart;
   $('laerer-igjen').onclick = () => { L.vekk(); lesFortelling(); };

@@ -406,6 +406,33 @@ for (const tak of [2, 3, 4, 5, 10]) {
   sjekk(n === 3, `gamle lagringer får tre av hver type (${n} stein)`);
 }
 
+// Natta skrudd av: ingen sol brukes, det blir aldri kveld, og dagene går videre i det stille
+{
+  const sp = R.nyttSpill({ navn: 'Dag', nivaa: 'stor' }, 41);
+  const ve = R.lagVerden(sp);
+  sp.avdekket.fill(1);
+  R.fyllOpp(sp, ve);
+  R.settEvigDag(sp, true);
+  const sol = sp.sol, dag = sp.dag;
+  const typer = new Set();
+  let trykk = 0;
+  // Trykk gjennom alt som finnes, mange ganger (også store ting på over 40 trykk)
+  for (let runde = 0; runde < 400 && trykk < 175; runde++) {
+    const i = [...sp.avdekket.keys()].find((x) => { const tg = R.tingVed(sp, ve, x); return tg && tg.type !== 'kiste'; });
+    if (i === undefined) break;
+    for (const h of R.trykkTing(sp, ve, i)) typer.add(h.type);
+    trykk++;
+  }
+  sjekk(trykk === 175, `kan trykke så mye man vil (${trykk} trykk)`);
+  sjekk(sp.sol === sol && !typer.has('kveld') && !typer.has('tomSol'), 'ingen sol brukes, og det blir aldri kveld');
+  sjekk(typer.has('nyDag') && sp.dag === dag + 3, `en ny dag i det stille for hvert 50. trykk (dag ${sp.dag})`);
+  // En stor ting kan trykkes ferdig i ett strekk
+  R.settEvigDag(sp, false);
+  sjekk(sp.sol === SOL.stor && !sp.evigDag, 'natta kan skrus på igjen, med full sol');
+  const lagret = R.fraData(JSON.parse(JSON.stringify(R.tilData({ ...sp, evigDag: true }))));
+  sjekk(lagret.evigDag === true, 'valget huskes ved lagring');
+}
+
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));
 sjekk(bareGange.art === 'gange' && [bareGange.a, bareGange.b].every((x) => x <= 2 || x === 10), 'bare ganging når bare ganging er valgt');
 

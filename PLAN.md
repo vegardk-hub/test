@@ -94,6 +94,13 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Dyrene lever**: sauene beiter, puster, logrer og blunker. Hjorten løfter hodet og vipper med halen, og fiskene spreller.
 - Teknikk: kortet med det som står stille lagres som før, og bare det som beveger seg tegnes på nytt hver gang skjermen tegnes, og bare for ruter man ser.
 
+## Natt av og på (2026-10-08)
+- Knappen øverst til høyre (der sangboka sto) skrur **natta av og på**: 🌙 = natta er på (som før), ☀️ = natta er av.
+- **Med natta av** (`spill.evigDag`) brukes det ingen solstråler, det blir aldri kveld, og sola står stille midt på himmelen. «Dag N» og soltallet skjules.
+  Dagene går likevel videre **i det stille** for hvert 50. trykk (70 for 🐣), uten nattskjerm: ting vokser fram igjen, hjelperne går ut, skattekryssene kommer og barnet på skolen får ideer.
+  «🌙 Legg deg nå» i menyen virker fortsatt, for den som vil fange stjerneskudd.
+- **Sangboka** ligger nå i menyen («🎵 Sangboka»).
+
 ## Tak på kryss og ressurser (2026-10-07)
 - Høyst **10 skattekryss** ute samtidig (`KRYSS.maks`). Nye kryss kommer bare når det er plass.
 - Høyst **3 klikkbare ting av hver type** (tre, stein, jern, korn, sau, fisk) samtidig (`MAKS_PER_TYPE`, `fyllOpp` i `regler.js`).

@@ -14,7 +14,7 @@ import { tegnMenneske, tegnFigur } from './figurer.js';
 import { tegnTomtKort } from './stil/ruter.js';
 import { PYNT, LIV, tegnBygg, ivrig } from './stil/pynt.js';
 import { poly, fasett } from './stil/lavpoly.js';
-import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER, LAERER, HJELPER } from './data/ting.js';
+import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER, LAERER, HJELPER, KISTETAK } from './data/ting.js';
 import { EMNER } from './data/kunnskap.js';
 import * as Stemme from './stemme.js';
 import { spillSeiltur } from './seiltur.js';
@@ -38,6 +38,7 @@ const t = {
   vist: {},           // det forrådet viser (tingene teller først når de har fløyet ned)
   lukketVed: -Infinity, lukketNokkel: null,   // når og hvem sin snakkeboble som sist ble lukket
   tur: null,          // hjelpernes tur ut og hjem om morgenen
+  rydd: null,         // ryddeskjermen (for mange kister): { aapnet }
   laerer: null,       // læreren på skolen, som leser opp kunnskapstekster
   gutt: null,         // barnet på skolen (samme navn som spilleren), som går rundt og finner på ting
   velkomst: null,     // en ny hjelper som kommer ut og vinker
@@ -82,6 +83,8 @@ function visVelg() {
   t.id = null;
   t.spill = null;
   avbrytPlassering();
+  t.rydd = null;
+  $('rydd').hidden = true;
   settNeon(false);
   document.body.classList.remove('neon');
   $('spill').hidden = true;
@@ -158,6 +161,9 @@ function startSpill(id) {
   const nye = R.nyeHjelpere(spill);
   if (nye.length) setTimeout(() => velkommenHjelper(nye), 900);
   else if (spill.oppdrag.length || R.nesteRunde(spill, t.verden).length) setTimeout(startTur, 1200);
+  t.rydd = null;
+  $('rydd').hidden = true;
+  setTimeout(sjekkRydding, 2500);
   if (spill.stat.avdekket === 0) setTimeout(() => melding('Trykk på tåka for å børste den bort', { ikon: '👆☁️' }), 600);
   if (spill.sol <= 0 && !spill.evigDag) setTimeout(startNatt, 500);
 }
@@ -207,6 +213,7 @@ function midtAv(i) {
 
 function behandle(hendelser, i) {
   stilleNyDag(hendelser);
+  if (hendelser.some((h) => h.type === 'avdekket')) setTimeout(sjekkRydding, 1200);
   for (const h of hendelser) {
     if (h.type === 'borst' || h.type === 'avdekket') {
       L.INSTRUMENT.sus(L.SANG.take.toner[h.nr]);
@@ -236,6 +243,7 @@ function behandle(hendelser, i) {
 const GRAVETONER = [261.63, 329.63, 392.0, 523.25];
 function behandleGrav(hendelser, i) {
   stilleNyDag(hendelser);
+  if (hendelser.some((h) => h.type === 'kisteFunnet')) setTimeout(sjekkRydding, 1500);
   const [kx, ky] = midtAv(i);
   for (const h of hendelser) {
     if (h.type === 'grav' || h.type === 'kisteFunnet') {
@@ -345,6 +353,7 @@ function trykkNaer(e) {
 
 function ferdigNaer(n, h, r) {
   n.tFerdig = naa() / 1000;
+  if (t.rydd && n.ting.type === 'kiste') t.rydd.aapnet++;
   setTimeout(() => L.fanfare(n.ting.str + 1), 180);
   sprutNaer(n, n.S / 2, n.S * 0.55, 12 + n.ting.str * 8, 1.4);
   setTimeout(() => flyTil(h.gave, { x: r.left + r.width / 2, y: r.top + n.S / 2 }), 550);
@@ -473,7 +482,74 @@ function lukkNaer() {
   t.naer = null;
   $('naer').hidden = true;
   t.skitten = true;
+  if (t.rydd) { ryddVidere(); return; }
   if (kveld) setTimeout(startNatt, 400);
+  else sjekkRydding();
+}
+
+// ---------------------------------------------------------------------------
+// For mange kister: en ryddeskjerm der noen av kistene må åpnes før man får spille videre
+// ---------------------------------------------------------------------------
+let ryddTid = 0;
+
+/** Ligger det for mange uåpnede kister på øya? Da kommer ryddeskjermen (så snart ingenting annet er oppe). */
+function sjekkRydding() {
+  clearTimeout(ryddTid);
+  if (!t.spill || t.rydd) return;
+  if (R.kisterPaaOya(t.spill, t.verden).length < KISTETAK.maks) return;
+  const opptatt = t.naer || t.natt || t.seiler || t.plasser || document.querySelector('dialog[open]')
+    || (t.spill.sol <= 0 && !t.spill.evigDag);
+  if (opptatt) { ryddTid = setTimeout(sjekkRydding, 1500); return; }
+  t.rydd = { aapnet: 0 };
+  L.tomt();
+  tegnRydd();
+  $('rydd').hidden = false;
+}
+
+function tegnRydd() {
+  const kister = R.kisterPaaOya(t.spill, t.verden);
+  const igjen = Math.max(0, KISTETAK.fjern - t.rydd.aapnet);
+  $('rydd-tittel').textContent = liten() ? '🎁🎁🎁 ❗' : 'Det er for mange skatter på øya!';
+  $('rydd-tekst').textContent = liten() ? ''
+    : `De hindrer at det kommer nye ressurser. Noen må fjernes for at det skal komme flere. Åpne ${KISTETAK.fjern} av kistene for å spille videre.`;
+  $('rydd-teller').innerHTML = Array.from({ length: KISTETAK.fjern }, (_, k) => `<span class="prikk${k < t.rydd.aapnet ? ' full' : ''}"></span>`).join('')
+    + (liten() ? '' : ` ${igjen} igjen`);
+  const vis = kister.slice(0, KISTETAK.maks);
+  $('rydd-kister').innerHTML = vis.map((i) => {
+    const ting = R.tingVed(t.spill, t.verden, i);
+    return `<button class="rydd-kiste" data-kiste="${i}"><canvas></canvas>${liten() ? '' : `<span>${ting.igjen} ${ting.igjen === 1 ? 'stykke' : 'stykker'}</span>`}</button>`;
+  }).join('');
+  const dpr = Math.min(2, window.devicePixelRatio || 1), S = 130;
+  $('rydd-kister').querySelectorAll('[data-kiste]').forEach((b) => {
+    const i = Number(b.dataset.kiste), ting = R.tingVed(t.spill, t.verden, i);
+    const c = b.querySelector('canvas');
+    c.width = c.height = S * dpr;
+    const ctx = neonKontekst(c.getContext('2d'));
+    ctx.scale(dpr, dpr);
+    const terreng = R.TERRENGNAVN[t.verden.terreng[i]];
+    tegnTomtKort(ctx, S, lagTilfeldig(blandSeed(t.verden.seed, t.verden.forsok, 'kort', i)), terreng === 'vann' ? 'strand' : terreng,
+      () => tegnFigur(ctx, S, ting, { p: 1 - ting.igjen / ting.antall, t: 0 }));
+    glod(c, 0.5);
+    b.onclick = () => { L.vekk(); aapneNaer(i); };
+  });
+}
+
+/** Etter at en kiste i ryddeskjermen er lukket: er nok åpnet, kan man spille videre. */
+function ryddVidere() {
+  if (t.rydd.aapnet >= KISTETAK.fjern || !R.kisterPaaOya(t.spill, t.verden).length) { lukkRydd(); return; }
+  tegnRydd();
+}
+
+function lukkRydd(avVoksen = false) {
+  if (!t.rydd) return;
+  t.rydd = null;
+  $('rydd').hidden = true;
+  t.skitten = true;
+  lagreSnart();
+  if (!avVoksen) {
+    L.fanfare(3);
+    melding(liten() ? '👍🎉' : 'Bra jobbet! Nå er det plass til nye ressurser på øya.', { ikon: liten() ? '' : '🎉' });
+  }
 }
 
 function tegnNaer(tsek) {
@@ -642,7 +718,7 @@ function svar(verdi, knapp = null) {
   if (!n?.oppgave || n.tFerdig !== null || n.venter) return;
   const o = n.oppgave;
   const riktig = verdi === o.fasit;
-  const h = R.svarKiste(t.spill, t.verden, n.i, { riktig, forsteForsok: !n.bommet, art: o.art });
+  const h = R.svarKiste(t.spill, t.verden, n.i, { riktig, forsteForsok: !n.bommet, art: o.art, gratis: !!t.rydd });
   stilleNyDag(h);
   lagreSnart();
   if (!riktig) {
@@ -1372,6 +1448,7 @@ function godMorgen() {
     // Det personene gjør, får man vite ved å trykke på dem. Her er det bare lyd og lyspære.
     if (h.ide) setTimeout(() => L.fanfare(2), 2600);
     if (h.oppdrag.length) setTimeout(startTur, 1300);
+    setTimeout(sjekkRydding, 3200);
     oppdaterHud();
     lagreSnart();
     t.skitten = true;
@@ -1931,6 +2008,7 @@ function start() {
   $('meny-sangbok').onclick = () => { $('meny').close(); aapneSangbok(); };
   $('butikk-knapp').onclick = () => aapneButikk();
   $('seil-knapp').onclick = aapneSjokart;
+  $('rydd-voksen').onclick = () => aapnePort(() => lukkRydd(true));
   $('laerer-igjen').onclick = () => { L.vekk(); lesFortelling(); };
   $('laerer-ny').onclick = () => { L.vekk(); nyFortelling(); };
   $('laerer-lukk').onclick = lukkLaerer;

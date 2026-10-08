@@ -305,10 +305,21 @@ export function trykkTing(spill, verden, i) {
 }
 
 /**
+ * Uåpnede kister på den avdekkede delen av øya, de nærmeste leiren først.
+ */
+export function kisterPaaOya(spill, verden) {
+  const B = verden.bredde, st = verden.startIndeks;
+  const avst = (i) => Math.hypot(i % B - st % B, Math.floor(i / B) - Math.floor(st / B));
+  const ut = [];
+  spill.avdekket.forEach((v, i) => { if (v && tingVed(spill, verden, i)?.type === 'kiste') ut.push(i); });
+  return ut.sort((a, b) => avst(a) - avst(b) || a - b);
+}
+
+/**
  * Svar på et mattestykke ved en kiste. Feil svar koster ingenting (prøv igjen).
  * Riktig svar koster én solstråle; når alle stykkene er løst, åpnes kista.
  */
-export function svarKiste(spill, verden, i, { riktig, forsteForsok, art }) {
+export function svarKiste(spill, verden, i, { riktig, forsteForsok, art, gratis = false }) {
   const ting = tingVed(spill, verden, i);
   if (!ting || ting.type !== 'kiste' || !spill.avdekket[i]) return [];
   const m = spill.mattestat;
@@ -318,7 +329,7 @@ export function svarKiste(spill, verden, i, { riktig, forsteForsok, art }) {
     pa.feil++;
     return [{ type: 'feilSvar' }];
   }
-  if (tomForSol(spill)) return [{ type: 'tomSol' }];
+  if (!gratis && tomForSol(spill)) return [{ type: 'tomSol' }];
   m.lost++;
   pa.lost++;
   if (forsteForsok) { m.forste++; pa.forste++; }
@@ -327,7 +338,7 @@ export function svarKiste(spill, verden, i, { riktig, forsteForsok, art }) {
   spill.ting.set(i, s);
   const h = [{ type: 'riktigSvar', ting, nr: ting.antall - ting.igjen, igjen: s.igjen }];
   if (s.igjen <= 0) { h.push(fullfor(spill, i, ting, s)); fyllOpp(spill, verden); }
-  brukSol(spill, verden, h);
+  if (!gratis) brukSol(spill, verden, h);   // i ryddeskjermen koster svarene ingen sol
   return h;
 }
 

@@ -8,7 +8,7 @@
 import { genererVerden } from './kartgen.js';
 import { T } from './data/terreng.js';
 import {
-  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, MAKS_PER_TYPE, SPAWN, HJELPER, HJELPERE, SKOLE, OPPFINNELSER,
+  TING, VARER, UTBYTTE, KISTEGAVE, STYKKER, STR_SJANSE, SJANSE, GJENVEKST, TAKE_TRYKK, SOL, OY, BYGG_ETTER_ID, BYGG, HAVN, BAAT, OY_STIL, OY_NAVN, OY_IKON, KRYSS, GRAV_TRYKK, MAKS_STJERNER, MAKS_PER_TYPE, SPAWN, HJELPER, HJELPERE, SKOLE, MUSEUM, SKATTER, OPPFINNELSER,
 } from './data/ting.js';
 import { tonerFor } from './trykk/toner.js';
 import { medStandard, lagOppgave, alternativer, TEGN } from './matte.js';
@@ -119,6 +119,7 @@ export function nyttSpill({ navn, nivaa = 'stor', avatar = '🦊', foreldre = nu
     dagTeller: 0,             // trykk siden forrige stille dag (bare når natta er av)
     kreativ: false,           // kreativmodus (foreldrekontroll): alle bygg er gratis
     hort: [],                 // kunnskapstekstene læreren har lest (så de ikke kommer igjen for tidlig)
+    museum: {},               // skattene man har solgt: vare → antall (de står utstilt i museet)
     oyNr: 1,                  // øya man er på (1, 2, 3 …)
     oyFra: null,              // øya man fant denne fra (havna der man seilte ut)
     oyer: [],                 // de andre øyene man har vært på (pakket som data)
@@ -431,7 +432,10 @@ export function selg(spill, vare, antall = spill.forrad[vare] ?? 0) {
   spill.mynter += sum;
   spill.stat.solgt += n;
   spill.stat.tjent += sum;
-  return [{ type: 'solgt', vare, antall: n, pris: VARER[vare].pris, sum }];
+  // Skattene blir ikke borte: de havner i museet.
+  const tilMuseet = SKATTER.includes(vare);
+  if (tilMuseet) spill.museum[vare] = (spill.museum[vare] ?? 0) + n;
+  return [{ type: 'solgt', vare, antall: n, pris: VARER[vare].pris, sum, tilMuseet }];
 }
 
 /** Kan et bygg settes på rute i? Avdekket land, ikke leiren, og ingen ting eller bygg der. Havna må stå ved sjøen. */
@@ -480,6 +484,15 @@ export function skoleVed(spill) {
   for (const [i, id] of spill.bygg) if (id === SKOLE.id) return i;
   return -1;
 }
+
+/** Ruta der museet står på denne øya (eller −1). */
+export function museumVed(spill) {
+  for (const [i, id] of spill.bygg) if (id === MUSEUM.id) return i;
+  return -1;
+}
+
+/** Hvor mange skatter som står i museet i alt. */
+export const iMuseet = (spill) => Object.values(spill.museum ?? {}).reduce((a, b) => a + b, 0);
 
 /** Hvor mange dager det går til neste idé (5–7, seedet). Vises ikke – det skal være en overraskelse. */
 export function ideIntervall(spill) {
@@ -534,6 +547,7 @@ export function kjopOgPlasser(spill, verden, i, id) {
   if (!b || id === BAAT.id) return [];
   if (id === HAVN.id && !kanKjopeHavn(spill)) return [{ type: 'laast' }];
   if (id === SKOLE.id && skoleVed(spill) >= 0) return [{ type: 'laast' }];
+  if (id === MUSEUM.id && museumVed(spill) >= 0) return [{ type: 'laast' }];
   if (OPPFINNELSER.some((o) => o.id === id) && !harOppfinnelse(spill, id)) return [{ type: 'laast' }];
   const pris = prisFor(spill, id);
   if (spill.mynter < pris) return [{ type: 'forLiteMynter', mangler: pris - spill.mynter }];
@@ -867,6 +881,7 @@ export function fraData(d) {
     skoleTeller: d.skoleTeller ?? 0,
     ideDag: d.ideDag ?? null,
     hort: d.hort ?? [],
+    museum: d.museum ?? {},
     kreativ: d.kreativ ?? false,
     evigDag: d.evigDag ?? false,
     dagTeller: d.dagTeller ?? 0,

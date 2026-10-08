@@ -373,3 +373,19 @@ body.neon #natt-knapp.av { background: #3a2400; border-color: #ffd23f; }
 @media (max-width: 560px) { .rydd-kister { grid-template-columns: repeat(3, 1fr); } }
 body.liten .rydd-boks h2 { font-size: 40px; }
 body.neon .rydd-teller .prikk.full { background: #ff2bd6; }
+
+/* ---------- Museet ---------- */
+.museum { position: fixed; inset: 0; z-index: 22; background: #0b0f14; animation: inn 0.35s ease-out; }
+.museum canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.museum-knapp {
+  position: absolute; top: max(12px, env(safe-area-inset-top)); z-index: 2; background: rgba(20, 24, 46, 0.88); color: #fff1b8;
+  border-color: #c9a24a; font-weight: 700; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+.museum-knapp.venstre { left: max(12px, env(safe-area-inset-left)); }
+.museum-knapp.hoyre { right: max(12px, env(safe-area-inset-right)); }
+.museum-knapp:active { transform: scale(0.96); }
+body.liten .museum-knapp { font-size: 28px; }
+.byggkort.museum { border-color: #c9a24a; background: #fff8e1; }
+body.neon .byggkort.museum { background: #2a2208; border-color: #ffd23f; }
+.museum-hint { text-align: center; color: #6d6656; font-size: 15px; margin: 10px 0 0; }
+body.neon .museum-hint { color: #b9a6d6; }

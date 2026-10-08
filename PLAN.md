@@ -86,6 +86,7 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - `js/data/ting.js` – alle tall: ting, varer og priser, kisteinnhold, de 20 byggene
 - `js/stil/pynt.js` – tegningene av byggene · `js/ikoner.js` – ikonene for edelsteiner og barrer
 - `js/main.js` – skjermen (nærbilde, teller, regnepanel, butikk, foreldrekontroll)
+- `js/museum.js` – museumsrommet: 3D-edelsteiner, glassmontre og samlingstavla
 - Test: `node test/regler.test.js`
 
 ## Animasjoner (2026-10-06)
@@ -142,6 +143,25 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
 - **Seile tilbake** (2026-10-06): båten følger med fra øy til øy. Knappen ⛵ i toppen (og havna) åpner **sjøkartet** med alle øyene man har funnet.
   Derfra kan man seile tilbake når som helst, og alt er som man forlot det. Ting har vokst fram igjen mens man var borte, og man tar med seg forrådet og myntene.
   Hver havn kan finne **én** ny øy, så for å finne øy 3 må man sette opp alle 20 byggene og en havn på øy 2. Seiling til en kjent øy fyller ikke opp sola.
+
+## Museet (2026-10-08)
+- **Museum** er et nytt bygg som er **gratis** (`MUSEUM` i `ting.js`), ett per øy. Det står først i butikken.
+- **Skattene man selger** (stjernestøv, sølv, gull og edelsteinene) blir ikke borte: de telles i `spill.museum` (vare → antall).
+  Samlingen hører til spilleren og følger med fra øy til øy. Råvarer (tre, stein, korn …) havner ikke der.
+  Alt som selges fra og med v1.35 telles, også før museet er bygget. Det som ble solgt før, er det ingen oversikt over.
+- **Trykk på museet** for å gå inn i et rom med ni **glassmontre** på sokler (to rekker liggende, tre rekker stående). I hver monter
+  svever tingen over en dreieskive og **snurrer sakte** i lyset fra en lampe. Har man mange (3, 10, 25), ligger det flere små på skiva.
+  Tomme montre viser en mørk skygge og et spørsmålstegn.
+- **Trykk på en monter** for å se tingen stort, med navn og antall. **Trykk på tingen** der, så snurrer den fort og det spruter gnister.
+- Knappen **📖 Samlingen** viser alt samlet på en fløyelstavle med gullramme: hver ting, navnet og antallet, og summen nederst.
+- 🐣 Liten: ingen tekst. Messingskiltene viser antallet i stedet for navnet.
+- I **kreativmodus** vises alle tingene i montrene (også dem man ikke har solgt), så det er lett å se på dem. Antallet er det ekte.
+- Teknikk (`js/museum.js`): edelsteinene og klumpene er små **3D-former med flate fasetter** (brilliant, oval, smaragdslip, dråpe, sekskant,
+  krystallklynge og to klumper laget av en kule med kuler og søkk). Hver fasett får farge etter hvilken vei den vender mot lyset.
+  Edelsteinene tegnes med baksiden først og en halvt gjennomsiktig forside oppå, så det ser ut som lyset kastes rundt inni; fasetter
+  som treffer lyset, får et stjerneglimt. Diamanten har regnbuefarger («ild»). Stjernestøvet står i et glass med kork, med korn som virvler.
+  Rommet, soklene og glasset tegnes én gang i to lag (bak og foran tingene); bare tingene og lyset tegnes hver gang.
+  Brettet tegnes ikke mens museet er åpent.
 
 ## Mulige neste steg
 - Flere stiler for øy 3, 4 … (for eksempel is, godteri eller verdensrommet). Nå blir øy 3 og videre også neon.

@@ -108,6 +108,12 @@ export const BAAT = { id: 'havnbaat', navn: 'Havn med seilbåt', pris: 250 };
 export const SKOLE = { id: 'skole', navn: 'Skole', pris: 500, dager: [5, 7] };
 export const OPPFINNER = { farge: '#ffd23f' };   // navnet er spillerens eget
 
+/**
+ * Museet: et gratis bygg (ett per øy). Skattene man selger i butikken (sølv, gull, edelsteiner
+ * og stjernestøv), blir ikke borte: de stilles ut i museet, og samlingen følger spilleren fra øy til øy.
+ */
+export const MUSEUM = { id: 'museum', navn: 'Museum', pris: 0 };
+
 /** Læreren på skolen leser opp kunnskapstekster (de samme som i Lesestjerna). */
 export const LAERER = { navn: 'Frida', farge: '#25b86a' };
 
@@ -127,7 +133,7 @@ export const OPPFINNELSER = [
   { id: 'ufo',              navn: 'Flygende tallerken', pris: 200, tekst: 'en flygende tallerken som henter en ku' },
 ];
 
-export const BYGG_ETTER_ID = Object.fromEntries([...BYGG, HAVN, BAAT, SKOLE, ...OPPFINNELSER].map((b) => [b.id, b]));
+export const BYGG_ETTER_ID = Object.fromEntries([...BYGG, HAVN, BAAT, SKOLE, MUSEUM, ...OPPFINNELSER].map((b) => [b.id, b]));
 
 /** Stilen på øy nummer 1, 2, 3 … (den siste brukes videre). */
 export const OY_STIL = ['vanlig', 'neon'];

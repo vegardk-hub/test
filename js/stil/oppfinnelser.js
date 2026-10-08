@@ -76,7 +76,53 @@ const GODTERI = ['#e0393e', '#ffd23f', '#25b86a', '#3a74d8', '#f06aa8', '#f39a2b
 // ---------------------------------------------------------------------------
 const SKOLE_TAARN = (S) => iso(S * 0.48, S * 0.72)(0, 0, S * 0.2 + S * 0.13);
 
+// Museet: midten av gavlen (der edelsteinen sitter) og toppen av mønet foran.
+const MUSEUM_P = (S) => iso(S * 0.52, S * 0.62);
+const MUSEUM_STEIN = (S) => MUSEUM_P(S)(0, S * 0.17, S * 0.271);
+const MUSEUM_MONE = (S) => MUSEUM_P(S)(0, S * 0.17, S * 0.335);
+
 const PYNT_O = {
+  // Et lite tempel i lys stein med søyler, kobbertak og en edelstein i gavlen.
+  museum(ctx, S) {
+    const ax = S * 0.52, ay = S * 0.62, tr = S * 0.025;
+    const W = S * 0.21, D = S * 0.15, h = S * 0.2, e = S * 0.035, r = S * 0.1, o = S * 0.02;
+    skygge(ctx, ax + S * 0.03, ay + S * 0.12, S * 0.42, S * 0.11);
+    // Trappa: to trinn
+    kasse(ctx, ax, ay + tr * 2, W * 2 + S * 0.1, D * 2 + S * 0.1, tr, { topp: '#e9e2d2', venstre: '#d8cfbc', hoyre: '#b3aa98' });
+    kasse(ctx, ax, ay + tr, W * 2 + S * 0.05, D * 2 + S * 0.05, tr, { topp: '#f1ebdd', venstre: '#e2d9c6', hoyre: '#bdb4a2' });
+    const p = MUSEUM_P(S);
+    // Høyre vegg med pilastre
+    poly(ctx, [p(W, -D, 0), p(W, D, 0), p(W, D, h), p(W, -D, h)], '#c4bba8');
+    for (const u of [0.2, 0.5, 0.8]) {
+      const y = -D + u * 2 * D, c = S * 0.012;
+      poly(ctx, [p(W, y - c, 0), p(W, y + c, 0), p(W, y + c, h), p(W, y - c, h)], '#d6cebc');
+    }
+    // Forsiden: en mørk søylehall med lys i døra
+    poly(ctx, [p(-W, D, 0), p(W, D, 0), p(W, D, h), p(-W, D, h)], '#4a4258');
+    const fr = (u, z) => p(-W + u * 2 * W, D, z);
+    poly(ctx, [fr(0.4, 0), fr(0.6, 0), fr(0.6, h * 0.74), fr(0.5, h * 0.88), fr(0.4, h * 0.74)], '#ffd98a');
+    for (const u of [0.06, 0.34, 0.66, 0.94]) {
+      const c = 0.045;
+      poly(ctx, [fr(u - c, 0), fr(u + c, 0), fr(u + c, h), fr(u - c, h)], '#f6f1e6');
+      poly(ctx, [fr(u + c * 0.3, 0), fr(u + c, 0), fr(u + c, h), fr(u + c * 0.3, h)], '#dcd4c2');
+      poly(ctx, [fr(u - c * 1.35, h * 0.9), fr(u + c * 1.35, h * 0.9), fr(u + c * 1.35, h), fr(u - c * 1.35, h)], '#fffaf0');
+      poly(ctx, [fr(u - c * 1.35, 0), fr(u + c * 1.35, 0), fr(u + c * 1.35, h * 0.07), fr(u - c * 1.35, h * 0.07)], '#e9e2d2');
+    }
+    // Bjelken over søylene
+    poly(ctx, [p(W + o, -D - o, h), p(W + o, D + o, h), p(W + o, D + o, h + e), p(W + o, -D - o, h + e)], '#cfc6b4');
+    poly(ctx, [p(-W - o, D + o, h), p(W + o, D + o, h), p(W + o, D + o, h + e), p(-W - o, D + o, h + e)], '#fbf7ee');
+    // Taket (irret kobber) og gavlen
+    poly(ctx, [p(-W - o, D + o, h + e), p(-W - o, -D - o, h + e), p(0, -D - o, h + e + r), p(0, D + o, h + e + r)], '#63bfae');
+    poly(ctx, [p(0, D + o, h + e + r), p(W + o, D + o, h + e), p(W + o, -D - o, h + e), p(0, -D - o, h + e + r)], '#3f9c8c');
+    poly(ctx, [p(-W - o, D + o, h + e), p(W + o, D + o, h + e), p(0, D + o, h + e + r)], '#f1eadb');
+    poly(ctx, [p(-W * 0.72, D + o, h + e * 1.25), p(W * 0.72, D + o, h + e * 1.25), p(0, D + o, h + e + r * 0.8)], '#ddd3bf');
+    strek(ctx, [p(0, D + o, h + e + r), p(0, -D - o, h + e + r)], '#8fdccd', S * 0.012);
+    // Edelsteinen i gavlen
+    const [gx, gy] = MUSEUM_STEIN(S), g = S * 0.034;
+    poly(ctx, [[gx - g, gy - g * 0.25], [gx - g * 0.5, gy - g * 0.8], [gx + g * 0.5, gy - g * 0.8], [gx + g, gy - g * 0.25], [gx, gy + g]], '#2fb4f0');
+    poly(ctx, [[gx - g * 0.5, gy - g * 0.8], [gx + g * 0.5, gy - g * 0.8], [gx + g * 0.3, gy - g * 0.25], [gx - g * 0.3, gy - g * 0.25]], '#b8ecff');
+  },
+
   skole(ctx, S) {
     const x = S * 0.48, y = S * 0.72;
     skygge(ctx, x + S * 0.04, y + S * 0.03, S * 0.36, S * 0.1);
@@ -259,6 +305,19 @@ const PYNT_O = {
 const SKLIE = (S) => [[S * 0.3, S * 0.37], [S * 0.75, S * 0.42], [S * 0.2, S * 0.66], [S * 0.6, S * 0.8]];
 
 const LIV_O = {
+  museum(ctx, S, t, fest) {
+    const e = ekstra(fest);
+    flagg(ctx, ...MUSEUM_MONE(S), S * 0.15, t);
+    // Edelsteinen blinker, og det glitrer rundt inngangen.
+    const [gx, gy] = MUSEUM_STEIN(S);
+    glitter(ctx, gx - S * 0.012, gy - S * 0.012, S * (0.036 + 0.014 * Math.sin(t * 3 * e)), 0.6 + 0.4 * Math.sin(t * 2.2 * e));
+    const [dx, dy] = MUSEUM_P(S)(0, S * 0.15, S * 0.08);
+    for (let k = 0; k < 3; k++) {
+      const fase = t * 1.4 * e + k * 2.1;
+      glitter(ctx, dx + Math.sin(k * 5.3) * S * 0.07, dy - ((fase * 0.25) % 1) * S * 0.12, S * 0.022, Math.sin(((fase * 0.25) % 1) * Math.PI) * 0.9, '#ffe9a8');
+    }
+  },
+
   skole(ctx, S, t) {
     flagg(ctx, S * 0.84, S * 0.86, S * 0.32, t);
   },

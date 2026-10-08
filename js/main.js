@@ -14,10 +14,11 @@ import { tegnMenneske, tegnFigur } from './figurer.js';
 import { tegnTomtKort } from './stil/ruter.js';
 import { PYNT, LIV, tegnBygg, ivrig } from './stil/pynt.js';
 import { poly, fasett } from './stil/lavpoly.js';
-import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER, LAERER, HJELPER, KISTETAK } from './data/ting.js';
+import { TING, VARER, SKATTER, RAVARER, SOL, NIVAA, AVATARER, BYGG, BYGG_ETTER_ID, HAVN, BAAT, MAKS_STJERNER, SKOLE, OPPFINNELSER, OPPFINNER, LAERER, HJELPER, KISTETAK, MUSEUM } from './data/ting.js';
 import { EMNER } from './data/kunnskap.js';
 import * as Stemme from './stemme.js';
 import { spillSeiltur } from './seiltur.js';
+import * as Museum from './museum.js';
 import { settNeon, neonPaa, neonKontekst, glod } from './stil/neon.js';
 import { visVersjon } from './versjon.js';
 import { TAKFARGER, STANDARD_TAKFARGE, spillerfarge, settSpillerfarge } from './stil/spillerfarge.js';
@@ -39,6 +40,7 @@ const t = {
   lukketVed: -Infinity, lukketNokkel: null,   // når og hvem sin snakkeboble som sist ble lukket
   tur: null,          // hjelpernes tur ut og hjem om morgenen
   rydd: null,         // ryddeskjermen (for mange kister): { aapnet }
+  museum: null,       // museet er åpent: { modus: 'rom' | 'naer' | 'samling', vare, … }
   laerer: null,       // læreren på skolen, som leser opp kunnskapstekster
   gutt: null,         // barnet på skolen (samme navn som spilleren), som går rundt og finner på ting
   velkomst: null,     // en ny hjelper som kommer ut og vinker
@@ -85,6 +87,7 @@ function visVelg() {
   avbrytPlassering();
   t.rydd = null;
   $('rydd').hidden = true;
+  lukkMuseum();
   settNeon(false);
   document.body.classList.remove('neon');
   $('spill').hidden = true;
@@ -200,6 +203,7 @@ function trykkPaa(kx, ky) {
   }
   if (s.kryss.has(i)) { behandleGrav(R.grav(s, v, i), i); return; }
   if (i === v.startIndeks) { aapneButikk(); return; }
+  if (s.bygg.get(i) === MUSEUM.id) { aapneMuseum(); return; }
   if (s.bygg.has(i)) { aapneNaer(i, { pynt: R.pyntVed(s, i) }); return; }
   if (R.tingVed(s, v, i)) { aapneNaer(i); return; }
   const d = R.venterPaa(s, v, i);
@@ -882,12 +886,12 @@ function tegnButikk() {
           return `<div class="selgrad"><span class="vi">${ikon(v)}</span>
             <span class="vn">${liten() ? '' : `<b>${VARER[v].navn}</b><small>${n} × ${p} = ${n * p} 🪙</small>`}</span>
             <button data-selg="${v}">${liten() ? `${'🪙'.repeat(Math.min(3, Math.ceil(n * p / 20)))}` : `Selg for ${n * p} 🪙`}</button></div>`;
-        }).join('')}</div>`
+        }).join('')}</div>${museumHint()}`
       : `<p class="tom-tekst">${liten() ? '🌳 🪨 🎁' : 'Du har ingenting å selge ennå. Trykk på ting på øya og åpne kister!'}</p>`;
     $('butikk-selg').querySelectorAll('[data-selg]').forEach((b) => { b.onclick = () => selgVare([b.dataset.selg], b); });
     $('selg-skatter')?.addEventListener('click', (e) => selgVare(SKATTER.filter((v) => s.forrad[v] > 0), e.currentTarget));
   } else {
-    $('butikk-kjop').innerHTML = BYGG.map(kortFor).join('') + havnKort() + skoleKort() + oppfinnelseKort();
+    $('butikk-kjop').innerHTML = museumKort() + BYGG.map(kortFor).join('') + havnKort() + skoleKort() + oppfinnelseKort();
     $('butikk-kjop').querySelectorAll('[data-bygg]').forEach((b) => { b.onclick = () => velgBygg(b.dataset.bygg); });
   }
 }
@@ -902,6 +906,21 @@ function kortFor(b) {
   return `<button class="byggkort${kan ? '' : ' dyr'}" data-bygg="${b.id}">
     <img src="${byggBilde(b.id)}" alt=""><span class="bn">${esc(b.navn)}</span>
     <span class="bp">${prisTekst(pris)}</span>${!kan && !liten() ? `<span class="bm">mangler ${pris - s.mynter}</span>` : ''}</button>`;
+}
+
+/** Museet: gratis, ett per øy. Det står først i butikken. */
+function museumKort() {
+  const s = t.spill, staar = R.museumVed(s) >= 0;
+  return `<button class="byggkort museum${staar ? ' laast' : ''}" data-bygg="${MUSEUM.id}">
+    <img src="${byggBilde(MUSEUM.id)}" alt=""><span class="bn">🏛️ ${esc(MUSEUM.navn)}</span>
+    <span class="bp">${prisTekst(R.prisFor(s, MUSEUM.id))}</span><span class="bl">${staar ? (liten() ? '✔️' : '✔️ Står på øya') : (liten() ? '💎' : 'Her stilles skattene dine ut')}</span></button>`;
+}
+
+/** Under salgslista: skattene man selger, havner i museet. */
+function museumHint() {
+  if (liten()) return '';
+  return `<p class="museum-hint">🏛️ ${R.museumVed(t.spill) >= 0 ? 'Skattene du selger, blir stilt ut i museet.'
+    : 'Skattene du selger, blir tatt vare på. Bygg et museum (det er gratis), så får du se dem!'}</p>`;
 }
 
 /** Skolen: et spesielt bygg, ett per øy. */
@@ -984,6 +1003,12 @@ function velgBygg(id) {
     }
     return;
   }
+  if (id === MUSEUM.id && R.museumVed(t.spill) >= 0) {
+    rist($('butikk'));
+    L.tomt();
+    if (!liten()) melding('Museet står allerede på øya. Trykk på det for å gå inn.', { ikon: '🏛️' });
+    return;
+  }
   if (id === SKOLE.id && R.skoleVed(t.spill) >= 0) {
     rist($('butikk'));
     L.tomt();
@@ -1024,6 +1049,7 @@ function plasserHer(i) {
     }, 2200);
   }
   if (id === HAVN.id) setTimeout(() => melding(liten() ? '⛵❓' : 'Trykk på havna for å bygge en seilbåt.', { ikon: '⛵' }), 2200);
+  if (id === MUSEUM.id) setTimeout(() => melding(liten() ? '🏛️👆' : 'Trykk på museet for å gå inn og se skattene du har solgt.', { ikon: '🏛️' }), 2200);
   const nyeHjelpere = h.filter((e) => e.type === 'nyHjelper');
   if (nyeHjelpere.length) setTimeout(() => velkommenHjelper(nyeHjelpere), 2400);
   trekkVist('mynter', pris);
@@ -1208,6 +1234,7 @@ function statistikkHtml(s) {
       ${rute(`${sanger} / ${Object.keys(TING).length}`, 'sanger lært helt')}
       ${rute(`${s.oppfinnelser.length} / ${OPPFINNELSER.length}`, 'oppfinnelser fra skolen')}
       ${rute(tall(st.lyttet), 'tekster læreren har lest')}
+      ${rute(tall(R.iMuseet(s)), 'skatter i museet')}
       ${rute(tall(alleOyer), alleOyer === 1 ? 'øy' : 'øyer funnet')}
     </div></div>`;
 }
@@ -1935,6 +1962,96 @@ function lukkLaerer() {
   if ($('laerer').open) $('laerer').close();
 }
 
+// ---------------------------------------------------------------------------
+// Museet: skattene man har solgt, står utstilt i glassmontre (tegnes i museum.js)
+// ---------------------------------------------------------------------------
+const MUSEUMSTONER = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25, 783.99];
+
+function aapneMuseum() {
+  L.vekk();
+  t.museum = { modus: 'rom', fra: 'rom', vare: null, tilstand: Museum.nyTilstand(), treff: [], W: 0, H: 0, dpr: 1 };
+  $('museum').hidden = false;
+  tilpassMuseum();
+  oppdaterMuseumKnapper();
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, k) => setTimeout(() => L.INSTRUMENT.spilledaase(f), k * 130));
+}
+
+function tilpassMuseum() {
+  const m = t.museum, c = $('museum-lerret');
+  if (!m) return;
+  const r = $('museum').getBoundingClientRect();
+  m.W = Math.max(1, Math.round(r.width));
+  m.H = Math.max(1, Math.round(r.height));
+  m.dpr = Math.min(2, window.devicePixelRatio || 1);
+  c.width = Math.round(m.W * m.dpr);
+  c.height = Math.round(m.H * m.dpr);
+}
+
+function oppdaterMuseumKnapper() {
+  const m = t.museum;
+  $('museum-tilbake').textContent = liten() ? '⬅️' : m.modus === 'rom' ? '← Tilbake til øya' : '← Tilbake';
+  $('museum-samling').textContent = liten() ? '📖' : '📖 Samlingen';
+  $('museum-samling').hidden = m.modus !== 'rom';
+}
+
+function tegnMuseet(tsek) {
+  const m = t.museum, ctx = $('museum-lerret').getContext('2d');
+  ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
+  m.treff = Museum.tegn(ctx, m.W, m.H, tsek, m.tilstand, {
+    modus: m.modus, vare: m.vare, samling: t.spill.museum, liten: liten(), dpr: m.dpr,
+    alt: t.spill.kreativ,   // i kreativmodus vises alle tingene, også dem man ikke har solgt
+    tittel: liten() ? '' : t.spill.navn ? `${eierform(t.spill.navn)} museum` : 'Museum',
+  });
+}
+
+/** Trykk i museet: på en monter (eller en rute i samlingen) for å se tingen stort, og på tingen for å snurre den. */
+function trykkMuseum(e) {
+  const m = t.museum;
+  if (!m) return;
+  L.vekk();
+  const r = $('museum-lerret').getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  const hit = m.treff.find((o) => x >= o.x && x <= o.x + o.w && y >= o.y && y <= o.y + o.h);
+  if (m.modus === 'naer') {
+    if (!hit) { museumTilbake(); return; }
+    Museum.dytt(m.tilstand, hit.vare, x, y);
+    L.INSTRUMENT.spilledaase(MUSEUMSTONER[SKATTER.indexOf(hit.vare)] * 2);
+    setTimeout(() => L.INSTRUMENT.spilledaase(MUSEUMSTONER[SKATTER.indexOf(hit.vare)] * 3), 110);
+    return;
+  }
+  if (!hit) { if (m.modus === 'samling') museumTilbake(); return; }
+  m.fra = m.modus;
+  m.modus = 'naer';
+  m.vare = hit.vare;
+  L.INSTRUMENT.spilledaase(MUSEUMSTONER[SKATTER.indexOf(hit.vare)] * 2);
+  oppdaterMuseumKnapper();
+}
+
+function visSamling() {
+  if (!t.museum) return;
+  L.vekk();
+  t.museum.modus = 'samling';
+  L.INSTRUMENT.xylofon(659.25);
+  oppdaterMuseumKnapper();
+}
+
+/** Tilbake-knappen: fra nærbildet til der man kom fra, fra samlingen til rommet, og fra rommet ut på øya. */
+function museumTilbake() {
+  const m = t.museum;
+  if (!m) return;
+  L.vekk();
+  if (m.modus === 'rom') { lukkMuseum(); return; }
+  m.modus = m.modus === 'naer' ? m.fra : 'rom';
+  m.fra = 'rom';
+  oppdaterMuseumKnapper();
+}
+
+function lukkMuseum() {
+  t.museum = null;
+  $('museum').hidden = true;
+  t.skitten = true;
+}
+
 /** En eller flere nye hjelpere har kommet: de kommer ut av leiren og vinker. */
 function velkommenHjelper(nye) {
   if (!t.spill) return;
@@ -1966,7 +2083,8 @@ function tegnBrett(ms) {
 
 function sloyfe() {
   const ms = naa();
-  if (t.spill && !$('spill').hidden) {
+  if (t.museum) tegnMuseet(ms / 1000);
+  else if (t.spill && !$('spill').hidden) {
     tegnHimmel(ms / 1000);
     if (t.skitten || t.tur || t.velkomst || t.brett.harLiv || t.avdekkAnim.size || t.borstAnim.size || t.byggAnim.size || harEffekter()) tegnBrett(ms);
   }
@@ -1990,7 +2108,7 @@ function start() {
   neonKontekst($('lerret').getContext('2d'));
   neonKontekst($('naer-lerret').getContext('2d'));
   t.kamera = new Kamera($('lerret'), { vedTrykk: trykkPaa, vedEndring: () => { t.skitten = true; } });
-  addEventListener('resize', () => { if (t.spill) { t.kamera.tilpassLerret(); t.skitten = true; } });
+  addEventListener('resize', () => { if (t.spill) { t.kamera.tilpassLerret(); t.skitten = true; } tilpassMuseum(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && t.id && t.spill) Lagring.lagre(t.id, t.spill); });
 
   $('ny-spiller').onclick = aapneNySpiller;
@@ -2004,6 +2122,9 @@ function start() {
 
   $('natt-lerret').addEventListener('pointerdown', (e) => { e.preventDefault(); fangStjerne(e); });
   $('morgen').onclick = godMorgen;
+  $('museum-lerret').addEventListener('pointerdown', (e) => { e.preventDefault(); trykkMuseum(e); });
+  $('museum-tilbake').onclick = museumTilbake;
+  $('museum-samling').onclick = visSamling;
 
   $('meny-knapp').onclick = aapneMeny;
   $('natt-knapp').onclick = byttNatt;

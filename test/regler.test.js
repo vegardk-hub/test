@@ -68,6 +68,7 @@ s.forrad.rubin = 3;
 const solgt = R.selg(s, 'rubin');
 sjekk(solgt[0].sum === 3 * VARER.rubin.pris && s.mynter === 75 && s.forrad.rubin === 0, 'salg av rubiner');
 sjekk(R.selg(s, 'rubin').length === 0, 'kan ikke selge det man ikke har');
+sjekk(s.museum.rubin === 3 && solgt[0].tilMuseet === true, 'rubinene man selger, havner i museet');
 const tomRute = [...s.avdekket.keys()].find((j) => R.kanPlassere(s, v, j));
 sjekk(tomRute !== undefined, 'det finnes en ledig rute');
 sjekk(R.kjopOgPlasser(s, v, tomRute, 'borg')[0].type === 'forLiteMynter', 'for lite mynter til borgen');
@@ -487,6 +488,38 @@ for (const tak of [2, 3, 4, 5, 10]) {
   sjekk(R.stykkeFor(sp, ve, kiste).art === 'pluss', 'nye foreldreinnstillinger gir et stykke som passer');
   const annen = R.kisterPaaOya(sp, ve).find((i) => i !== kiste);
   sjekk(R.stykkeFor(sp, ve, annen) !== R.stykkeFor(sp, ve, kiste), 'hver kiste har sitt eget stykke');
+}
+
+// --- Museet: gratis, ett per øy, og samlingen følger spilleren -----------------
+{
+  const sp = R.nyttSpill({ navn: 'Tester' }, 12);
+  let ve = R.lagVerden(sp);
+  sp.avdekket.fill(1);
+  const ledig = () => [...sp.avdekket.keys()].find((x) => R.kanPlassere(sp, ve, x));
+  sjekk(R.museumVed(sp) < 0 && R.iMuseet(sp) === 0, 'ikke noe museum og ingen skatter ved start');
+  sjekk(R.prisFor(sp, 'museum') === 0 && R.kjopOgPlasser(sp, ve, ledig(), 'museum')[0].type === 'bygget' && sp.mynter === 0, 'museet er gratis');
+  sjekk(R.museumVed(sp) >= 0 && R.kjopOgPlasser(sp, ve, ledig(), 'museum')[0].type === 'laast', 'bare ett museum per øy');
+  sjekk(R.ulikeBygg(sp) === 0, 'museet teller ikke som ett av de 20 byggene');
+  Object.assign(sp.forrad, { gull: 3, diamant: 1, stov: 7, stein: 5 });
+  for (const vare of ['gull', 'diamant', 'stov', 'stein']) R.selg(sp, vare);
+  R.selg(sp, 'gull');
+  sp.forrad.gull = 2;
+  R.selg(sp, 'gull', 1);
+  sjekk(sp.museum.gull === 4 && sp.museum.diamant === 1 && sp.museum.stov === 7 && R.iMuseet(sp) === 12, `museet teller det som er solgt (${JSON.stringify(sp.museum)})`);
+  sjekk(sp.museum.stein === undefined, 'råvarer havner ikke i museet');
+  sjekk(sp.forrad.gull === 1, 'det man ikke har solgt, ligger fortsatt i forrådet');
+  const lagret = R.fraData(JSON.parse(JSON.stringify(R.tilData(sp))));
+  sjekk(lagret.museum.gull === 4 && R.iMuseet(lagret) === 12, 'samlingen huskes ved lagring');
+  const gammel = JSON.parse(JSON.stringify(R.tilData(sp)));
+  delete gammel.museum;
+  sjekk(R.iMuseet(R.fraData(gammel)) === 0, 'lagringer fra før museet får et tomt museum');
+  // Samlingen følger med til en ny øy (der det kan bygges et nytt museum)
+  sp.bygg.set(ledig(), 'havn');
+  sp.baat = true;
+  sjekk(R.seil(sp, 77)[0]?.type === 'seilt' && R.iMuseet(sp) === 12 && R.museumVed(sp) < 0, 'samlingen følger med til den nye øya');
+  ve = R.lagVerden(sp);
+  sp.avdekket.fill(1);
+  sjekk(R.kjopOgPlasser(sp, ve, ledig(), 'museum')[0].type === 'bygget', 'den nye øya kan få sitt eget museum');
 }
 
 const bareGange = M.lagOppgave(M.medStandard({ pluss: { paa: false }, gange: { paa: true, tak: 2 } }));

@@ -384,7 +384,6 @@ body.neon .rydd-teller .prikk.full { background: #ff2bd6; }
 .museum-knapp.venstre { left: max(12px, env(safe-area-inset-left)); }
 .museum-knapp.hoyre { right: max(12px, env(safe-area-inset-right)); }
 .museum-knapp:active { transform: scale(0.96); }
-body.liten .museum-knapp { font-size: 28px; }
 .byggkort.museum { border-color: #c9a24a; background: #fff8e1; }
 body.neon .byggkort.museum { background: #2a2208; border-color: #ffd23f; }
 .museum-hint { text-align: center; color: #6d6656; font-size: 15px; margin: 10px 0 0; }

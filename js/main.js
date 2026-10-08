@@ -1989,8 +1989,9 @@ function tilpassMuseum() {
 
 function oppdaterMuseumKnapper() {
   const m = t.museum;
-  $('museum-tilbake').textContent = liten() ? '⬅️' : m.modus === 'rom' ? '← Tilbake til øya' : '← Tilbake';
-  $('museum-samling').textContent = liten() ? '📖' : '📖 Samlingen';
+  // Museet har tekst også for 🐣 Liten (som øver seg på å lese).
+  $('museum-tilbake').textContent = m.modus === 'rom' ? '← Tilbake til øya' : '← Tilbake';
+  $('museum-samling').textContent = '📖 Samlingen';
   $('museum-samling').hidden = m.modus !== 'rom';
 }
 
@@ -1998,9 +1999,10 @@ function tegnMuseet(tsek) {
   const m = t.museum, ctx = $('museum-lerret').getContext('2d');
   ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
   m.treff = Museum.tegn(ctx, m.W, m.H, tsek, m.tilstand, {
-    modus: m.modus, vare: m.vare, samling: t.spill.museum, liten: liten(), dpr: m.dpr,
+    modus: m.modus, vare: m.vare, samling: t.spill.museum, dpr: m.dpr,
+    versaler: liten(),      // 🐣 Liten: navnene på steinene og metallene med store bokstaver
     alt: t.spill.kreativ,   // i kreativmodus vises alle tingene, også dem man ikke har solgt
-    tittel: liten() ? '' : t.spill.navn ? `${eierform(t.spill.navn)} museum` : 'Museum',
+    tittel: t.spill.navn ? `${eierform(t.spill.navn)} museum` : 'Museum',
   });
 }
 

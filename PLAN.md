@@ -154,7 +154,7 @@ Live: https://vegardk-hub.github.io/test/ · prøveark: `proveark.html` · bygge
   Tomme montre viser en mørk skygge og et spørsmålstegn.
 - **Trykk på en monter** for å se tingen stort, med navn og antall. **Trykk på tingen** der, så snurrer den fort og det spruter gnister.
 - Knappen **📖 Samlingen** viser alt samlet på en fløyelstavle med gullramme: hver ting, navnet og antallet, og summen nederst.
-- 🐣 Liten: ingen tekst. Messingskiltene viser antallet i stedet for navnet.
+- 🐣 Liten har også tekst i museet (barnet øver seg på å lese), og navnene på steinene og metallene står med STORE BOKSTAVER.
 - I **kreativmodus** vises alle tingene i montrene (også dem man ikke har solgt), så det er lett å se på dem. Antallet er det ekte.
 - Teknikk (`js/museum.js`): edelsteinene og klumpene er små **3D-former med flate fasetter** (brilliant, oval, smaragdslip, dråpe, sekskant,
   krystallklynge og to klumper laget av en kule med kuler og søkk). Hver fasett får farge etter hvilken vei den vender mot lyset.

@@ -744,8 +744,9 @@ function lagLerret(W, H, dpr) {
 }
 
 const synlig = (valg, vare) => !!valg.alt || (valg.samling[vare] ?? 0) > 0;
-// 🐣 Liten leser ikke: da står antallet på skiltet i stedet for navnet.
-const skilt = (valg, vare) => (valg.liten ? ((valg.samling[vare] ?? 0) > 0 ? String(valg.samling[vare]) : '') : stor(VARER[vare].navn));
+// Navnet på tingen. 🐣 Liten øver seg på å lese: da står navnet med store bokstaver.
+const navnPaa = (valg, vare) => (valg.versaler ? VARER[vare].navn.toUpperCase() : stor(VARER[vare].navn));
+const skilt = navnPaa;
 
 /** Alt som står stille tegnes én gang i to lag (bak og foran tingene), og lages på nytt når noe endrer seg. */
 function byggLag(W, H, valg, nokkel) {
@@ -771,7 +772,7 @@ function byggLag(W, H, valg, nokkel) {
 }
 
 function rom(ctx, W, H, t, st, valg, levende = true) {
-  const nokkel = [W, H, valg.dpr, valg.tittel, valg.liten, SKATTER.map((v) => `${synlig(valg, v) ? 1 : 0}${skilt(valg, v)}`).join(',')].join('|');
+  const nokkel = [W, H, valg.dpr, valg.tittel, valg.versaler, SKATTER.map((v) => `${synlig(valg, v) ? 1 : 0}${skilt(valg, v)}`).join(',')].join('|');
   if (st.lag?.nokkel !== nokkel) st.lag = byggLag(W, H, valg, nokkel);
   ctx.drawImage(st.lag.bak, 0, 0, W, H);
   if (!levende) return [];
@@ -806,15 +807,10 @@ function naerbilde(ctx, W, H, t, st, valg) {
   montreForan(ctx, m, { vis });
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  if (!valg.liten) {
-    ctx.fillStyle = gull(ctx, 0, y0 + 10, 0, y0 + 46);
-    skriv(ctx, stor(VARER[vare].navn), W / 2, y0 + 28, W - 30, Math.min(40, W * 0.09));
-    ctx.fillStyle = '#e9e2cf';
-    skriv(ctx, antall ? `I museet: ${antall}` : 'Tom monter. Det du selger i butikken, havner her.', W / 2, m.by + 40, W - 24, Math.min(24, W * 0.055), '600', SANS);
-  } else {
-    ctx.fillStyle = gull(ctx, 0, m.by + 16, 0, m.by + 62);
-    skriv(ctx, String(antall), W / 2, m.by + 40, W - 24, 44, '800', SANS);
-  }
+  ctx.fillStyle = gull(ctx, 0, y0 + 10, 0, y0 + 46);
+  skriv(ctx, navnPaa(valg, vare), W / 2, y0 + 28, W - 30, Math.min(40, W * 0.09));
+  ctx.fillStyle = '#e9e2cf';
+  skriv(ctx, antall ? `I museet: ${antall}` : 'Tom monter. Det du selger i butikken, havner her.', W / 2, m.by + 40, W - 24, Math.min(24, W * 0.055), '600', SANS);
   return [{ vare, x: m.cx - m.gw / 2, y: m.topp, w: m.gw, h: m.gy - m.topp }];
 }
 
@@ -846,11 +842,9 @@ function samlingen(ctx, W, H, t, st, valg) {
   ctx.stroke();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const topp = valg.liten ? 20 : 62, bunn = 58;
-  if (!valg.liten) {
-    ctx.fillStyle = gull(ctx, 0, py + 24, 0, py + 58);
-    skriv(ctx, 'Samlingen', W / 2, py + 44, pw - 60, Math.min(34, W * 0.075));
-  }
+  const topp = 62, bunn = 58;
+  ctx.fillStyle = gull(ctx, 0, py + 24, 0, py + 58);
+  skriv(ctx, 'Samlingen', W / 2, py + 44, pw - 60, Math.min(34, W * 0.075));
   // Rutene
   const kol = pw > ph * 1.25 ? 5 : 3, rader = Math.ceil(SKATTER.length / kol);
   const bw = (pw - 40) / kol, bh = (ph - topp - bunn - 16) / rader;
@@ -862,7 +856,7 @@ function samlingen(ctx, W, H, t, st, valg) {
     const antall = valg.samling[vare] ?? 0, vis = synlig(valg, vare);
     sum += antall;
     const s = Math.min(bw * 0.27, bh * 0.25);
-    const ty = y + bh * 0.36;
+    const ty = y + bh * 0.33;
     // Lys bak tingen og en liten pute den hviler over
     if (vis) {
       g = ctx.createRadialGradient(cx, ty, 0, cx, ty, s * 2.1);
@@ -873,13 +867,10 @@ function samlingen(ctx, W, H, t, st, valg) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.beginPath(); ctx.ellipse(cx, ty + s * 1.25, s * 0.8, s * 0.16, 0, 0, TAU); ctx.fill();
     tegnTing(ctx, vare, cx, ty + Math.sin(t * 1.3 + k) * s * 0.05, s, st.vinkel[vare], t, { skygget: !vis, antall });
-    const harNavn = !valg.liten;
-    if (harNavn) {
-      ctx.fillStyle = vis ? '#f1e6d0' : '#8f7f8a';
-      skriv(ctx, stor(VARER[vare].navn), cx, y + bh * 0.7, bw - 10, Math.min(19, bh * 0.1), '600', SANS);
-    }
+    ctx.fillStyle = vis ? '#f1e6d0' : '#8f7f8a';
+    skriv(ctx, navnPaa(valg, vare), cx, y + bh * 0.73, bw - 10, Math.min(19, bh * 0.1), '600', SANS);
     const tallPx = Math.min(44, bh * 0.2);
-    const tallY = y + bh * (harNavn ? 0.87 : 0.82);
+    const tallY = y + bh * 0.89;
     ctx.fillStyle = antall ? gull(ctx, 0, tallY - tallPx / 2, 0, tallY + tallPx / 2) : 'rgba(233, 201, 110, 0.3)';
     skriv(ctx, String(antall), cx, tallY, bw - 10, tallPx, '800', SANS);
     treff.push({ vare, x: cx - bw / 2, y, w: bw, h: bh });
@@ -887,7 +878,7 @@ function samlingen(ctx, W, H, t, st, valg) {
   // I alt
   const by = py + ph - bunn / 2 - 8;
   ctx.fillStyle = '#f1e6d0';
-  const tekst = valg.liten ? `💎 ${sum}` : sum ? `I alt ${sum} ${sum === 1 ? 'skatt' : 'skatter'} i museet`
+  const tekst = sum ? `I alt ${sum} ${sum === 1 ? 'skatt' : 'skatter'} i museet`
     : 'Museet er tomt ennå. Skattene du selger i butikken, havner her.';
   skriv(ctx, tekst, W / 2, by, pw - 50, Math.min(24, W * 0.05), '700', SANS);
   return treff;
@@ -913,7 +904,7 @@ export function dytt(st, vare, x, y) {
 
 /**
  * Tegner museet. valg = { modus: 'rom' | 'naer' | 'samling', vare, samling: { vare: antall },
- * tittel, liten, alt (vis alle tingene, også de man ikke har), dpr }.
+ * tittel, versaler (navnene med store bokstaver), alt (vis alle tingene, også de man ikke har), dpr }.
  * Gir tilbake det man kan trykke på: [{ vare, x, y, w, h }].
  */
 export function tegn(ctx, W, H, t, st, valg) {

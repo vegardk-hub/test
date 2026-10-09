@@ -1,0 +1,1 @@
+{"version":"0.0.1","configurations":[{"name":"oya","runtimeExecutable":"python","runtimeArgs":["-m","http.server","8124","--directory","C:/Vegard/Claude/test"],"port":8124}]}
